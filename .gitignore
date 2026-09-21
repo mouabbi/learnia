@@ -1,0 +1,34 @@
+# --- Frontend (Node/Vite) ---
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# --- Backend (Python/uv) ---
+backend/.venv/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+backend/.pytest_cache/
+backend/.ruff_cache/
+
+# --- Database (local SQLite file — never committed, recreated via Alembic) ---
+backend/*.db
+backend/*.db-journal
+
+# --- Env files ---
+.env
+frontend/.env
+backend/.env
+!.env.example
+!frontend/.env.example
+!backend/.env.example
+
+# --- Editors/OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+npm-debug.log*
