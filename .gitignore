@@ -11,11 +11,11 @@ backend/__pycache__/
 backend/.pytest_cache/
 backend/.ruff_cache/
 
-# --- Database (local SQLite file — never committed, recreated via Alembic) ---
+# --- Database (local SQLite file) ---
 backend/*.db
 backend/*.db-journal
 
-# --- Env files ---
+# --- Env files (secrets) ---
 .env
 frontend/.env
 backend/.env
