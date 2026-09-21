@@ -1,0 +1,46 @@
+[project]
+name = "learnia-backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "mouabbi", email = "medousouabbi@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.20.0",
+    "email-validator>=2.3.0",
+    "fastapi>=0.141.1",
+    "pwdlib[bcrypt]>=0.3.1",
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "sqlalchemy>=2.0.54",
+    "uvicorn[standard]>=0.53.0",
+]
+
+[project.scripts]
+learnia-backend = "learnia_backend:main"
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.8",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# B008: Ruff flags `Depends(...)` as a mutable-default-style bug, but it's
+# FastAPI's required dependency-injection pattern, not a bug — ignored project-wide.
+ignore = ["B008"]
+
+[tool.ruff.lint.extend-per-file-ignores]
+# Auto-generated migration files follow Alembic's own template, not ours —
+# don't lint them. env.py is hand-written (by us), so it stays linted normally.
+"alembic/versions/**" = ["E", "F", "I", "UP"]
