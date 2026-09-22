@@ -16,8 +16,15 @@ export function LoginPage() {
     setError(null)
     setIsSubmitting(true)
     try {
-      await login(email, password)
-      navigate('/')
+      const result = await login(email, password)
+      if (result.mfaRequired) {
+        // Password was correct; still needs a TOTP/recovery code (see
+        // MfaChallengePage). The ticket travels in route state, not the URL,
+        // so it never ends up in browser history or a shared link.
+        navigate('/mfa-challenge', { state: { mfaTicket: result.mfaTicket } })
+      } else {
+        navigate('/')
+      }
     } catch (err) {
       // ApiError.message comes straight from the backend's {"error":
       // {message}} shape (see api/client.js) — already the deliberately

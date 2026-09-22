@@ -18,6 +18,7 @@ function renderPage() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<p>home page</p>} />
         <Route path="/register" element={<p>register page</p>} />
+        <Route path="/mfa-challenge" element={<p>mfa challenge page</p>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -36,11 +37,18 @@ beforeEach(() => {
 
 describe('LoginPage', () => {
   it('submits the typed credentials and goes home', async () => {
-    login.mockResolvedValue({ id: 1 })
+    login.mockResolvedValue({ mfaRequired: false, user: { id: 1 } })
     renderPage()
     await fillAndSubmit()
     expect(login).toHaveBeenCalledWith('a@b.com', 'password123')
     expect(await screen.findByText('home page')).toBeInTheDocument()
+  })
+
+  it('goes to the MFA challenge instead of home when a second factor is required', async () => {
+    login.mockResolvedValue({ mfaRequired: true, mfaTicket: 'abc123' })
+    renderPage()
+    await fillAndSubmit()
+    expect(await screen.findByText('mfa challenge page')).toBeInTheDocument()
   })
 
   it('shows the backend error message on failure and stays on the page', async () => {

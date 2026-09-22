@@ -25,6 +25,13 @@ function renderAt(path) {
 beforeEach(() => vi.resetAllMocks())
 
 describe('ProtectedRoute', () => {
+  it('shows a loading skeleton instead of the page while checking auth', () => {
+    authApi.getMe.mockReturnValue(new Promise(() => {})) // never resolves
+    renderAt('/')
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument()
+    expect(screen.queryByText('home page')).not.toBeInTheDocument()
+  })
+
   it('shows the page when logged in', async () => {
     authApi.getMe.mockResolvedValue({ id: 1, email: 'a@b.com' })
     renderAt('/')
@@ -39,6 +46,13 @@ describe('ProtectedRoute', () => {
 })
 
 describe('PublicOnlyRoute', () => {
+  it('shows a loading skeleton instead of the page while checking auth', () => {
+    authApi.getMe.mockReturnValue(new Promise(() => {})) // never resolves
+    renderAt('/login')
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument()
+    expect(screen.queryByText('login page')).not.toBeInTheDocument()
+  })
+
   it('shows the login page when logged out', async () => {
     authApi.getMe.mockRejectedValue(new Error('401'))
     renderAt('/login')

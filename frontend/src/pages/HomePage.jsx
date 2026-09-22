@@ -1,23 +1,20 @@
 import { useState } from 'react'
 import { useAuth } from '../features/auth/AuthContext'
-import { ChangePasswordForm } from '../features/auth/ChangePasswordForm'
 import { authApi } from '../features/auth/authApi'
 import { ApiError } from '../api/client'
 
-// Protected (see App.jsx's <ProtectedRoute> wrapping this route) — only
-// reachable once /auth/me has confirmed a logged-in user.
+// Rendered inside AppLayout (see App.jsx) — only reachable once /auth/me
+// has confirmed a logged-in user. Navigation (settings, logout) lives in
+// the sidebar now, so this stays a plain landing spot.
 export function HomePage() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
+  const displayName = user.email.split('@')[0]
 
   return (
-    <section className="page">
-      <h1>Learnia</h1>
-      <p>Logged in as {user.email}</p>
+    <section className="content-card">
+      <h1>Hello, {displayName}</h1>
+      <p>Welcome back to Learnia.</p>
       {!user.email_verified && <VerifyEmailBanner />}
-      <button type="button" onClick={logout}>
-        Log out
-      </button>
-      <ChangePasswordForm />
     </section>
   )
 }

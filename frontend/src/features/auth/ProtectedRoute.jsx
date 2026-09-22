@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { createLogger } from '../../utils/logger'
+import { AppShellSkeleton } from '../../components/layout/AppShellSkeleton'
 
 const log = createLogger('route')
 
@@ -20,7 +21,7 @@ export function ProtectedRoute({ children }) {
 
   // Wait for the initial GET /auth/me to resolve before deciding — see
   // AuthContext's isLoading comment for why this check exists.
-  if (isLoading) return null
+  if (isLoading) return <AppShellSkeleton />
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
 
