@@ -1,7 +1,9 @@
 import { Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './features/auth/AuthContext'
+import { RouteLogger } from './components/RouteLogger'
 import { BackendGate } from './features/health/BackendGate'
 import { ProtectedRoute } from './features/auth/ProtectedRoute'
+import { PublicOnlyRoute } from './features/auth/PublicOnlyRoute'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -12,9 +14,24 @@ function App() {
   return (
     <BackendGate>
       <AuthProvider>
+        <RouteLogger />
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <LoginPage />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicOnlyRoute>
+                <RegisterPage />
+              </PublicOnlyRoute>
+            }
+          />
           <Route
             path="/"
             element={

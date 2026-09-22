@@ -11,7 +11,10 @@
  * variables prefixed VITE_ are exposed to the client bundle.
  */
 
+import { createLogger } from '../utils/logger'
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
+const log = createLogger('api')
 
 /**
  * Custom error class so callers can distinguish "the API returned an error
@@ -27,20 +30,36 @@ export class ApiError extends Error {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  })
+  const method = options.method ?? 'GET'
+  const started = performance.now()
+
+  let response
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    })
+  } catch (networkError) {
+    // fetch only throws when no response came back at all (server down, offline, CORS block).
+    log.error(`${method} ${path} -> network error`, networkError)
+    throw networkError
+  }
+
+  const ms = Math.round(performance.now() - started)
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)
     const error = body?.error
+    // Only method, path, status, timing and the error code are logged — never bodies.
+    log.warn(`${method} ${path} -> ${response.status} (${ms} ms)`, { code: error?.code })
     throw new ApiError(
       response.status,
       error?.code ?? 'UNKNOWN_ERROR',
       error?.message ?? 'Something went wrong',
     )
   }
+
+  log.info(`${method} ${path} -> ${response.status} (${ms} ms)`)
 
   // No content (e.g. 204 on delete) — nothing to parse.
   if (response.status === 204) return null

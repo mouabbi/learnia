@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchHealth } from './healthApi'
+import { createLogger } from '../../utils/logger'
+
+const log = createLogger('health')
 
 /**
  * Wraps the whole app: nothing (login, routes, auth check) renders until
@@ -12,8 +15,14 @@ export function BackendGate({ children }) {
 
   const check = useCallback(() => {
     fetchHealth()
-      .then(() => setStatus('ok'))
-      .catch(() => setStatus('down'))
+      .then(() => {
+        log.info('backend reachable')
+        setStatus('ok')
+      })
+      .catch(() => {
+        log.error('backend unreachable')
+        setStatus('down')
+      })
   }, [])
 
   // Initial state is already 'checking', so the first run needn't reset it

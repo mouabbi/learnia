@@ -27,6 +27,8 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
     "ruff>=0.16.8",
 ]
 
@@ -44,3 +46,7 @@ ignore = ["B008"]
 # Auto-generated migration files follow Alembic's own template, not ours —
 # don't lint them. env.py is hand-written (by us), so it stays linted normally.
 "alembic/versions/**" = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
