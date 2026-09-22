@@ -51,5 +51,16 @@ class Settings(BaseSettings):
     # Base URL of the frontend, used to build the links inside emails.
     frontend_base_url: str = "http://localhost:5173"
 
+    # --- MFA (TOTP, see mfa/) ---
+    # Fernet key encrypting stored TOTP secrets at rest (security/encryption.py).
+    # THIS DEFAULT IS FOR LOCAL DEV ONLY — generate your own for any real
+    # deployment: `python -c "from cryptography.fernet import Fernet;
+    # print(Fernet.generate_key().decode())"` and set it via .env, never commit it.
+    mfa_encryption_key: str = "t814kcFy-rwFY8sFcldjdMJGTcY2vh--9mfqJv9od4c="
+    mfa_issuer: str = "Learnia"
+    mfa_recovery_codes_count: int = 8
+    # How long a completed-password / pending-TOTP login stays valid.
+    mfa_login_ticket_ttl_minutes: int = 5
+
 
 settings = Settings()

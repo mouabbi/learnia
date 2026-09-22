@@ -68,3 +68,42 @@ class ResetPasswordRequest(BaseModel):
 
 class TokenRequest(BaseModel):
     token: str
+
+
+class LoginResult(BaseModel):
+    """
+    Response for POST /auth/login/password and /auth/login/mfa.
+    Exactly one of (`user`) or (`mfa_ticket`) is set, matched by
+    `mfa_required` — see AuthService.login()'s docstring.
+    """
+
+    mfa_required: bool
+    user: UserRead | None = None
+    mfa_ticket: str | None = None
+
+
+class MfaLoginRequest(BaseModel):
+    mfa_ticket: str
+    code: str
+
+
+class MfaEnrollResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+    qr_code_data_uri: str
+
+
+class MfaConfirmRequest(BaseModel):
+    code: str
+
+
+class MfaConfirmResponse(BaseModel):
+    recovery_codes: list[str]
+
+
+class MfaDisableRequest(BaseModel):
+    current_password: str
+
+
+class MfaStatusResponse(BaseModel):
+    enabled: bool

@@ -8,6 +8,13 @@ from learnia_backend.models.user import User
 from learnia_backend.schemas.auth import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
+    LoginResult,
+    MfaConfirmRequest,
+    MfaConfirmResponse,
+    MfaDisableRequest,
+    MfaEnrollResponse,
+    MfaLoginRequest,
+    MfaStatusResponse,
     PasswordLoginRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -16,6 +23,7 @@ from learnia_backend.schemas.auth import (
 )
 from learnia_backend.services.account_service import AccountService
 from learnia_backend.services.auth_service import AuthService
+from learnia_backend.services.mfa_service import MfaService
 
 
 def _client_ip(request: Request) -> str | None:
@@ -40,23 +48,37 @@ def register(
     )
 
 
-@router.post("/login/password", response_model=UserRead)
+@router.post("/login/password", response_model=LoginResult)
 def login_password(
     body: PasswordLoginRequest,
     request: Request,
     response: Response,
     db: DbSession = Depends(get_db),
-) -> User:
+) -> LoginResult:
     # Router stays thin: parse the request (Pydantic already did that),
     # delegate everything else to the service. `credentials` is a plain
     # dict because AuthStrategy.authenticate() is deliberately generic
     # across strategies (see auth/strategies/base.py).
     service = AuthService(db)
-    return service.login(
+    result = service.login(
         strategy_id="password",
         credentials={"email": body.email, "password": body.password},
         response=response,
         ip_address=_client_ip(request),
+    )
+    return LoginResult(**result)
+
+
+@router.post("/login/mfa", response_model=UserRead)
+def login_mfa(
+    body: MfaLoginRequest,
+    request: Request,
+    response: Response,
+    db: DbSession = Depends(get_db),
+) -> User:
+    """Second step of login for an account with MFA enabled — see /login/password."""
+    return AuthService(db).complete_mfa_login(
+        body.mfa_ticket, body.code, response, ip_address=_client_ip(request)
     )
 
 
@@ -114,3 +136,38 @@ def send_verification_email(
 @router.post("/email/verify", status_code=204)
 def verify_email(body: TokenRequest, request: Request, db: DbSession = Depends(get_db)) -> None:
     AccountService(db).verify_email(body.token, ip_address=_client_ip(request))
+
+
+@router.get("/mfa/status", response_model=MfaStatusResponse)
+def mfa_status(
+    current_user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+) -> MfaStatusResponse:
+    return MfaStatusResponse(enabled=MfaService(db).is_enabled(current_user.id))
+
+
+@router.post("/mfa/enroll", response_model=MfaEnrollResponse)
+def mfa_enroll(
+    current_user: User = Depends(get_current_user), db: DbSession = Depends(get_db)
+) -> MfaEnrollResponse:
+    """Generates a new secret (not yet protecting login — see /mfa/enroll/confirm)."""
+    return MfaEnrollResponse(**MfaService(db).start_enrollment(current_user))
+
+
+@router.post("/mfa/enroll/confirm", response_model=MfaConfirmResponse)
+def mfa_enroll_confirm(
+    body: MfaConfirmRequest,
+    current_user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+) -> MfaConfirmResponse:
+    """Proves the user scanned the code correctly; from here on, login requires it."""
+    codes = MfaService(db).confirm_enrollment(current_user, body.code)
+    return MfaConfirmResponse(recovery_codes=codes)
+
+
+@router.post("/mfa/disable", status_code=204)
+def mfa_disable(
+    body: MfaDisableRequest,
+    current_user: User = Depends(get_current_user),
+    db: DbSession = Depends(get_db),
+) -> None:
+    MfaService(db).disable(current_user, body.current_password)
