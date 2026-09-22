@@ -37,5 +37,34 @@ class UserRead(BaseModel):
 
     id: int
     email: str
+    email_verified: bool
 
     model_config = {"from_attributes": True}  # lets Pydantic read this straight from a User row
+
+
+def _check_min_length(value: str) -> str:
+    if len(value) < 8:
+        raise ValueError("Password must be at least 8 characters")
+    return value
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    _validate_new = field_validator("new_password")(_check_min_length)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+    _validate_new = field_validator("new_password")(_check_min_length)
+
+
+class TokenRequest(BaseModel):
+    token: str

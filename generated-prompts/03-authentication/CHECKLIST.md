@@ -46,14 +46,15 @@ today, selected via a registry/factory reading config.
 - [x] Frontend: logout action wired to the backend endpoint (`HomePage.jsx`)
 - [x] Client-side routing added (`react-router-dom`) — didn't exist before this phase
 
-## Phase B — Production-grade hardening on top of Phase A
-- [ ] Rate limiting on `/auth/login` (per-IP and/or per-account)
-- [ ] Account lockout after N failed attempts
-- [ ] Security/audit event log (login success, login failure, lockout, logout)
-- [ ] Password reset flow *(needs email sending infra — confirm before starting)*
-- [ ] Email verification *(needs email sending infra — confirm before starting)*
-- [ ] Password change endpoint (while logged in)
-- [ ] Timing-attack review on login (constant-time comparison, no user-enumeration via error messages)
+## Phase B — Production-grade hardening on top of Phase A ✅
+See `03-authentication-phase-b-completed.md`.
+- [x] Rate limiting on `/auth/login` (per-IP and/or per-account)
+- [x] Account lockout after N failed attempts
+- [x] Security/audit event log (login success, login failure, lockout, logout)
+- [x] Password reset flow (email via swappable `EmailSender`: console dev sender + free SMTP)
+- [x] Email verification (same `EmailSender`)
+- [x] Password change endpoint (while logged in)
+- [x] Timing-attack review on login (constant-time comparison, no user-enumeration via error messages)
 
 ## Phase C — MFA (TOTP)
 - [ ] `mfa_secrets` table (per user, encrypted secret)

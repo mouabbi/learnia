@@ -12,15 +12,28 @@ from learnia_backend.auth.registry import get_session_issuer, get_strategy
 from learnia_backend.auth.strategies.base import AuthenticationFailed
 from learnia_backend.exceptions import UnauthorizedError, ValidationAppError
 from learnia_backend.models.user import User
+from learnia_backend.repositories.audit_repository import (
+    LOGIN_FAILURE,
+    LOGIN_SUCCESS,
+    LOGOUT,
+    REGISTER,
+    AuditRepository,
+)
+from learnia_backend.repositories.session_repository import SessionRepository
 from learnia_backend.repositories.user_repository import UserRepository
 from learnia_backend.security.passwords import hash_password
+from learnia_backend.services.account_service import AccountService
+from learnia_backend.services.login_guard import LoginGuard
 
 
 class AuthService:
     def __init__(self, db: DbSession) -> None:
         self.db = db
+        self.audit = AuditRepository(db)
 
-    def register(self, email: str, password: str, response: Response) -> User:
+    def register(
+        self, email: str, password: str, response: Response, ip_address: str | None = None
+    ) -> User:
         """
         Password-specific account creation. Registration isn't part of the
         AuthStrategy interface (see auth/strategies/base.py) because it
@@ -39,26 +52,49 @@ class AuthService:
             raise ValidationAppError("An account with this email already exists")
 
         user = user_repository.create(email=email, hashed_password=hash_password(password))
+        self.audit.record(REGISTER, user_id=user.id, email=email, ip_address=ip_address)
 
         # Register-then-login: same UX as most apps — no separate "now go
         # log in" step. Uses the same SessionIssuer as login() so the two
         # paths always stay consistent.
         issuer = get_session_issuer(self.db)
         issuer.issue(user, response)
+
+        AccountService(self.db).send_verification_email(user)
         return user
 
-    def login(self, strategy_id: str, credentials: dict, response: Response) -> User:
+    def login(
+        self,
+        strategy_id: str,
+        credentials: dict,
+        response: Response,
+        ip_address: str | None = None,
+    ) -> User:
+        email = credentials.get("email")
+
+        # Lockout / rate limit run BEFORE checking the password, so a locked
+        # account can't be used to keep guessing.
+        LoginGuard(self.audit).check(email, ip_address)
+
         strategy = get_strategy(strategy_id, self.db)
 
         try:
             user = strategy.authenticate(credentials)
         except AuthenticationFailed as exc:
+            self.audit.record(LOGIN_FAILURE, email=email, ip_address=ip_address)
             raise UnauthorizedError(str(exc)) from exc
 
+        self.audit.record(LOGIN_SUCCESS, user_id=user.id, email=email, ip_address=ip_address)
         issuer = get_session_issuer(self.db)
         issuer.issue(user, response)
         return user
 
-    def logout(self, session_id: str | None, response: Response) -> None:
+    def logout(
+        self, session_id: str | None, response: Response, ip_address: str | None = None
+    ) -> None:
+        if session_id is not None:
+            session = SessionRepository(self.db).get_by_id(session_id)
+            if session is not None:
+                self.audit.record(LOGOUT, user_id=session.user_id, ip_address=ip_address)
         issuer = get_session_issuer(self.db)
         issuer.revoke(session_id, response)

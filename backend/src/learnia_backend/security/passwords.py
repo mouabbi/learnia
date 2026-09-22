@@ -36,3 +36,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     strategies/password.py) to avoid leaking which one was wrong.
     """
     return _password_hash.verify(plain_password, hashed_password)
+
+
+# A valid hash of a throwaway password, used to burn the same CPU time when a
+# login names an email that doesn't exist (see auth/strategies/password.py).
+DUMMY_HASH = hash_password("not-a-real-password")

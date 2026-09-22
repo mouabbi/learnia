@@ -41,3 +41,23 @@ def client(db: Session) -> Generator[TestClient, None, None]:
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+class FakeEmailSender:
+    """Records emails instead of sending them, so tests can read the links."""
+
+    def __init__(self) -> None:
+        self.sent: list[dict] = []
+
+    def send(self, *, to: str, subject: str, body: str) -> None:
+        self.sent.append({"to": to, "subject": subject, "body": body})
+
+    def last_token(self) -> str:
+        return self.sent[-1]["body"].split("token=")[1].split()[0]
+
+
+@pytest.fixture(autouse=True)
+def outbox(monkeypatch: pytest.MonkeyPatch) -> FakeEmailSender:
+    fake = FakeEmailSender()
+    monkeypatch.setattr("learnia_backend.services.account_service.get_email_sender", lambda: fake)
+    return fake
