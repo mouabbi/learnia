@@ -2,7 +2,7 @@ name: CI
 
 # Runs on every pull request, and on every push to main.
 on:
-  pull_request:
+  # pull_request:
   push:
     branches: [main]
 
