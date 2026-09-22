@@ -26,3 +26,9 @@ class User(Base):
     # See utils/time.py's utc_now_naive for why this is naive, not
     # timezone-aware: SQLite strips tzinfo on read-back regardless.
     created_at: Mapped[datetime] = mapped_column(DateTime(), default=utc_now_naive)
+    # None = email not verified yet.
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(), default=None)
+
+    @property
+    def email_verified(self) -> bool:
+        return self.email_verified_at is not None

@@ -9,4 +9,16 @@ export const authApi = {
   loginPassword: (email, password) => apiClient.post('/auth/login/password', { email, password }),
   logout: () => apiClient.post('/auth/logout'),
   getMe: () => apiClient.get('/auth/me'),
+
+  // Phase B — account management (see backend routers/auth.py)
+  changePassword: (currentPassword, newPassword) =>
+    apiClient.post('/auth/password/change', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  forgotPassword: (email) => apiClient.post('/auth/password/forgot', { email }),
+  resetPassword: (token, newPassword) =>
+    apiClient.post('/auth/password/reset', { token, new_password: newPassword }),
+  sendVerificationEmail: () => apiClient.post('/auth/email/verification/send'),
+  verifyEmail: (token) => apiClient.post('/auth/email/verify', { token }),
 }

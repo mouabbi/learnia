@@ -54,6 +54,13 @@ class UnauthorizedError(AppError):
     code = "UNAUTHORIZED"
 
 
+class TooManyRequestsError(AppError):
+    """Raised when a caller is rate-limited or locked out after repeated failures."""
+
+    status_code = 429
+    code = "TOO_MANY_REQUESTS"
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """
     Wire up global exception handlers on the FastAPI app.

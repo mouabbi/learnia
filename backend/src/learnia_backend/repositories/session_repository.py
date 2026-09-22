@@ -26,3 +26,11 @@ class SessionRepository:
         if session is not None:
             self.db.delete(session)
             self.db.commit()
+
+    def delete_all_for_user(self, user_id: int, *, except_id: str | None = None) -> None:
+        """Log a user out everywhere (optionally keeping the current session)."""
+        query = self.db.query(UserSession).filter(UserSession.user_id == user_id)
+        if except_id is not None:
+            query = query.filter(UserSession.id != except_id)
+        query.delete()
+        self.db.commit()

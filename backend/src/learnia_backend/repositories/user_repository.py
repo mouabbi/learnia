@@ -7,6 +7,7 @@ minimal: only the methods actually used right now, no speculative CRUD.
 from sqlalchemy.orm import Session
 
 from learnia_backend.models.user import User
+from learnia_backend.utils.time import utc_now_naive
 
 
 class UserRepository:
@@ -25,3 +26,11 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(user)
         return user
+
+    def set_password(self, user: User, hashed_password: str) -> None:
+        user.hashed_password = hashed_password
+        self.db.commit()
+
+    def mark_email_verified(self, user: User) -> None:
+        user.email_verified_at = utc_now_naive()
+        self.db.commit()
