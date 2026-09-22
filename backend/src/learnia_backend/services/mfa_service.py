@@ -8,6 +8,8 @@ and walking away.
 
 import base64
 import io
+import logging
+from datetime import UTC, datetime
 
 import pyotp
 import qrcode
@@ -20,6 +22,8 @@ from learnia_backend.models.user import User
 from learnia_backend.repositories.mfa_repository import MfaRepository
 from learnia_backend.security.encryption import decrypt, encrypt
 from learnia_backend.security.passwords import verify_password
+
+logger = logging.getLogger(__name__)
 
 
 class MfaService:
@@ -46,7 +50,23 @@ class MfaService:
         if secret is None:
             raise ValidationAppError("No MFA enrollment in progress")
 
-        if not pyotp.TOTP(decrypt(secret.encrypted_secret)).verify(code, valid_window=1):
+        totp = pyotp.TOTP(decrypt(secret.encrypted_secret))
+        cleaned_code = code.strip()
+        if not totp.verify(cleaned_code, valid_window=1):
+            # Dev-only diagnostic: logs what the server currently computes as
+            # correct next to what was submitted, so a mismatch pattern (e.g.
+            # exactly one 30s step off => clock drift, wildly different =>
+            # wrong/stale secret) is visible in logs/app.log without ever
+            # logging the secret itself.
+            if settings.environment == "development":
+                logger.warning(
+                    "MFA confirm failed for user_id=%s: submitted=%r server_expected_now=%s "
+                    "server_time_utc=%s (valid_window=1 accepts the previous/next 30s step too)",
+                    user.id,
+                    cleaned_code,
+                    totp.now(),
+                    datetime.now(UTC).isoformat(timespec="seconds"),
+                )
             raise ValidationAppError("Invalid code")
 
         self.mfa.confirm_secret(secret)

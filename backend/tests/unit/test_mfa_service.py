@@ -33,6 +33,17 @@ def test_confirm_with_correct_code_enables_mfa_and_returns_recovery_codes(db, us
     assert len(set(recovery_codes)) == 8  # all unique
 
 
+def test_confirm_strips_surrounding_whitespace_from_the_code(db, user):
+    service = MfaService(db)
+    enrollment = service.start_enrollment(user)
+    code = pyotp.TOTP(enrollment["secret"]).now()
+
+    recovery_codes = service.confirm_enrollment(user, f"  {code}\n")
+
+    assert service.is_enabled(user.id) is True
+    assert len(recovery_codes) == 8
+
+
 def test_confirm_with_wrong_code_fails_and_does_not_enable(db, user):
     service = MfaService(db)
     service.start_enrollment(user)
