@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { authApi } from './authApi'
 import { ApiError } from '../../api/client'
+import { ButtonSpinner } from '../../components/ButtonSpinner'
 
 // Used on HomePage. Changing the password logs out every OTHER session
 // (see backend account_service.change_password) — this tab stays logged in.
@@ -59,6 +60,7 @@ export function ChangePasswordForm() {
         </p>
       )}
       <button type="submit" disabled={isSubmitting}>
+        {isSubmitting && <ButtonSpinner />}
         {isSubmitting ? 'Changing...' : 'Change password'}
       </button>
     </form>

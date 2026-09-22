@@ -11,6 +11,8 @@
   --accent-hover: #4338ca;
   --accent-text: #ffffff;
   --danger: #dc2626;
+  --skeleton-base: #e5e7eb;
+  --skeleton-shine: #f3f4f6;
 
   --radius: 8px;
   --font: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -32,11 +34,89 @@
     --accent-hover: #6366f1;
     --accent-text: #0f1115;
     --danger: #f87171;
+    --skeleton-base: #20242c;
+    --skeleton-shine: #2b303a;
   }
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* ---- Skeleton loading shapes (Skeleton.jsx) ---- */
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 150% 0;
+  }
+}
+
+.skeleton {
+  display: inline-block;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shine) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+}
+
+.mfa-skeleton {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.skeleton-block {
+  display: grid;
+  gap: 0.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: var(--skeleton-base);
+  }
+}
+
+/* ---- Inline button spinner (ButtonSpinner.jsx) ---- */
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.15em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.85;
+  animation: btn-spin 0.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-spinner {
+    animation-duration: 1.5s;
+  }
+}
+
+button:disabled .btn-spinner {
+  opacity: 0.6;
 }
 
 body {
@@ -49,11 +129,15 @@ body {
 
 #root {
   width: 100%;
-  max-width: 420px;
 }
 
-/* A centered card: every page is a `.page` section. */
+/* Unauthenticated flow (login/register/forgot-password/mfa-challenge/...):
+   a single centered card, capped at 420px so forms stay readable. The
+   authenticated app shell below opts out by setting its own width/padding. */
 .page {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -135,4 +219,372 @@ button:disabled {
 .hint {
   margin: 0.25rem 0 0;
   font-size: 0.8rem;
+}
+
+/* ---- Authenticated app shell (AppLayout + Sidebar) ---- */
+
+.app-shell {
+  width: 100%;
+  min-height: 100svh;
+  background: var(--bg);
+  text-align: left;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.menu-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  color: var(--text-strong);
+  background: transparent;
+}
+
+.menu-button:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.topbar-title {
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.app-content {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+/* The settings page's two-pane layout needs more room than the default
+   single-column pages, so it opts out of the shared max-width. */
+.app-content:has(.settings-page) {
+  max-width: 880px;
+}
+
+.content-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.settings-page {
+  width: 100%;
+}
+
+.settings-page h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+}
+
+.settings-page-subtitle {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* Two-pane layout: a narrow category menu on the left, detail content on
+   the right. Stacks into a single column below the tablet breakpoint. */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  align-items: start;
+  gap: 1.5rem;
+}
+
+@media (max-width: 720px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-nav {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  /* Sticks alongside the detail pane on scroll, like a settings sidebar. */
+  position: sticky;
+  top: 1.5rem;
+}
+
+@media (max-width: 720px) {
+  .settings-nav {
+    position: static;
+  }
+}
+
+/* Each group ("Security", "Appearance") is a label followed by its own
+   list of sub-items — the menu shows every setting up front instead of
+   collapsing them behind a top-level category click. */
+.settings-nav-group + .settings-nav-group {
+  margin-top: 1.25rem;
+}
+
+.settings-nav-group-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.4rem;
+  padding: 0 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.settings-nav-icon {
+  flex-shrink: 0;
+  line-height: 1;
+  font-size: 0.9rem;
+}
+
+.settings-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.settings-nav-item {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem 0.55rem 1.1rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--text-strong);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  transition: background-color 0.12s ease;
+}
+
+.settings-nav-badge {
+  flex-shrink: 0;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.settings-nav-badge-on {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: transparent;
+}
+
+/* :not(:disabled) matches the global button:hover:not(:disabled) rule's
+   specificity so this (declared later) wins instead of the global solid
+   accent hover leaking through. */
+.settings-nav-item:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--text-strong);
+}
+
+.settings-nav-item[aria-current='page']:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.settings-nav-item[aria-current='page'] {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Left accent bar instead of a solid fill — reads as "selected", not as a
+   filled button, which keeps the menu looking like navigation. */
+.settings-nav-item[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.settings-detail {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.settings-detail-header {
+  margin: 0 0 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-detail-header h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+  color: var(--text-strong);
+}
+
+.settings-detail-description {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.accent-picker {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.accent-picker-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.accent-picker-input {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  /* Let the swatch fill a circle instead of the browser's default square chip. */
+  overflow: hidden;
+}
+
+.accent-picker-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.accent-picker-input::-webkit-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+
+.accent-picker-input::-moz-color-swatch {
+  border: 0;
+  border-radius: 50%;
+}
+
+.accent-picker-reset {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-strong);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.accent-picker-reset:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 40%);
+  z-index: 10;
+}
+
+/* Slide/fade is driven by motion (see Sidebar.jsx) via inline transforms,
+   so only static positioning lives here. */
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(280px, 85vw);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 1rem;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  z-index: 11;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sidebar-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.sidebar-name {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-strong);
+  text-transform: capitalize;
+}
+
+.sidebar-email {
+  margin: 0;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.sidebar-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.sidebar-links a {
+  display: block;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  color: var(--text-strong);
+  text-decoration: none;
+}
+
+.sidebar-links a:hover {
+  background: var(--bg);
+}
+
+.sidebar-links a.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.sidebar-logout {
+  margin-top: auto;
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--border);
+}
+
+.sidebar-logout:hover:not(:disabled) {
+  background: var(--bg);
 }

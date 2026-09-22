@@ -6,7 +6,11 @@ import { apiClient } from '../../api/client'
 // handles the session token directly, the browser does.
 export const authApi = {
   register: (email, password) => apiClient.post('/auth/register', { email, password }),
+  // Returns { mfa_required, user, mfa_ticket } — see AuthContext.login()
+  // for how the two shapes (plain login vs. "go do the MFA step") are handled.
   loginPassword: (email, password) => apiClient.post('/auth/login/password', { email, password }),
+  loginMfa: (mfaTicket, code) =>
+    apiClient.post('/auth/login/mfa', { mfa_ticket: mfaTicket, code }),
   logout: () => apiClient.post('/auth/logout'),
   getMe: () => apiClient.get('/auth/me'),
 
@@ -21,4 +25,11 @@ export const authApi = {
     apiClient.post('/auth/password/reset', { token, new_password: newPassword }),
   sendVerificationEmail: () => apiClient.post('/auth/email/verification/send'),
   verifyEmail: (token) => apiClient.post('/auth/email/verify', { token }),
+
+  // Phase C — MFA (TOTP), all logged-in-only except loginMfa above
+  getMfaStatus: () => apiClient.get('/auth/mfa/status'),
+  startMfaEnrollment: () => apiClient.post('/auth/mfa/enroll'),
+  confirmMfaEnrollment: (code) => apiClient.post('/auth/mfa/enroll/confirm', { code }),
+  disableMfa: (currentPassword) =>
+    apiClient.post('/auth/mfa/disable', { current_password: currentPassword }),
 }

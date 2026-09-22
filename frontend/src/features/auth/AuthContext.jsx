@@ -33,14 +33,34 @@ export function AuthProvider({ children }) {
       .finally(() => setIsLoading(false))
   }, [])
 
+  // Two possible outcomes (see backend AuthService.login's docstring):
+  //   { mfaRequired: false, user }      — logged in, session cookie set
+  //   { mfaRequired: true, mfaTicket }  — password ok, still needs a TOTP/
+  //                                       recovery code (see completeMfaLogin)
   const login = useCallback(async (email, password) => {
     try {
-      const loggedInUser = await authApi.loginPassword(email, password)
-      log.info('login ok', { userId: loggedInUser.id })
+      const result = await authApi.loginPassword(email, password)
+      if (result.mfa_required) {
+        log.info('login: password ok, MFA challenge required')
+        return { mfaRequired: true, mfaTicket: result.mfa_ticket }
+      }
+      log.info('login ok', { userId: result.user.id })
+      setUser(result.user)
+      return { mfaRequired: false, user: result.user }
+    } catch (error) {
+      log.warn('login failed', { reason: error.code ?? error.message })
+      throw error
+    }
+  }, [])
+
+  const completeMfaLogin = useCallback(async (mfaTicket, code) => {
+    try {
+      const loggedInUser = await authApi.loginMfa(mfaTicket, code)
+      log.info('MFA challenge ok', { userId: loggedInUser.id })
       setUser(loggedInUser)
       return loggedInUser
     } catch (error) {
-      log.warn('login failed', { reason: error.code ?? error.message })
+      log.warn('MFA challenge failed', { reason: error.code ?? error.message })
       throw error
     }
   }, [])
@@ -63,7 +83,15 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
-  const value = { user, isLoading, isAuthenticated: user !== null, login, register, logout }
+  const value = {
+    user,
+    isLoading,
+    isAuthenticated: user !== null,
+    login,
+    completeMfaLogin,
+    register,
+    logout,
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
