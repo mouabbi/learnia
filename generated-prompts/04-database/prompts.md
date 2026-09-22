@@ -23,10 +23,20 @@ structural/system data, and define precisely what does NOT live in the database
 7. Transactions (where multi-row writes must be atomic — e.g. reordering, exam submission)
 8. SQLite-specific considerations (single-writer behavior, `WAL` mode, path to Postgres/RDS later)
 
+
 ## Questions to answer before implementation
 - Ordering approach for modules/chapters/pages: simple integer `position` with renumbering on move, or fractional/lexicographic keys to avoid renumbering? → Recommend simple integer `position` initially (rare reordering per the master context; renumbering a short list is cheap and easy to understand).
-- Do notes belong to a page, a section within a page, or both? → Defer final answer to `08-learning-progress`, but reserve a nullable `section_id`-style anchor now so the schema doesn't need a breaking migration later.
+
+ok position 
+
+
+- Do notes belong to a page, a section within a page, or both? → Defer final answer to `08-learning-progress`, but reserve a nullable `section_id`-style anchor now so the schema doesn't need a breaking migration later.  note  to a page  
+
+
+
 - Should `content status` and `learning progress` really live in different tables? → Yes: `courses.content_status` (system/content data) is separate from `learning_progress` (per-user, per-course/page). Do not merge.
+
+yes  and  also  the app  now  just disgn it  for  multiuser    
 
 ## Dependencies
 - 02-architecture
