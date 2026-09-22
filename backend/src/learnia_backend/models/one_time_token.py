@@ -19,6 +19,9 @@ from learnia_backend.utils.time import utc_now_naive
 
 PURPOSE_PASSWORD_RESET = "password_reset"
 PURPOSE_EMAIL_VERIFICATION = "email_verification"
+# Proves a password was already verified; waiting on the TOTP/recovery step
+# to actually issue a session (see services/auth_service.py).
+PURPOSE_MFA_LOGIN = "mfa_login"
 
 
 def generate_token() -> str:
