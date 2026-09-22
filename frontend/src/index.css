@@ -24,7 +24,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #0f1115;
     --surface: #181b21;
     --text: #9ca3af;
@@ -37,6 +37,38 @@
     --skeleton-base: #20242c;
     --skeleton-shine: #2b303a;
   }
+}
+
+/* Manual overrides (see hooks/useTheme.js) — take precedence over the
+   system `prefers-color-scheme` query above regardless of OS setting. */
+:root[data-theme='dark'] {
+  --bg: #0f1115;
+  --surface: #181b21;
+  --text: #9ca3af;
+  --text-strong: #f3f4f6;
+  --border: #2b2f38;
+  --accent: #818cf8;
+  --accent-hover: #6366f1;
+  --accent-text: #0f1115;
+  --danger: #f87171;
+  --skeleton-base: #20242c;
+  --skeleton-shine: #2b303a;
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #4b5563;
+  --text-strong: #111827;
+  --border: #d9dce1;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-text: #ffffff;
+  --danger: #dc2626;
+  --skeleton-base: #e5e7eb;
+  --skeleton-shine: #f3f4f6;
+  color-scheme: light;
 }
 
 * {
@@ -125,6 +157,16 @@ body {
   display: grid;
   place-items: center;
   padding: 1rem;
+}
+
+/* The authenticated app shell (.app-shell) is full-bleed — the centered,
+   padded body above is only meant for the single-card auth screens
+   (login/register/...). Without this override, the shell's topbar/sidebar
+   inherit the body's 1rem padding and float inset from the viewport edges
+   instead of spanning it. */
+body:has(.app-shell) {
+  display: block;
+  padding: 0;
 }
 
 #root {
@@ -254,20 +296,126 @@ button:disabled {
 .topbar-title {
   font-weight: 700;
   color: var(--text-strong);
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.topbar-title:hover {
+  color: var(--accent);
+}
+
+.topbar-title:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.topbar-spacer {
+  flex: 1;
+}
+
+.topbar-xp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.theme-toggle {
+  margin-left: 0.25rem;
+}
+
+/* ---- Desktop persistent sidebar ---- */
+
+.sidebar-pinned {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: 272px 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'sidebar topbar'
+      'sidebar content';
+    transition: grid-template-columns 0.2s ease;
+  }
+
+  /* Collapsed state: the pinned column shrinks to an icon rail rather than
+     disappearing, so navigation stays reachable without the drawer. */
+  .app-shell.app-shell-collapsed {
+    grid-template-columns: 84px 1fr;
+  }
+
+  .topbar {
+    grid-area: topbar;
+  }
+
+  .sidebar-pinned {
+    display: block;
+    grid-area: sidebar;
+  }
+
+  /* Fixed (not sticky) so it never shifts with the page while scrolling —
+     it sits outside document flow, pinned to the viewport edge; the grid
+     column above still reserves the matching width so content doesn't
+     slide underneath it. */
+  .sidebar-pinned .sidebar-static {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 272px;
+    transition: width 0.2s ease;
+  }
+
+  .app-shell-collapsed .sidebar-pinned .sidebar-static {
+    width: 84px;
+  }
+
+  .app-content {
+    grid-area: content;
+  }
+}
+
+/* Below the desktop breakpoint the off-canvas drawer is the only sidebar
+   UI, so the pinned column and its collapse state never apply there. */
+@media (max-width: 1023px) {
+  .sidebar-pinned {
+    display: none;
+  }
+}
+
+.sidebar-static {
+  position: static;
+  inset: auto;
+  width: 100%;
+  border-right: 0;
 }
 
 .app-content {
-  max-width: 640px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 1.5rem 1rem;
+  padding: 1.25rem 1.5rem 2rem;
   display: grid;
   gap: 1rem;
+  width: 100%;
 }
 
 /* The settings page's two-pane layout needs more room than the default
    single-column pages, so it opts out of the shared max-width. */
 .app-content:has(.settings-page) {
-  max-width: 880px;
+  max-width: 1100px;
+}
+
+.app-content:has(.course-grid) {
+  max-width: 1200px;
 }
 
 .content-card {
@@ -448,44 +596,89 @@ button:disabled {
 }
 
 .accent-picker {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.accent-swatches {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.6rem;
   flex-wrap: wrap;
 }
 
-.accent-picker-label {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 0;
-  font-weight: 400;
-  cursor: pointer;
-}
-
-.accent-picker-input {
-  width: 2.5rem;
-  height: 2.5rem;
+.accent-swatch {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
   padding: 0;
-  border: 1px solid var(--border);
+  color: #fff;
+  border: 1px solid rgb(0 0 0 / 12%);
   border-radius: 50%;
   cursor: pointer;
-  /* Let the swatch fill a circle instead of the browser's default square chip. */
+  transition: box-shadow 0.15s ease;
+}
+
+/* The active swatch's ring uses --accent itself, not a hardcoded color —
+   after a pick, --accent already equals that swatch's hex (see
+   useAccentColor's applyAccent), so preset and custom selection get the
+   same highlight for free, in both light and dark mode. */
+.accent-swatch-active {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
+.accent-swatch:hover {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* The "custom" swatch: a color-wheel gradient watermark so it reads as
+   "pick anything", with the native <input type="color"> stretched
+   invisibly over it to stay a single click target. */
+.accent-swatch-custom {
+  background: conic-gradient(
+    from 180deg,
+    #ef4444,
+    #f59e0b,
+    #eab308,
+    #22c55e,
+    #06b6d4,
+    #6366f1,
+    #d946ef,
+    #ef4444
+  );
+  cursor: pointer;
   overflow: hidden;
 }
 
-.accent-picker-input::-webkit-color-swatch-wrapper {
+.accent-swatch-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
-.accent-picker-input::-webkit-color-swatch {
-  border: 0;
-  border-radius: 50%;
+.accent-picker-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
 }
 
-.accent-picker-input::-moz-color-swatch {
-  border: 0;
-  border-radius: 50%;
+.accent-picker-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  text-transform: capitalize;
 }
 
 .accent-picker-reset {
@@ -517,15 +710,49 @@ button:disabled {
   flex-direction: column;
   gap: 1.5rem;
   padding: 1.5rem 1rem;
-  background: var(--surface);
+  background: var(--sidebar-bg, var(--surface));
+  color: var(--sidebar-text, var(--text-strong));
   border-right: 1px solid var(--border);
   z-index: 11;
+}
+
+/* Pinned desktop sidebar: flush, square-edged, fixed to the viewport. */
+.sidebar-static {
+  border-radius: 0;
+  border-right: 1px solid var(--sidebar-border, var(--border));
+}
+
+/* Only the pinned desktop rail renders this button (see Sidebar.jsx) — the
+   off-canvas drawer is already closable via its overlay/close button. */
+.sidebar-collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  flex-shrink: 0;
+  color: var(--sidebar-text-muted, var(--text));
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+.sidebar-collapse-toggle:hover:not(:disabled) {
+  color: var(--sidebar-text-strong, var(--text-strong));
+  background: var(--sidebar-hover, var(--bg));
+}
+
+.sidebar-collapsed .sidebar-collapse-toggle {
+  align-self: center;
 }
 
 .sidebar-user {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .sidebar-avatar {
@@ -543,7 +770,7 @@ button:disabled {
 .sidebar-name {
   margin: 0;
   font-weight: 600;
-  color: var(--text-strong);
+  color: var(--sidebar-text-strong, var(--text-strong));
   text-transform: capitalize;
 }
 
@@ -551,6 +778,7 @@ button:disabled {
   margin: 0;
   font-size: 0.8rem;
   word-break: break-all;
+  color: var(--sidebar-text-muted, var(--text));
 }
 
 .sidebar-links {
@@ -562,15 +790,21 @@ button:disabled {
 }
 
 .sidebar-links a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius);
-  color: var(--text-strong);
+  color: var(--sidebar-text, var(--text-strong));
   text-decoration: none;
 }
 
+.sidebar-links a svg {
+  flex-shrink: 0;
+}
+
 .sidebar-links a:hover {
-  background: var(--bg);
+  background: var(--sidebar-hover, var(--bg));
 }
 
 .sidebar-links a.active {
@@ -580,11 +814,2327 @@ button:disabled {
 
 .sidebar-logout {
   margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   background: transparent;
   color: var(--danger);
-  border: 1px solid var(--border);
+  border: 1px solid var(--sidebar-border, var(--border));
 }
 
 .sidebar-logout:hover:not(:disabled) {
+  background: var(--sidebar-hover, var(--bg));
+}
+
+/* Collapsed pinned sidebar: icon-only rail — labels are unmounted by the
+   component (not just hidden) so no text ever reflows into view. */
+.sidebar-collapsed {
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+  align-items: center;
+}
+
+.sidebar-collapsed .sidebar-user {
+  justify-content: center;
+}
+
+.sidebar-collapsed .sidebar-links {
+  width: 100%;
+}
+
+.sidebar-collapsed .sidebar-links a {
+  justify-content: center;
+  padding: 0.65rem;
+}
+
+.sidebar-collapsed .sidebar-logout {
+  justify-content: center;
+  width: 100%;
+  padding: 0.65rem;
+}
+
+/* ---- Courses (CoursesPage, CourseReaderPage, Quiz) ---- */
+
+.courses-toolbar {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.courses-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.courses-search input {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.courses-search input:focus-visible {
+  outline: none;
+}
+
+.courses-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chip {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-strong);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.filter-chip:hover:not(:disabled) {
   background: var(--bg);
+}
+
+.filter-chip-active {
+  color: var(--accent-text);
+  background: var(--accent);
+  border-color: transparent;
+}
+
+.filter-chip-active:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.courses-empty {
+  grid-column: 1 / -1;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.course-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.course-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* Finished course: a quieter emerald accent instead of the app's default
+   accent, so a completed card reads as "done" at a glance in the catalog
+   grid, distinct from an in-progress one. */
+.course-card-complete {
+  border-color: color-mix(in srgb, #22c55e 35%, var(--border));
+}
+
+.course-card-complete:hover {
+  border-color: #22c55e;
+  box-shadow: 0 8px 20px -12px color-mix(in srgb, #22c55e 45%, transparent);
+}
+
+/* Icon rendered large on a gradient "thumbnail" so it reads as a cover
+   image for the course rather than a small inline glyph. */
+.course-card-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 6.5rem;
+  color: #fff;
+}
+
+.course-card-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: rgb(0 0 0 / 28%);
+  border-radius: 999px;
+  backdrop-filter: blur(2px);
+}
+
+.course-card-badge-done {
+  background: color-mix(in srgb, #16a34a 75%, black 15%);
+}
+
+.course-card-progress {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.4rem;
+}
+
+.course-card-progress-track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.course-card-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.course-card-progress-fill-done {
+  background: #22c55e;
+}
+
+.course-card-progress-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  color: var(--text);
+}
+
+.course-card-complete .course-card-progress-label {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.course-card-thumb.thumb-indigo {
+  background: linear-gradient(135deg, #6366f1, #4338ca);
+}
+
+.course-card-thumb.thumb-amber {
+  background: linear-gradient(135deg, #f59e0b, #b45309);
+}
+
+.course-card-thumb.thumb-teal {
+  background: linear-gradient(135deg, #14b8a6, #0f766e);
+}
+
+.course-card-thumb.thumb-rose {
+  background: linear-gradient(135deg, #f43f5e, #be123c);
+}
+
+/* A course can use a cover image instead of an icon+gradient — see
+   `course.image` in mockCourses.js. */
+.course-card-thumb-image {
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.course-card-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.course-card-thumb-skeleton {
+  display: block;
+  width: 100%;
+  border-radius: 0;
+}
+
+.course-card-body {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.course-card-body h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text-strong);
+}
+
+.course-card-body p {
+  margin: 0;
+  font-size: 0.875rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.course-card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+}
+
+.course-card-skeleton .course-card-body {
+  gap: 0.5rem;
+}
+
+/* ---- Quiz (Quiz.jsx) ---- */
+
+.quiz {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  transition: background 0.3s ease, border-radius 0.3s ease, padding 0.3s ease;
+}
+
+.quiz-header h3 {
+  margin: 0 0 0.2rem;
+  color: var(--text-strong);
+}
+
+.quiz-subtitle {
+  margin: 0 0 1.25rem;
+  font-size: 0.8rem;
+}
+
+/* Quiz mode: once a QCM attempt is active, swap in a distinct backdrop so
+   it's unmistakable the learner has left reading mode and is being
+   tested — a soft accent-tinted gradient + dashed frame, not a full page
+   takeover (the reader chrome around it still reads as "the same app"). */
+.quiz-mode {
+  margin: 2rem -1.5rem 0;
+  padding: 1.75rem 1.5rem;
+  border: 0;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--course-accent, var(--accent)) 14%, transparent), transparent 55%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--course-accent, var(--accent)) 10%, transparent), transparent 55%),
+    var(--surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--course-accent, var(--accent)) 25%, var(--border));
+}
+
+.quiz-intro-card {
+  display: grid;
+  justify-items: start;
+  gap: 0.4rem;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px dashed color-mix(in srgb, var(--course-accent, var(--accent)) 35%, var(--border));
+  border-radius: 12px;
+}
+
+.quiz-intro-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--course-accent-text, var(--accent-text));
+  background: var(--course-accent, var(--accent));
+  border-radius: 999px;
+}
+
+.quiz-intro-card h3 {
+  margin: 0.4rem 0 0;
+  color: var(--text-strong);
+}
+
+.quiz-start-button {
+  margin-top: 0.5rem;
+  color: var(--course-accent-text, var(--accent-text));
+  background: var(--course-accent, var(--accent));
+}
+
+.quiz-start-button:hover:not(:disabled) {
+  background: var(--course-accent-hover, var(--accent-hover));
+}
+
+.quiz-progress-dots {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.quiz-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--border);
+  border: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.quiz-dot-answered {
+  background: color-mix(in srgb, var(--course-accent, var(--accent)) 55%, var(--border));
+}
+
+.quiz-dot-active {
+  transform: scale(1.35);
+  background: var(--course-accent, var(--accent));
+}
+
+.quiz-question-card {
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.quiz-question-prompt {
+  margin: 0 0 0.9rem;
+  color: var(--text-strong);
+}
+
+.quiz-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.quiz-nav-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-strong);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.quiz-nav-button:hover:not(:disabled) {
+  background: var(--surface);
+}
+
+.quiz-nav-button-primary {
+  margin-left: auto;
+  color: var(--course-accent-text, var(--accent-text));
+  background: var(--course-accent, var(--accent));
+  border: 0;
+}
+
+.quiz-nav-button-primary:hover:not(:disabled) {
+  background: var(--course-accent-hover, var(--accent-hover));
+}
+
+/* ---- Quiz grading sequence (QuizGrading in Quiz.jsx) ---- */
+
+.quiz-grading {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.quiz-grading-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  color: var(--course-accent-text, var(--accent-text));
+  background: var(--course-accent, var(--accent));
+  border-radius: 999px;
+  margin-bottom: 0.25rem;
+}
+
+.quiz-grading h3 {
+  margin: 0;
+  color: var(--text-strong);
+}
+
+.quiz-grading-track {
+  width: 100%;
+  max-width: 320px;
+  height: 6px;
+  margin: 0.5rem 0 0.75rem;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.quiz-grading-fill {
+  height: 100%;
+  background: var(--course-accent, var(--accent));
+  border-radius: 999px;
+}
+
+.quiz-grading-steps {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.quiz-grading-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  opacity: 0.5;
+}
+
+.quiz-grading-step-active {
+  opacity: 1;
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.quiz-grading-step-done {
+  opacity: 0.85;
+  color: var(--course-accent, var(--accent));
+}
+
+/* ---- Quiz result hero (submitted stage) ---- */
+
+.quiz-result-hero {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: 1.5rem 1rem;
+  margin-bottom: 1.25rem;
+  text-align: center;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.quiz-result-hero-pass {
+  border-color: color-mix(in srgb, var(--course-accent, var(--accent)) 35%, var(--border));
+}
+
+.quiz-result-hero-fail {
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--border));
+}
+
+.quiz-result-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+}
+
+.quiz-result-hero-pass .quiz-result-badge {
+  color: var(--course-accent-text, var(--accent-text));
+  background: linear-gradient(135deg, var(--course-accent, var(--accent)), color-mix(in srgb, var(--course-accent, var(--accent)) 55%, #f59e0b));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--course-accent, var(--accent)) 40%, transparent);
+}
+
+.quiz-result-hero-fail .quiz-result-badge {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.quiz-result-headline {
+  margin: 0.15rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.quiz-result-score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  color: var(--text-strong);
+}
+
+.quiz-result-score-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.quiz-result-score-total,
+.quiz-result-score-pct {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.quiz-result-pct-track {
+  width: 100%;
+  max-width: 260px;
+  height: 6px;
+  margin-top: 0.3rem;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.quiz-result-pct-fill {
+  height: 100%;
+  background: var(--course-accent, var(--accent));
+  border-radius: 999px;
+}
+
+.quiz-result-pct-fill-fail {
+  background: var(--danger);
+}
+
+.quiz-summary {
+  display: grid;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+}
+
+.quiz-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.quiz-summary-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.quiz-summary-badge-correct {
+  color: var(--accent);
+}
+
+.quiz-summary-badge-incorrect {
+  color: var(--danger);
+}
+
+.quiz-summary-prompt {
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quiz-question {
+  margin: 0 0 1.25rem;
+  padding: 0;
+  border: 0;
+}
+
+.quiz-question legend {
+  padding: 0;
+  margin: 0 0 0.6rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.quiz-options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.quiz-option input {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.quiz-option-selected {
+  border-color: var(--accent);
+}
+
+.quiz-option-correct {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.quiz-option-incorrect {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.quiz-option-icon {
+  margin-left: auto;
+}
+
+.quiz-icon-correct {
+  color: var(--accent);
+}
+
+.quiz-icon-incorrect {
+  color: var(--danger);
+}
+
+.quiz-result {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.quiz-result p {
+  margin: 0 0 0.6rem;
+}
+
+.quiz-result-pass {
+  border-color: var(--accent);
+}
+
+.quiz-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  color: var(--text-strong);
+  border: 1px solid var(--border);
+}
+
+.quiz-retry:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.quiz-cooldown {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.quiz-cooldown-gate {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+.quiz-cooldown-gate svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--accent);
+}
+
+.quiz-cooldown-gate p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* ---- Course reader (CourseReaderPage.jsx + components/reader/ReaderShell.jsx) ----
+   A docs-style shell opened in its own tab (see CourseCard.jsx) — no
+   AppLayout topbar/sidebar. Themed per-course via --course-accent (set on
+   .reader-theme from course.color; falls back to the global --accent
+   wherever a var is missing, so a course without a color still looks
+   correct). Dark mode is inherited for free: every rule below reads
+   through the app's existing --surface/--bg/--border/--text tokens, which
+   already swap under prefers-color-scheme/[data-theme] — only the accent
+   itself is course-specific. */
+
+.reader-theme {
+  --course-accent: var(--accent);
+  --course-accent-hover: var(--accent-hover);
+  --course-accent-text: var(--accent-text);
+  min-height: 100svh;
+  background: var(--bg);
+  transition: background 0.2s ease;
+}
+
+.reader-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.reader-load-error {
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text);
+}
+
+.reader-topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.reader-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--text-strong);
+  text-decoration: none;
+}
+
+.reader-topbar-title {
+  font-weight: 700;
+  color: var(--text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-topbar-progress {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.reader-topbar-exam-cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--course-accent-text);
+  background: var(--course-accent);
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.reader-theme-toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--text-strong);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.reader-theme-toggle:hover {
+  background: var(--bg);
+  transform: rotate(-8deg);
+}
+
+.reader-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.reader-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 0.75rem;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+@media (max-width: 860px) {
+  .reader-body {
+    flex-direction: column;
+  }
+
+  .reader-sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* Clean, unobtrusive scrollbars for the two independently-scrolling reader
+   panes (sidebar + content) — thin everywhere, and only visibly "on" in
+   WebKit/Blink via the thumb color below (Firefox uses scrollbar-width/
+   -color above, set per-pane). */
+.reader-sidebar::-webkit-scrollbar,
+.reader-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.reader-sidebar::-webkit-scrollbar-track,
+.reader-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.reader-sidebar::-webkit-scrollbar-thumb,
+.reader-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.reader-sidebar::-webkit-scrollbar-thumb:hover,
+.reader-content::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--course-accent, var(--accent)) 35%, var(--border));
+}
+
+.reader-module + .reader-module {
+  margin-top: 0.2rem;
+}
+
+.reader-module-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.reader-module-header:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.reader-module-header-locked {
+  color: var(--text);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.reader-module-chevron {
+  flex-shrink: 0;
+  color: var(--text);
+}
+
+.reader-module-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader-module-status {
+  flex-shrink: 0;
+  color: var(--text);
+}
+
+.reader-module-status-done {
+  color: var(--course-accent);
+}
+
+.reader-module-body {
+  padding: 0.1rem 0 0.4rem 0.9rem;
+}
+
+.reader-chapter + .reader-chapter {
+  margin-top: 0.5rem;
+}
+
+.reader-chapter-title {
+  display: block;
+  margin: 0.3rem 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+
+.reader-page-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.05rem;
+}
+
+.reader-page-item,
+.reader-quiz-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  color: var(--text-strong);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.reader-quiz-item {
+  margin-top: 0.15rem;
+  font-weight: 600;
+}
+
+.reader-page-item:hover:not(:disabled),
+.reader-quiz-item:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.reader-page-item-active {
+  background: color-mix(in srgb, var(--course-accent) 14%, transparent);
+  color: var(--course-accent);
+}
+
+.reader-quiz-item-locked {
+  color: var(--text);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.reader-page-icon {
+  flex-shrink: 0;
+  color: var(--text);
+}
+
+.reader-page-icon-done {
+  color: var(--course-accent);
+}
+
+.reader-content {
+  flex: 1;
+  min-width: 0;
+  padding: 1.25rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.reader-page {
+  max-width: 100%;
+  margin: 0;
+  padding: 1.5rem 1.75rem;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text-strong) 4%, transparent);
+}
+
+/* ---- Reader page top toolbar: progress + prev/next/mark (PageView) ---- */
+
+.reader-page-toolbar {
+  margin: -1.5rem -1.75rem 1.25rem;
+  padding: 0.85rem 1.75rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 14px 14px 0 0;
+}
+
+.reader-page-toolbar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.reader-page-toolbar-position {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.reader-page-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.reader-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-strong);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.reader-toolbar-button:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.reader-toolbar-button-primary {
+  color: var(--course-accent-text, var(--accent-text));
+  background: var(--course-accent, var(--accent));
+  border: 0;
+}
+
+.reader-toolbar-button-primary:hover:not(:disabled) {
+  background: var(--course-accent-hover, var(--accent-hover));
+}
+
+.reader-page-toolbar-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.reader-page-toolbar-fill {
+  height: 100%;
+  background: var(--course-accent, var(--accent));
+  border-radius: 999px;
+}
+
+@media (max-width: 640px) {
+  .reader-page-toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.reader-page-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--course-accent);
+}
+
+.reader-page h1 {
+  margin: 0.3rem 0 1rem;
+}
+
+.reader-page-body p {
+  font-size: 0.95rem;
+  white-space: pre-line;
+}
+
+.reader-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.reader-mark-complete {
+  color: var(--text-strong);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.reader-mark-complete:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.reader-next-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  color: var(--course-accent-text);
+  background: var(--course-accent);
+}
+
+.reader-next-button:hover:not(:disabled) {
+  background: var(--course-accent-hover);
+}
+
+.module-quiz-panel {
+  border: 1px solid color-mix(in srgb, var(--course-accent) 30%, var(--border));
+}
+
+/* ---- Module QCM modal (CourseReaderPage.jsx QuizModal) ---- */
+
+.quiz-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: color-mix(in srgb, black 55%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.quiz-modal {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  min-height: 80vh;
+  max-height: 94vh;
+  overflow-y: auto;
+  margin: 0;
+}
+
+.quiz-modal-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.quiz-modal-close:hover {
+  color: var(--text-strong);
+  background: var(--surface);
+}
+
+/* ---- Course-complete celebration modal (CourseDoneModal) ---- */
+
+.course-done-modal {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  max-width: 480px;
+  padding: 2.5rem 2rem 2rem;
+  text-align: center;
+  overflow: visible;
+}
+
+.course-done-confetti {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+}
+
+.course-done-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  color: var(--course-accent-text, var(--accent-text));
+  background: linear-gradient(135deg, var(--course-accent, var(--accent)), color-mix(in srgb, var(--course-accent, var(--accent)) 60%, #f59e0b));
+  border-radius: 999px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--course-accent, var(--accent)) 45%, transparent);
+}
+
+.course-done-title {
+  margin: 0.25rem 0 0;
+  font-size: 1.6rem;
+}
+
+.course-done-caption {
+  margin: 0 0 0.5rem;
+  color: var(--text);
+}
+
+.course-done-actions {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.reader-quiz-intro {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.module-quiz-panel .reader-next-button {
+  margin-top: 1.25rem;
+}
+
+.reader-done {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.reader-done-icon {
+  color: var(--course-accent);
+}
+
+/* ---- Home page (HomePage.jsx) ---- */
+
+.app-content:has(.home) {
+  max-width: 1200px;
+}
+
+.home {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.home-hello h1 {
+  margin: 0 0 0.25rem;
+}
+
+.home-hello p {
+  margin: 0;
+}
+
+/* ---- Email-verification warning banner (HomePage's VerifyEmailBanner) ---- */
+
+.banner-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: color-mix(in srgb, #f59e0b 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--border));
+  border-left: 3px solid #f59e0b;
+  border-radius: var(--radius);
+}
+
+.banner-icon {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #d97706;
+}
+
+.banner-body {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.banner-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.banner-caption {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.banner-action {
+  justify-self: start;
+  margin-top: 0.3rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  color: #1a1200;
+  background: #f59e0b;
+}
+
+.banner-action:hover:not(:disabled) {
+  background: #d97706;
+}
+
+.banner-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.banner-status-ok {
+  color: #16a34a;
+}
+
+.banner-status-error {
+  color: var(--danger);
+}
+
+.continue-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 14%, var(--surface)),
+    var(--surface)
+  );
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.continue-card-icon {
+  flex-shrink: 0;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+/* Finished course: swap the hero's accent tint for a quiet emerald so a
+   completed "continue learning" card reads as "done", not "in progress". */
+.continue-card-complete {
+  background: linear-gradient(135deg, color-mix(in srgb, #22c55e 14%, var(--surface)), var(--surface));
+  border-color: color-mix(in srgb, #22c55e 30%, var(--border));
+}
+
+.continue-card-complete .continue-card-icon {
+  color: #fff;
+  background: #22c55e;
+}
+
+.continue-card-complete .continue-card-eyebrow {
+  color: #16a34a;
+}
+
+.continue-card-complete .continue-card-cta {
+  color: #fff;
+  background: #22c55e;
+}
+
+.continue-card-complete .continue-card-cta:hover {
+  background: #16a34a;
+}
+
+/* A course can use a cover image instead of an icon (see `course.image`
+   in mockCourses.js) — fills the same circle instead of the accent fill. */
+.continue-card-icon-image {
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.continue-card-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.continue-card-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.continue-card-progress {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+  max-width: 340px;
+}
+
+.continue-card-progress .course-progress-label {
+  font-size: 0.75rem;
+}
+
+.continue-card-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.continue-card-body h2,
+.continue-card-body h3 {
+  margin: 0;
+  color: var(--text-strong);
+}
+
+.continue-card-body p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.continue-card-cta {
+  flex-shrink: 0;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent);
+  border-radius: var(--radius);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.continue-card-cta:hover {
+  background: var(--accent-hover);
+}
+
+.continue-card-skeleton {
+  background: var(--surface);
+}
+
+/* ---- Home hero: the "continue learning" module, restyled after a
+   DataCamp-style skill track card — flat surface (no busy animated
+   gradient), a compact score chip, and a segmented per-chapter progress
+   bar instead of a single filled bar or a duplicate gauge. ---- */
+
+.continue-card-hero {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.5rem;
+  padding: 1.5rem 1.75rem;
+  /* A static tint, not the old animated wash — enough color to read as
+     "featured" without competing with the segmented track below it. */
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 10%, var(--surface)),
+    var(--surface) 60%
+  );
+  border: 1px solid var(--border);
+}
+
+.continue-card-hero-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.continue-card-hero .continue-card-body h2 {
+  font-size: 1.3rem;
+}
+
+.continue-card-hero-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+/* Score chip: a compact grade "note", e.g. 72/100 — amber while below the
+   exam's passing threshold, green once it clears it (see PASSING_PCT). */
+.score-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--border));
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.score-chip-passed {
+  color: #15803d;
+  background: color-mix(in srgb, #16a34a 16%, var(--surface));
+  border-color: color-mix(in srgb, #16a34a 35%, var(--border));
+}
+
+/* Chapter track: one segment per chapter — done / current / upcoming —
+   so the course's shape is visible, not just a percentage. */
+.chapter-track {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.chapter-track-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.chapter-track-bar {
+  display: flex;
+  gap: 4px;
+}
+
+.chapter-segment {
+  flex: 1;
+  height: 8px;
+  min-width: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.chapter-segment-done {
+  background: var(--accent);
+}
+
+.chapter-segment-current {
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 35%, transparent));
+}
+
+@media (max-width: 640px) {
+  .continue-card-hero-top {
+    flex-wrap: wrap;
+  }
+
+  .continue-card-hero-actions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .continue-card-hero-actions .continue-card-cta {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.stat-tile-icon {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.stat-tile-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-strong);
+  line-height: 1.2;
+}
+
+.stat-tile-label {
+  font-size: 0.75rem;
+}
+
+.home-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.home-section-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-strong);
+}
+
+.home-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+/* ---- Final exam (features/exam/ExamPage.jsx) ---- */
+
+.exam-shell {
+  --exam-accent: #f59e0b;
+  --exam-accent-hover: #d97706;
+  --exam-accent-text: #1a1200;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--bg);
+  overflow-y: auto;
+}
+
+:root[data-theme='dark'] .exam-shell {
+  --exam-accent: #fbbf24;
+  --exam-accent-hover: #f59e0b;
+  --exam-accent-text: #1a1200;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .exam-shell {
+    --exam-accent: #fbbf24;
+    --exam-accent-hover: #f59e0b;
+    --exam-accent-text: #1a1200;
+  }
+}
+
+.exam-loading {
+  color: var(--text);
+}
+
+.exam-theme-toggle {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 55;
+  background: var(--surface);
+}
+
+.exam-panel {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  display: grid;
+  gap: 0.75rem;
+  padding: 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+}
+
+.exam-intro {
+  text-align: center;
+  justify-items: center;
+  padding-top: 2.75rem;
+}
+
+.exam-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.4rem;
+  color: var(--text);
+  background: transparent;
+}
+
+.exam-close:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.exam-intro-icon {
+  color: var(--exam-accent);
+}
+
+.exam-intro-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--exam-accent);
+}
+
+.exam-intro h1 {
+  margin: 0;
+}
+
+.exam-intro-tagline {
+  margin: 0;
+  max-width: 42ch;
+}
+
+.exam-intro-tagline code {
+  padding: 0.1rem 0.35rem;
+  background: var(--bg);
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.exam-intro-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.25rem;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+.exam-intro-stats div {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-strong);
+}
+
+.exam-intro-rules {
+  text-align: left;
+  width: 100%;
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.exam-start-button {
+  margin-top: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-weight: 700;
+}
+
+/* ---- exam: active ---- */
+
+.exam-active {
+  max-width: 720px;
+}
+
+.exam-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.exam-topbar-title {
+  font-weight: 600;
+  color: var(--text-strong);
+  font-size: 0.9rem;
+}
+
+.exam-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+  background: var(--bg);
+  border-radius: 999px;
+}
+
+.exam-timer-low {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+.exam-timer-track {
+  height: 4px;
+  margin-top: -1px;
+  margin-bottom: 0.75rem;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.exam-timer-fill {
+  height: 100%;
+  background: var(--exam-accent);
+  border-radius: 999px;
+}
+
+.exam-timer-fill-low {
+  background: var(--danger);
+}
+
+.exam-progress-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.exam-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--border);
+  border: 0;
+}
+
+.exam-dot-answered {
+  background: color-mix(in srgb, var(--exam-accent) 55%, var(--border));
+}
+
+.exam-dot-active {
+  background: var(--exam-accent);
+  transform: scale(1.3);
+}
+
+.exam-question-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--bg);
+  border-radius: var(--radius);
+}
+
+.exam-question-index {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.exam-question-card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-strong);
+}
+
+.exam-options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.exam-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.exam-option input {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.exam-option-selected {
+  border-color: var(--exam-accent);
+  background: color-mix(in srgb, var(--exam-accent) 10%, var(--surface));
+}
+
+.exam-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.exam-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.exam-answered-count {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.exam-review-button {
+  background: var(--exam-accent);
+}
+
+/* ---- exam: review (git-styled) ---- */
+
+.exam-review h1 {
+  margin: 0;
+  font-family: 'Courier New', ui-monospace, monospace;
+}
+
+.exam-terminal {
+  padding: 1rem 1.1rem;
+  background: #0f1115;
+  border-radius: var(--radius);
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 0.82rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.exam-terminal-line {
+  margin: 0.2rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #d1d5db;
+}
+
+.exam-terminal-muted {
+  color: #6b7280;
+}
+
+.exam-terminal-check {
+  flex-shrink: 0;
+  color: #4ade80;
+}
+
+.exam-terminal-dash {
+  flex-shrink: 0;
+  color: #f59e0b;
+}
+
+.exam-review-warning {
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.85rem;
+  color: var(--text-strong);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-radius: var(--radius);
+}
+
+.exam-commit-label {
+  margin: 0.25rem 0 0;
+}
+
+.exam-commit-input {
+  font-family: 'Courier New', ui-monospace, monospace;
+}
+
+.exam-review-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.exam-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-strong);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.exam-back-button:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.exam-commit-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 0.82rem;
+}
+
+/* ---- exam: processing ---- */
+
+.exam-processing {
+  text-align: center;
+  justify-items: center;
+}
+
+.exam-processing h1 {
+  margin: 0;
+}
+
+.exam-processing-caption {
+  margin: 0 0 0.5rem;
+}
+
+.exam-road {
+  position: relative;
+  width: 100%;
+  height: 3rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.exam-road-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.4rem;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--border) 0 12px,
+    transparent 12px 24px
+  );
+}
+
+.exam-truck {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-50%);
+  color: var(--exam-accent);
+}
+
+.exam-processing-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 420px;
+  display: grid;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.exam-processing-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.exam-processing-step-active {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.exam-processing-step-active svg {
+  color: var(--exam-accent);
+  animation: btn-spin 1.4s linear infinite;
+}
+
+.exam-processing-step-done {
+  color: var(--text);
+}
+
+.exam-processing-step-done svg {
+  color: var(--exam-accent);
+}
+
+/* ---- exam: result ---- */
+
+.exam-result {
+  position: relative;
+  text-align: center;
+  justify-items: center;
+  overflow: visible;
+}
+
+.exam-mascot {
+  margin: 0 auto 0.25rem;
+  width: fit-content;
+}
+
+.exam-result-badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  color: var(--exam-accent-text);
+}
+
+.exam-result-badge-pass {
+  background: var(--exam-accent);
+}
+
+.exam-result-badge-fail {
+  background: var(--text);
+}
+
+.exam-result h1 {
+  margin: 0.25rem 0 0;
+}
+
+.exam-result-caption {
+  margin: 0;
+  max-width: 42ch;
+}
+
+.exam-result-score {
+  margin-top: 0.5rem;
+  font-weight: 800;
+  color: var(--text-strong);
+}
+
+.exam-result-score-value {
+  font-size: 2.5rem;
+}
+
+.exam-result-score-total,
+.exam-result-score-pct {
+  font-size: 1.25rem;
+  color: var(--text);
+}
+
+.exam-result-pct-track {
+  width: 100%;
+  max-width: 320px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.exam-result-pct-fill {
+  height: 100%;
+  background: var(--exam-accent);
+}
+
+.exam-result-pct-fill-fail {
+  background: var(--text);
+}
+
+.exam-result-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.confetti {
+  position: absolute;
+  top: 3.5rem;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+/* ---- Final exam "challenge mode" reskin — a darker, more focused,
+   proctored-exam feel, distinct from the rest of the app's light theme.
+   Applies regardless of the active app theme (light/dark toggle), since
+   the exam is meant to feel like its own high-stakes space. ---- */
+
+@keyframes exam-vignette-drift {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+}
+
+/* "Serious/proctored" exam skin — a warm amber accent (--exam-accent, set
+   on .exam-shell above) instead of the app's default accent, so the exam
+   always reads as visually distinct from regular course pages. Built
+   entirely from the existing --bg/--surface/--text/--border tokens so it
+   follows the light/dark toggle instead of being locked to one palette. */
+.exam-shell-serious {
+  background:
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--exam-accent) 16%, transparent), transparent 45%),
+    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--exam-accent) 10%, transparent), transparent 45%),
+    var(--bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exam-shell-serious {
+    animation: none;
+  }
+}
+
+.exam-shell-serious .exam-panel {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 35%);
+}
+
+.exam-shell-serious .exam-intro-eyebrow,
+.exam-shell-serious .exam-intro-icon {
+  color: var(--exam-accent);
+}
+
+.exam-shell-serious h1,
+.exam-shell-serious h2,
+.exam-shell-serious .exam-topbar-title,
+.exam-shell-serious .exam-question-index {
+  color: var(--text-strong);
+}
+
+.exam-shell-serious p,
+.exam-shell-serious .exam-intro-tagline,
+.exam-shell-serious .exam-answered-count {
+  color: var(--text);
+}
+
+.exam-shell-serious .exam-option,
+.exam-shell-serious .exam-question-card {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-strong);
+}
+
+.exam-shell-serious .exam-option-selected {
+  border-color: var(--exam-accent);
+  background: color-mix(in srgb, var(--exam-accent) 16%, var(--bg));
+}
+
+.exam-shell-serious .exam-close,
+.exam-shell-serious .exam-back-button {
+  color: var(--text-strong);
+  border-color: var(--border);
+}
+
+.exam-shell-serious .exam-close:hover:not(:disabled),
+.exam-shell-serious .exam-back-button:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.exam-shell-serious .exam-timer {
+  background: var(--bg);
+  color: var(--text-strong);
+}
+
+/* Spotlight layout for the single active question during the exam. */
+.exam-shell-serious .exam-question-card {
+  padding: 1.75rem;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--exam-accent) 18%, transparent);
+}
+
+/* Solid/primary buttons inside the exam (Begin, Next, Review & commit,
+   Submit final answers, Retry, Back to course, …) use the exam's own
+   amber accent instead of the app's default accent — ghost buttons
+   (exam-close, exam-back-button) and the theme toggle keep their own
+   transparent styling via the :not() exclusions below. */
+.exam-shell button:not(.exam-close):not(.exam-back-button):not(.reader-theme-toggle) {
+  color: var(--exam-accent-text);
+  background: var(--exam-accent);
+}
+
+.exam-shell button:not(.exam-close):not(.exam-back-button):not(.reader-theme-toggle):hover:not(:disabled) {
+  background: var(--exam-accent-hover);
+}
+
+.exam-tab-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.82rem;
+  color: #fca5a5;
+  background: color-mix(in srgb, #dc2626 20%, transparent);
+  border: 1px solid color-mix(in srgb, #dc2626 40%, transparent);
+  border-radius: var(--radius);
 }

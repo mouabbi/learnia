@@ -8,6 +8,9 @@ import { ProtectedRoute } from './features/auth/ProtectedRoute'
 import { PublicOnlyRoute } from './features/auth/PublicOnlyRoute'
 import { AccountPage } from './pages/AccountPage'
 import { HomePage } from './pages/HomePage'
+import { CoursesPage } from './pages/CoursesPage'
+import { CourseReaderPage } from './pages/CourseReaderPage'
+import { ExamPage } from './features/exam/ExamPage'
 import { LoginPage } from './pages/LoginPage'
 import { MfaChallengePage } from './pages/MfaChallengePage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -58,8 +61,30 @@ function App() {
             }
           >
             <Route path="/" element={<HomePage />} />
+            <Route path="/courses" element={<CoursesPage />} />
             <Route path="/account" element={<AccountPage />} />
           </Route>
+          {/* The course reader and the final exam are deliberately outside
+              AppLayout — no topbar/sidebar chrome, each with its own
+              dedicated shell (docs-style reader, full-screen exam room).
+              Course cards open the reader in a new browser tab (see
+              CourseCard.jsx). Still gated by ProtectedRoute. */}
+          <Route
+            path="/courses/:slug/learn"
+            element={
+              <ProtectedRoute>
+                <CourseReaderPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/:slug/exam"
+            element={
+              <ProtectedRoute>
+                <ExamPage />
+              </ProtectedRoute>
+            }
+          />
           {/* Reachable whether logged in or out: a just-registered user is
               logged in but still needs /verify-email; forgot/reset password
               must work for a logged-out user. */}

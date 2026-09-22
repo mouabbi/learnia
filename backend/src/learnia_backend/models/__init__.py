@@ -5,6 +5,7 @@ SQLAlchemy's metadata and silently excluded from migrations.
 """
 
 from learnia_backend.models.audit_event import AuditEvent
+from learnia_backend.models.course import Course, CourseProgress
 from learnia_backend.models.mfa import MfaRecoveryCode, MfaSecret
 from learnia_backend.models.one_time_token import OneTimeToken
 from learnia_backend.models.session import UserSession
@@ -12,6 +13,8 @@ from learnia_backend.models.user import User
 
 __all__ = [
     "AuditEvent",
+    "Course",
+    "CourseProgress",
     "MfaRecoveryCode",
     "MfaSecret",
     "OneTimeToken",
