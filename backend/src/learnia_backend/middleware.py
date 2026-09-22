@@ -51,7 +51,6 @@ def register_request_logging(app: FastAPI) -> None:
         # when a trusted local proxy sets it. Through the Vite proxy this is 127.0.0.1.
         host = request.client.host if request.client else "unknown"
         source, referer = _classify_source(request)
-        user_agent = request.headers.get("user-agent", "-")[:60]
 
         # Only paths are logged, never query strings (they can hold sensitive values).
         logger.info(
