@@ -1,20 +1,29 @@
 """
-SQLAlchemy models for course content + a learner's progress through it.
+Course — the top-level content entity. Owns a course's own metadata,
+authoring status, and theme; everything hierarchical underneath (modules ->
+chapters -> pages, see module.py/chapter.py/page.py) hangs off `course_id`.
 
-Course content (modules > chapters > pages, module QCMs, final exam) is
-stored as a single JSON blob per course rather than fully normalized
-tables — it's read-only, author-managed content with a deeply nested
-shape that maps 1:1 onto the frontend's tree (see
-frontend/src/features/courses/mockCourses.js), and normalizing it into a
-dozen tables would buy nothing for content nobody queries by sub-field.
+`content_status` is the CONTENT authoring lifecycle (is this course written
+and ready to publish) — completely separate from any one learner's progress
+(LearningProgress.status, models/learning_progress.py). Never conflate the
+two: a PUBLISHED course says nothing about whether a given user has started
+it, and a user finishing a course doesn't change its content_status.
+
+Delete has two intentional paths (04-database):
+  - soft: set content_status = ARCHIVED (reversible, the default admin action)
+  - hard: actually DELETE the row — cascades to every child table via
+    ondelete="CASCADE" FKs (enforced at the SQLite level, see database.py's
+    "PRAGMA foreign_keys=ON"), for real cleanup of abandoned/test courses.
 """
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint
+from sqlalchemy import JSON, DateTime, String, Text
+from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from learnia_backend.database import Base
+from learnia_backend.models.enums import ContentStatus
 from learnia_backend.utils.time import utc_now_naive
 
 
@@ -22,39 +31,31 @@ class Course(Base):
     __tablename__ = "courses"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    title: Mapped[str] = mapped_column(String(255))
-    description: Mapped[str] = mapped_column(String(2000))
+    slug: Mapped[str] = mapped_column(String(120), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(Text(), default=None)
+    # Icon-picker name (e.g. "flask") for v1, not an Asset reference — see
+    # 15-assets' open question; revisit if courses need custom-uploaded icons.
     icon: Mapped[str | None] = mapped_column(String(100), default=None)
-    image: Mapped[str | None] = mapped_column(String(500), default=None)
-    color: Mapped[str | None] = mapped_column(String(20), default=None)
-    difficulty: Mapped[str | None] = mapped_column(String(50), default=None)
-    estimated_minutes: Mapped[int] = mapped_column(Integer, default=0)
-    # { modules: [...], finalExam: {...} | null } — see mockCourses.js's
-    # Module > Chapter > Page tree for the exact shape the frontend expects.
-    content: Mapped[dict] = mapped_column(JSON, default=dict)
+    content_status: Mapped[ContentStatus] = mapped_column(
+        SqlEnum(ContentStatus, native_enum=False, length=20, validate_strings=True),
+        default=ContentStatus.PLANNED,
+        index=True,
+    )
+    # Cohesive, non-relational bundle (brand/accent, module color map,
+    # heading colors, light+dark palettes) — always read/written whole, never
+    # queried by individual color, so a JSON column beats a `themes` table
+    # (16-theming). Validated on write by a Pydantic model at the API layer,
+    # not at the DB layer.
+    theme: Mapped[dict | None] = mapped_column(JSON(), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(), default=utc_now_naive)
-
-
-class CourseProgress(Base):
-    """
-    One row per (user, course) — a learner's progress through that course.
-    Mirrors the shape frontend/progressStore.js used to keep in
-    localStorage, so the frontend reads this straight into its existing UI.
-    """
-
-    __tablename__ = "course_progress"
-    __table_args__ = (UniqueConstraint("user_id", "course_id", name="uq_course_progress_user_course"),)
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"), index=True)
-    completed_page_ids: Mapped[list] = mapped_column(JSON, default=list)
-    last_page_id: Mapped[str | None] = mapped_column(String(255), default=None)
-    # moduleId -> { score, total, lastAttemptAt } (epoch ms, best attempt kept)
-    module_quizzes: Mapped[dict] = mapped_column(JSON, default=dict)
-    # { score, total, lastAttemptAt } | None (best attempt kept)
-    final_exam: Mapped[dict | None] = mapped_column(JSON, default=None)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(), default=utc_now_naive, onupdate=utc_now_naive
     )
+    # Set when content_status transitions to ARCHIVED; cleared if it's ever
+    # moved back out of ARCHIVED. A timestamp instead of a bool so "when"
+    # is never lost, matching this codebase's `email_verified_at` pattern.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(), default=None)
+
+    def is_archived(self) -> bool:
+        return self.content_status == ContentStatus.ARCHIVED
