@@ -4,12 +4,17 @@ them all. A model defined but never imported anywhere is invisible to
 SQLAlchemy's metadata and silently excluded from migrations.
 """
 
-from learnia_backend.models.asset import Asset
 from learnia_backend.models.assessment import AssessmentAnswer, AssessmentAttempt
+from learnia_backend.models.asset import Asset
 from learnia_backend.models.audit_event import AuditEvent
 from learnia_backend.models.chapter import Chapter
 from learnia_backend.models.course import Course
-from learnia_backend.models.enums import AttemptStatus, ContentStatus, LearningStatus, QuestionScope
+from learnia_backend.models.enums import (
+    AttemptStatus,
+    ContentStatus,
+    LearningStatus,
+    QuestionScope,
+)
 from learnia_backend.models.final_exam import FinalExamAnswer, FinalExamAttempt
 from learnia_backend.models.learning_progress import LearningProgress, PageProgress
 from learnia_backend.models.mfa import MfaRecoveryCode, MfaSecret
@@ -27,8 +32,13 @@ __all__ = [
     "AssessmentAttempt",
     "AttemptStatus",
     "AuditEvent",
+    "Chapter",
+    "ContentStatus",
     "Course",
-    "CourseProgress",
+    "FinalExamAnswer",
+    "FinalExamAttempt",
+    "LearningProgress",
+    "LearningStatus",
     "MfaRecoveryCode",
     "MfaSecret",
     "Module",
