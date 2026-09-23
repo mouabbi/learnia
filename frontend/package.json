@@ -13,6 +13,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.47.0",
     "motion": "^13.4.1",
     "react": "^19.2.8",

@@ -1,13 +1,96 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { NavLink } from 'react-router-dom'
+import { Home, BookOpen, Settings, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
 // Off-canvas nav drawer used by AppLayout. Pure presentational component —
 // open/close state and the close callback are owned by the caller so this
 // stays easy to test without touching routing. Slide/fade handled by
 // motion (see AnimatePresence) instead of a CSS transform transition, so
 // the drawer unmounts (not just hides) when closed.
-export function Sidebar({ email, isOpen, onClose, onLogout }) {
+//
+// `pinned` renders the same nav as a static, always-visible column (no
+// overlay, no slide animation, no close button) — used by AppLayout for
+// the persistent desktop sidebar, hidden below the desktop breakpoint via
+// CSS (see .sidebar-pinned in index.css).
+export function Sidebar({
+  email,
+  isOpen,
+  onClose,
+  onLogout,
+  pinned = false,
+  collapsed = false,
+  onToggleCollapse,
+}) {
   const displayName = email.split('@')[0]
+
+  const links = (
+    <>
+      {pinned && onToggleCollapse && (
+        <button
+          type="button"
+          className="sidebar-collapse-toggle"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? (
+            <PanelLeftOpen aria-hidden="true" size={18} />
+          ) : (
+            <PanelLeftClose aria-hidden="true" size={18} />
+          )}
+        </button>
+      )}
+
+      <div className="sidebar-user">
+        <span className="sidebar-avatar" aria-hidden="true">
+          {displayName.charAt(0).toUpperCase()}
+        </span>
+        {!collapsed && (
+          <div>
+            <p className="sidebar-name">{displayName}</p>
+            <p className="sidebar-email">{email}</p>
+          </div>
+        )}
+      </div>
+
+      <ul className="sidebar-links">
+        <li>
+          <NavLink to="/" end onClick={onClose} title="Home">
+            <Home aria-hidden="true" size={18} />
+            {!collapsed && <span>Home</span>}
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/courses" onClick={onClose} title="Courses">
+            <BookOpen aria-hidden="true" size={18} />
+            {!collapsed && <span>Courses</span>}
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/account" onClick={onClose} title="Settings">
+            <Settings aria-hidden="true" size={18} />
+            {!collapsed && <span>Settings</span>}
+          </NavLink>
+        </li>
+      </ul>
+
+      <button type="button" className="sidebar-logout" onClick={onLogout} title="Log out">
+        <LogOut aria-hidden="true" size={18} />
+        {!collapsed && <span>Log out</span>}
+      </button>
+    </>
+  )
+
+  if (pinned) {
+    return (
+      <nav
+        className={`sidebar sidebar-static${collapsed ? ' sidebar-collapsed' : ''}`}
+        aria-label="Main menu"
+      >
+        {links}
+      </nav>
+    )
+  }
 
   return (
     <AnimatePresence>
@@ -31,37 +114,7 @@ export function Sidebar({ email, isOpen, onClose, onLogout }) {
             exit={{ x: '-100%' }}
             transition={{ type: 'tween', duration: 0.2, ease: 'easeOut' }}
           >
-            <div className="sidebar-user">
-              <span className="sidebar-avatar" aria-hidden="true">
-                {displayName.charAt(0).toUpperCase()}
-              </span>
-              <div>
-                <p className="sidebar-name">{displayName}</p>
-                <p className="sidebar-email">{email}</p>
-              </div>
-            </div>
-
-            <ul className="sidebar-links">
-              <li>
-                <NavLink to="/" end onClick={onClose}>
-                  Home
-                </NavLink>
-              </li>
-              <li>
-                <NavLink to="/account" onClick={onClose}>
-                  Settings
-                </NavLink>
-              </li>
-            </ul>
-
-            <motion.button
-              type="button"
-              className="sidebar-logout"
-              onClick={onLogout}
-              whileTap={{ scale: 0.96 }}
-            >
-              Log out
-            </motion.button>
+            {links}
           </motion.nav>
         </>
       )}

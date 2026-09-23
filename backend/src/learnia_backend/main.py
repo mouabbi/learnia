@@ -9,7 +9,7 @@ from learnia_backend.config import settings
 from learnia_backend.exceptions import register_exception_handlers
 from learnia_backend.logging_config import configure_logging
 from learnia_backend.middleware import register_request_logging
-from learnia_backend.routers import auth, health
+from learnia_backend.routers import auth, courses, health
 
 # Logging must be configured before anything else runs, so startup itself gets logged.
 configure_logging()
@@ -49,3 +49,4 @@ app.add_middleware(
 # internally (see routers/health.py) so versioning is explicit per-router.
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(courses.router)
