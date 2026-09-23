@@ -13,7 +13,59 @@ finalExam} progress shape) — so the frontend needed zero changes to point
 at this instead of the mock data.
 """
 
-from pydantic import BaseModel, ConfigDict, Field
+import re
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from learnia_backend.models.enums import ContentStatus
+
+_SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+
+
+class CourseAdminSummary(BaseModel):
+    """Course row for the CMS picker (routers/course_admin.py) — unlike the
+    public CourseSummary, this includes every status (drafts included) and
+    the status itself, since an admin needs to see what's unpublished."""
+
+    id: int
+    slug: str
+    title: str
+    description: str
+    content_status: str = Field(serialization_alias="contentStatus")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class CourseCreateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    slug: str
+    title: str
+    description: str | None = None
+    icon: str | None = None
+
+    @field_validator("slug")
+    @classmethod
+    def slug_is_url_safe(cls, value: str) -> str:
+        if not _SLUG_RE.match(value):
+            raise ValueError("Slug must be lowercase letters, numbers and hyphens (e.g. 'my-course')")
+        return value
+
+    @field_validator("title")
+    @classmethod
+    def title_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Title is required")
+        return value
+
+
+class CourseUpdateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    title: str | None = None
+    description: str | None = None
+    icon: str | None = None
+    content_status: ContentStatus | None = Field(default=None, alias="contentStatus")
 
 
 class MarkPageCompleteRequest(BaseModel):
@@ -118,6 +170,7 @@ class CourseSummary(BaseModel):
     color: str | None = None
     difficulty: str | None = None
     estimated_minutes: int = Field(alias="estimatedMinutes")
+    content_status: str = Field(alias="contentStatus")
 
 
 class CourseDetail(CourseSummary):
@@ -125,6 +178,66 @@ class CourseDetail(CourseSummary):
 
     modules: list[ModuleOut] = Field(default_factory=list)
     final_exam: FinalExam | None = Field(default=None, alias="finalExam")
+
+
+class CreateModuleRequest(BaseModel):
+    title: str
+
+
+class CreateChapterRequest(BaseModel):
+    title: str
+
+
+class CreatePageRequest(BaseModel):
+    title: str
+
+
+class RenameRequest(BaseModel):
+    """Shared body for rename-module/chapter/page endpoints."""
+
+    title: str
+
+
+class MoveChapterRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    module_id: str = Field(alias="moduleId")
+
+
+class MovePageRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    chapter_id: str = Field(alias="chapterId")
+
+
+class ReorderRequest(BaseModel):
+    """Shared body for reorder-modules/chapters/pages endpoints."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    ordered_ids: list[str] = Field(alias="orderedIds")
+
+
+class ModuleAdminOut(BaseModel):
+    """What the CRUD endpoints return for a module — id/title/position only."""
+
+    id: str
+    title: str
+    position: int
+
+
+class ChapterAdminOut(BaseModel):
+    id: str
+    title: str
+    position: int
+    module_id: str = Field(alias="moduleId", serialization_alias="moduleId")
+
+
+class PageAdminOut(BaseModel):
+    id: str
+    title: str
+    position: int
+    chapter_id: str = Field(alias="chapterId", serialization_alias="chapterId")
 
 
 class ProgressResponse(BaseModel):

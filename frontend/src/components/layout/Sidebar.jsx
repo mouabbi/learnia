@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { NavLink } from 'react-router-dom'
-import { Home, BookOpen, Settings, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Home, BookOpen, Settings, LogOut, PanelLeftClose, PanelLeftOpen, LayoutGrid, ShieldCheck } from 'lucide-react'
 
 // Off-canvas nav drawer used by AppLayout. Pure presentational component —
 // open/close state and the close callback are owned by the caller so this
@@ -14,6 +14,7 @@ import { Home, BookOpen, Settings, LogOut, PanelLeftClose, PanelLeftOpen } from 
 // CSS (see .sidebar-pinned in index.css).
 export function Sidebar({
   email,
+  isAdmin = false,
   isOpen,
   onClose,
   onLogout,
@@ -47,7 +48,14 @@ export function Sidebar({
         </span>
         {!collapsed && (
           <div>
-            <p className="sidebar-name">{displayName}</p>
+            <p className="sidebar-name">
+              {displayName}
+              {isAdmin && (
+                <span className="sidebar-admin-badge" title="Admin account">
+                  <ShieldCheck aria-hidden="true" size={11} /> Admin
+                </span>
+              )}
+            </p>
             <p className="sidebar-email">{email}</p>
           </div>
         )}
@@ -66,6 +74,17 @@ export function Sidebar({
             {!collapsed && <span>Courses</span>}
           </NavLink>
         </li>
+        {isAdmin && (
+          <li>
+            {/* Genuinely separate app, not a route in this SPA — opens in
+                its own tab with its own shell (see pages/CmsHomePage.jsx),
+                same way the course reader opens (see CourseCard.jsx). */}
+            <a href="/cms" target="_blank" rel="noopener noreferrer" title="CMS workspace" className="sidebar-link-cms">
+              <LayoutGrid aria-hidden="true" size={18} />
+              {!collapsed && <span>CMS workspace</span>}
+            </a>
+          </li>
+        )}
         <li>
           <NavLink to="/account" onClick={onClose} title="Settings">
             <Settings aria-hidden="true" size={18} />

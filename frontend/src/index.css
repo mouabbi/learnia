@@ -164,7 +164,9 @@ body {
    (login/register/...). Without this override, the shell's topbar/sidebar
    inherit the body's 1rem padding and float inset from the viewport edges
    instead of spanning it. */
-body:has(.app-shell) {
+body:has(.app-shell),
+body:has(.reader-shell),
+body:has(.cms-shell) {
   display: block;
   padding: 0;
 }
@@ -416,6 +418,12 @@ button:disabled {
 
 .app-content:has(.course-grid) {
   max-width: 1200px;
+  padding-top: 0;
+}
+
+.app-content:has(.cms-workspace) {
+  max-width: none;
+  padding: 0;
 }
 
 .content-card {
@@ -700,6 +708,43 @@ button:disabled {
   z-index: 10;
 }
 
+.logout-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.logout-overlay-panel {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2rem 2.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 45px -20px rgb(0 0 0 / 35%);
+  color: var(--text-strong);
+}
+
+.logout-overlay-panel p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.logout-overlay-icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
 /* Slide/fade is driven by motion (see Sidebar.jsx) via inline transforms,
    so only static positioning lives here. */
 .sidebar {
@@ -772,6 +817,27 @@ button:disabled {
   font-weight: 600;
   color: var(--sidebar-text-strong, var(--text-strong));
   text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sidebar-admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.sidebar-link-cms svg {
+  color: var(--accent);
 }
 
 .sidebar-email {
@@ -942,6 +1008,7 @@ button:disabled {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--accent) 45%, transparent);
 }
+
 
 /* Finished course: a quieter emerald accent instead of the app's default
    accent, so a completed card reads as "done" at a glance in the catalog
@@ -3137,4 +3204,140 @@ button:disabled {
   background: color-mix(in srgb, #dc2626 20%, transparent);
   border: 1px solid color-mix(in srgb, #dc2626 40%, transparent);
   border-radius: var(--radius);
+}
+
+/* Global search (14-global-search, features/search/GlobalSearch.jsx) —
+   fade/scale handled by motion inline, only static positioning here,
+   mirroring .sidebar-overlay/.sidebar's split above. */
+.global-search-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 40%);
+  z-index: 20;
+}
+
+.global-search-panel {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, 92vw);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--text-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
+  overflow: hidden;
+  z-index: 21;
+}
+
+.global-search-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.global-search-input-row input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-strong);
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.global-search-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+.global-search-close:hover {
+  color: var(--text-strong);
+  background: var(--bg);
+}
+
+.global-search-results {
+  overflow-y: auto;
+  padding: 0.4rem;
+}
+
+.global-search-status {
+  padding: 1rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  text-align: center;
+}
+
+.global-search-results ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.global-search-result {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  color: var(--text-strong);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+.global-search-result:hover {
+  background: var(--bg);
+}
+
+.global-search-result-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.global-search-result-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.global-search-result-snippet {
+  font-size: 0.78rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.global-search-result-snippet b {
+  color: var(--text-strong);
+}
+
+.global-search-result-type {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }

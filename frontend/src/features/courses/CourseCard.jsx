@@ -9,7 +9,7 @@ const ICONS = { GitBranch, Code2, Globe, FlaskConical }
 const THUMB_VARIANTS = ['thumb-indigo', 'thumb-amber', 'thumb-teal', 'thumb-rose']
 
 function thumbVariant(id) {
-  const hash = [...id].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
+  const hash = [...String(id)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
   return THUMB_VARIANTS[hash % THUMB_VARIANTS.length]
 }
 

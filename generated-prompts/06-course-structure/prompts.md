@@ -13,8 +13,8 @@ see `07-content-system`). Ordering, CRUD, and moving/reorganizing nodes.
 6. Numbering/display (Module 1, Chapter 1, Page 1 — computed from position, not stored redundantly)
 
 ## Questions to answer before implementation
-- Full tree in one API call (course + modules + chapters + pages, no content) vs. paginated/lazy loading? → Recommend one full structural tree call (it's metadata only, small payload even for a large course) — simplifies the CMS tree view and the learner's navigation sidebar.
-- Should Page have its own fixed "type" (e.g. normal page vs. intro page) or is that unnecessary for v1? → Defer; treat all pages uniformly for now.
+- Full tree in one API call (course + modules + chapters + pages, no content) vs. paginated/lazy loading? → Recommend one full structural tree call (it's metadata only, small payload even for a large course) — simplifies the CMS tree view and the learner's navigation sidebar. yes 
+- Should Page have its own fixed "type" (e.g. normal page vs. intro page) or is that unnecessary for v1? → Defer; treat all pages uniformly for now. yes
 
 ## Dependencies
 - 05-course-system

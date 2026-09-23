@@ -42,8 +42,16 @@ export function ReaderShell({
       typeof window !== 'undefined' &&
       window.matchMedia?.('(prefers-color-scheme: dark)').matches)
 
+  // Per-course accent (16-theming) as a scoped CSS custom property — the
+  // reader shell can lean on --course-accent wherever it wants a
+  // course-branded touch, without a full CSS rewrite. `course.color`
+  // already exists on CourseSummary (== theme.accent, see
+  // repositories/course_repository.py); falls back to the app's own
+  // --accent (see hooks/useAccentColor.js) if a course has no theme yet.
+  const courseThemeStyle = course.color ? { '--course-accent': course.color } : undefined
+
   return (
-    <div className="reader-shell">
+    <div className="reader-shell" style={courseThemeStyle}>
       <header className="reader-topbar">
         <Link to="/courses" className="reader-back-link">
           <ChevronLeft size={16} /> All courses

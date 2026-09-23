@@ -122,6 +122,46 @@ class ProgressRepository:
         )
         self.db.commit()
 
+    def progress_percent(self, user_id: int, course_id: int) -> int:
+        """
+        Simple page-count progress % (completed pages / total pages) for one
+        user+course — same page-count query pattern as mark_page_complete's
+        completion check, reused here rather than duplicated, for callers
+        (17-dashboard) that only need a percentage, not the full
+        to_progress_dict shape.
+        """
+        total_pages = self.db.query(Page).filter(Page.course_id == course_id).count()
+        if total_pages == 0:
+            return 0
+        completed_pages = (
+            self.db.query(PageProgress)
+            .filter(PageProgress.user_id == user_id, PageProgress.course_id == course_id)
+            .count()
+        )
+        return round((completed_pages / total_pages) * 100)
+
+    def get_learning_progress(self, user_id: int, course_id: int) -> LearningProgress | None:
+        """Read-only lookup (no get-or-create row insert) — for callers like
+        the dashboard that only want to know progress if it already exists."""
+        return (
+            self.db.query(LearningProgress)
+            .filter(LearningProgress.user_id == user_id, LearningProgress.course_id == course_id)
+            .first()
+        )
+
+    def most_recent_in_progress(self, user_id: int) -> LearningProgress | None:
+        """The user's IN_PROGRESS course they touched most recently — backs
+        the dashboard's "continue learning" card (17-dashboard)."""
+        return (
+            self.db.query(LearningProgress)
+            .filter(
+                LearningProgress.user_id == user_id,
+                LearningProgress.status == LearningStatus.IN_PROGRESS,
+            )
+            .order_by(LearningProgress.updated_at.desc())
+            .first()
+        )
+
     def to_progress_dict(self, user_id: int, course_id: int, module_ids: list[int]) -> dict:
         progress = self.get_or_create_learning_progress(user_id, course_id)
 

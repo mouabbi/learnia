@@ -20,6 +20,7 @@ from learnia_backend.models.enums import ContentStatus, QuestionScope
 from learnia_backend.models.module import Module
 from learnia_backend.models.page import Page
 from learnia_backend.models.question import Question
+from learnia_backend.utils.time import utc_now_naive
 
 # Where a page's content_path (relative) resolves against — see
 # models/page.py: "content/{course.slug}/{page.id}.json".
@@ -76,6 +77,45 @@ class CourseRepository:
     def get_by_id(self, course_id: int) -> Course | None:
         return self.db.get(Course, course_id)
 
+    def list_all(self) -> list[Course]:
+        """Every course regardless of content_status — for the CMS course
+        picker (routers/course_admin.py), unlike list_published() which the
+        public catalog uses."""
+        return self.db.query(Course).order_by(Course.id).all()
+
+    def create(self, *, slug: str, title: str, description: str | None, icon: str | None) -> Course:
+        course = Course(slug=slug, title=title, description=description, icon=icon)
+        self.db.add(course)
+        self.db.commit()
+        self.db.refresh(course)
+        return course
+
+    def update_metadata(
+        self,
+        course: Course,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        icon: str | None = None,
+        content_status: ContentStatus | None = None,
+    ) -> Course:
+        if title is not None:
+            course.title = title
+        if description is not None:
+            course.description = description
+        if icon is not None:
+            course.icon = icon
+        if content_status is not None:
+            course.content_status = content_status
+            course.archived_at = utc_now_naive() if content_status == ContentStatus.ARCHIVED else None
+        self.db.commit()
+        self.db.refresh(course)
+        return course
+
+    def delete(self, course: Course) -> None:
+        self.db.delete(course)
+        self.db.commit()
+
     def course_summary(self, course: Course) -> dict:
         theme = course.theme or {}
         page_count = self.db.query(Page).filter(Page.course_id == course.id).count()
@@ -91,6 +131,7 @@ class CourseRepository:
             # No estimated_minutes column on Course yet — a rough heuristic
             # (4 min/page) until content authoring adds a real estimate.
             "estimatedMinutes": theme.get("estimatedMinutes") or page_count * 4,
+            "contentStatus": course.content_status.value,
         }
 
     def course_detail(self, course: Course) -> dict:
