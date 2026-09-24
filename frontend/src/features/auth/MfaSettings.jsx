@@ -134,7 +134,9 @@ export function MfaSettings({ onStatusChange } = {}) {
 
   return (
     <div>
-      <h2>Two-factor authentication</h2>
+      {/* AccountPage.jsx already renders this setting's own h2 (the item's
+          label) right above <ActiveContent>, so this component doesn't
+          repeat it. */}
       {error && (
         <p role="alert" className="error">
           {error}

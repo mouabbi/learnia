@@ -6,6 +6,16 @@ confused with Course.content_status (the content's authoring lifecycle):
   current status + current page — surfaced on the dashboard's "continue
   learning" card (17-dashboard). Unique on (user_id, course_id).
 
+  `content_seen_at` backs the "this course changed since you last looked"
+  badge (see repositories/progress_repository.py's has_unseen_update and
+  routers/courses.py's mark-content-seen endpoint): the timestamp this
+  learner last acknowledged this course's content. Defaults to "now" the
+  moment a learner's progress row is created (starting a course counts as
+  having seen its current content), and is bumped forward again whenever
+  they dismiss a later change notice. A learner has an unseen update when
+  Course.updated_at (models/course.py, bumped by CourseRepository.touch on
+  ANY content/assessment mutation) is later than this timestamp.
+
 - PageProgress: one row per (user, page) that the user has COMPLETED.
   Existence of the row *is* the completion signal (08-learning-progress:
   "mark as completed on Next" is idempotent — inserting the same row twice
@@ -52,6 +62,10 @@ class LearningProgress(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(), default=utc_now_naive, onupdate=utc_now_naive, index=True
     )
+    # See module docstring. Nullable only for pre-existing rows migrated in
+    # before this column existed (backfilled to their own updated_at at
+    # migration time); every row created from here on gets one immediately.
+    content_seen_at: Mapped[datetime | None] = mapped_column(DateTime(), default=utc_now_naive)
 
 
 class PageProgress(Base):

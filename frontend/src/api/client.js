@@ -67,9 +67,47 @@ async function request(path, options = {}) {
   return response.json()
 }
 
+async function requestForm(path, formData) {
+  // Same error/logging behavior as request(), but skips the
+  // `Content-Type: application/json` header and JSON.stringify — a
+  // multipart body needs the browser to set its own
+  // `Content-Type: multipart/form-data; boundary=...` header, which only
+  // happens if we don't set Content-Type ourselves at all.
+  const method = 'POST'
+  const started = performance.now()
+
+  let response
+  try {
+    response = await fetch(`${BASE_URL}${path}`, { method, body: formData })
+  } catch (networkError) {
+    log.error(`${method} ${path} -> network error`, networkError)
+    throw networkError
+  }
+
+  const ms = Math.round(performance.now() - started)
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    const error = body?.error
+    log.warn(`${method} ${path} -> ${response.status} (${ms} ms)`, { code: error?.code })
+    throw new ApiError(
+      response.status,
+      error?.code ?? 'UNKNOWN_ERROR',
+      error?.message ?? 'Something went wrong',
+    )
+  }
+
+  log.info(`${method} ${path} -> ${response.status} (${ms} ms)`)
+  if (response.status === 204) return null
+  return response.json()
+}
+
 export const apiClient = {
   get: (path) => request(path),
   post: (path, data) => request(path, { method: 'POST', body: JSON.stringify(data) }),
   patch: (path, data) => request(path, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (path) => request(path, { method: 'DELETE' }),
+  // For multipart/form-data uploads (e.g. features/assets/assetsApi.js) —
+  // pass a `FormData` instance, not a plain object.
+  postForm: (path, formData) => requestForm(path, formData),
 }

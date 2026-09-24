@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session as DbSession
 
 from learnia_backend.config import settings
 from learnia_backend.database import get_db
-from learnia_backend.exceptions import UnauthorizedError
+from learnia_backend.exceptions import ForbiddenError, UnauthorizedError
 from learnia_backend.models.user import User
 from learnia_backend.repositories.session_repository import SessionRepository
 from learnia_backend.repositories.user_repository import UserRepository
@@ -32,4 +32,15 @@ def get_current_user(request: Request, db: DbSession = Depends(get_db)) -> User:
     if user is None:
         raise UnauthorizedError("Session refers to a user that no longer exists")
 
+    return user
+
+
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    """Gate for every CMS-only endpoint (routers/course_admin.py). Layered on
+    top of get_current_user so "not logged in" and "logged in but not
+    admin" stay distinguishable (401 vs 403) — the frontend's AdminRoute
+    relies on that distinction to show a "switch account" prompt instead of
+    bouncing straight to /login."""
+    if not user.is_admin:
+        raise ForbiddenError("Admin access required")
     return user

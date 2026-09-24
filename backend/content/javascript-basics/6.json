@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "FizzBuzz",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Print 1 to 15, but multiples of 3 print Fizz, of 5 print Buzz, of both FizzBuzz. The trap is order: check the combined case first, or it never runs."
+    },
+    {
+      "type": "code",
+      "code": "for (let i = 1; i <= 15; i++) {\n  if (i % 15 === 0) console.log('FizzBuzz');\n  else if (i % 3 === 0) console.log('Fizz');\n  else if (i % 5 === 0) console.log('Buzz');\n  else console.log(i);\n}",
+      "language": "javascript"
+    },
+    {
+      "type": "terminal",
+      "text": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz"
+    },
+    {
+      "type": "heading",
+      "text": "isEven and isOdd",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "const isEven = (n) => n % 2 === 0;\nconst isOdd  = (n) => n % 2 !== 0; // not === 1: -3 % 2 is -1\n\nisOdd(-3); // true",
+      "language": "javascript"
+    },
+    {
+      "type": "heading",
+      "text": "Grade Calculator with Validation",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "function grade(score) {\n  if (typeof score !== 'number' || Number.isNaN(score)) return 'Invalid';\n  if (score < 0 || score > 100) return 'Out of range';\n  if (score >= 90) return 'A';\n  if (score >= 80) return 'B';\n  if (score >= 70) return 'C';\n  return 'F';\n}\n\nconsole.log(grade(95), grade(72), grade(-5), grade('90'));",
+      "language": "javascript"
+    },
+    {
+      "type": "terminal",
+      "text": "A C Out of range Invalid"
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Validate input with guard clauses before the business logic. grade('90') returning 'Invalid' is deliberate: silently accepting strings would let '90' + 10 bugs through later."
+    },
+    {
+      "type": "heading",
+      "text": "Temperature Converter",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "const toFahrenheit = (c) => c * 9 / 5 + 32;\nconst round = (x, digits = 1) => Math.round(x * 10 ** digits) / 10 ** digits;\n\nconsole.log(toFahrenheit(37));          // 98.60000000000001\nconsole.log(round(toFahrenheit(37)));   // 98.6",
+      "language": "javascript"
+    },
+    {
+      "type": "heading",
+      "text": "Largest of Three Numbers",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "function max3(a, b, c) {\n  let max = a;\n  if (b > max) max = b;\n  if (c > max) max = c;\n  return max;\n}\n\nmax3(4, 9, 2);      // 9\nMath.max(4, 9, 2);  // 9 : the built-in version",
+      "language": "javascript"
+    },
+    {
+      "type": "heading",
+      "text": "Palindrome Check",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "function isPalindrome(text) {\n  const clean = text.toLowerCase().replace(/[^a-z0-9]/g, '');\n  let left = 0;\n  let right = clean.length - 1;\n  while (left < right) {\n    if (clean[left] !== clean[right]) return false;\n    left++;\n    right--;\n  }\n  return true;\n}\n\nisPalindrome('Race car'); // true\nisPalindrome('hello');    // false",
+      "language": "javascript"
+    },
+    {
+      "type": "paragraph",
+      "text": "The two-pointer loop is O(n) time and O(1) extra space and exits on the first mismatch. The shorter clean === [...clean].reverse().join('') also works but allocates two extra copies; interviewers often ask for the pointer version as a follow-up."
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "What .gitignore Does",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "A .gitignore file lists patterns for untracked files Git should not offer to add: build output, dependencies, logs, local environment files. Ignored files do not appear in git status and are skipped by git add . and git add -A."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": ".gitignore only affects untracked files. If a file is already tracked, adding it to .gitignore changes nothing; Git keeps tracking it. You must untrack it explicitly (next page)."
+    },
+    {
+      "type": "heading",
+      "text": "Pattern Rules",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Pattern",
+        "Matches",
+        "Notes"
+      ],
+      "rows": [
+        [
+          "# comment",
+          "Nothing",
+          "Lines starting with # are comments; blank lines are ignored"
+        ],
+        [
+          "*.log",
+          "Any .log file at any depth",
+          "No slash, so it matches in every directory"
+        ],
+        [
+          "build/",
+          "Any directory named build, at any depth",
+          "Trailing slash: directories only"
+        ],
+        [
+          "/build",
+          "Only build at the root of this .gitignore's directory",
+          "Leading slash anchors the pattern"
+        ],
+        [
+          "doc/*.txt",
+          "doc/notes.txt but not doc/api/notes.txt",
+          "A slash in the middle anchors it relative to the .gitignore; * does not cross /"
+        ],
+        [
+          "doc/**/*.pdf",
+          "PDFs anywhere under doc/",
+          "** matches any number of directories"
+        ],
+        [
+          "**/temp",
+          "temp at any depth",
+          "Equivalent to temp without slashes"
+        ],
+        [
+          "!keep.log",
+          "Re-includes keep.log",
+          "Negation overrides an earlier matching pattern"
+        ],
+        [
+          "\\#notes",
+          "A file literally named #notes",
+          "Backslash escapes a leading # or !"
+        ],
+        [
+          "file?.txt",
+          "file1.txt, fileA.txt",
+          "? matches one character except /"
+        ],
+        [
+          "[0-9].csv",
+          "0.csv to 9.csv",
+          "Character ranges"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "The Negation Trap",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "You cannot re-include a file if its parent directory is excluded. Git does not descend into ignored directories for performance, so it never sees the file your negation targets."
+    },
+    {
+      "type": "code",
+      "code": "# Does NOT work: logs/ is ignored as a directory, so the negation is never evaluated\nlogs/\n!logs/.gitkeep\n\n# Works: ignore the contents, not the directory itself\nlogs/*\n!logs/.gitkeep",
+      "language": "gitignore"
+    },
+    {
+      "type": "heading",
+      "text": "A Realistic .gitignore",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "# Dependencies\nnode_modules/\n.venv/\n__pycache__/\n*.py[cod]\n\n# Build output\n/dist/\n/build/\n*.egg-info/\n\n# Environment and secrets\n.env\n.env.*\n!.env.example\n\n# Logs and runtime data\n*.log\n*.pid\n\n# Test and coverage output\n.coverage\ncoverage/\n.pytest_cache/\n\n# Local databases\n*.sqlite3",
+      "language": "gitignore"
+    },
+    {
+      "type": "heading",
+      "text": "Nested .gitignore Files",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "You can place a .gitignore in any subdirectory. Its patterns are relative to that directory, and deeper files take precedence over higher ones. In monorepos this keeps each package's rules next to the package."
+    },
+    {
+      "type": "heading",
+      "text": "Debugging Ignore Rules",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "# Why is this file ignored? Shows the file, line and pattern responsible\n$ git check-ignore -v dist/app.js\n.gitignore:8:/dist/    dist/app.js\n\n# Exit code 1 and no output means it is not ignored\n$ git check-ignore -v src/app.js\n\n# List all ignored files currently in the working tree\n$ git status --ignored --short\n!! node_modules/\n!! .env"
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Start from a maintained template for your stack instead of writing one from scratch. GitHub keeps a curated collection, and GitHub offers it when you create a new repository."
+    },
+    {
+      "type": "link",
+      "href": "https://github.com/github/gitignore",
+      "text": "github/gitignore: templates for common languages and frameworks"
+    },
+    {
+      "type": "link",
+      "href": "https://git-scm.com/docs/gitignore",
+      "text": "Official gitignore documentation"
+    }
+  ]
+}

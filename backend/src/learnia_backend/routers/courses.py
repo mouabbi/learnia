@@ -121,3 +121,18 @@ def record_final_exam_attempt(
     repo.record_final_exam_attempt(user.id, course_id, body.score, body.total)
     module_ids = _module_ids_for(db, course_id)
     return ProgressResponse(**repo.to_progress_dict(user.id, course_id, module_ids))
+
+
+@router.post("/{course_id}/progress/mark-content-seen", response_model=ProgressResponse)
+def mark_content_seen(
+    course_id: int,
+    db: DbSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ProgressResponse:
+    """Dismiss the "this course was updated" signal (schemas/courses.py's
+    ProgressResponse.hasUnseenUpdate) for this learner — the frontend calls
+    this when they open the reader for a course flagged as updated."""
+    repo = ProgressRepository(db)
+    repo.mark_content_seen(user.id, course_id)
+    module_ids = _module_ids_for(db, course_id)
+    return ProgressResponse(**repo.to_progress_dict(user.id, course_id, module_ids))

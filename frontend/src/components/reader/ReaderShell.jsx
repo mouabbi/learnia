@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ChevronLeft,
@@ -33,17 +34,38 @@ export function ReaderShell({
   onSelectPage,
   onSelectQuiz,
   allModulesDone,
+  banner,
   children,
 }) {
   const { theme, toggleTheme } = useTheme()
+  const contentRef = useRef(null)
+  // Drives the "appears fixed once you scroll" toolbar (see .reader-page-
+  // toolbar / .reader-content-scrolled in index.css): the toolbar is
+  // `position: sticky` either way, but this class is what actually
+  // transforms its look from "sits inline at the top of the page" to "a
+  // compact floating bar" — so it visibly reacts to scrolling instead of
+  // just silently being sticky the whole time.
+  const [scrolled, setScrolled] = useState(false)
+  const handleContentScroll = (e) => {
+    const next = e.currentTarget.scrollTop > 24
+    setScrolled((prev) => (prev === next ? prev : next))
+  }
   const isDark =
     theme === 'dark' ||
     (theme === 'system' &&
       typeof window !== 'undefined' &&
       window.matchMedia?.('(prefers-color-scheme: dark)').matches)
 
+  // Per-course accent (16-theming) as a scoped CSS custom property — the
+  // reader shell can lean on --course-accent wherever it wants a
+  // course-branded touch, without a full CSS rewrite. `course.color`
+  // already exists on CourseSummary (== theme.accent, see
+  // repositories/course_repository.py); falls back to the app's own
+  // --accent (see hooks/useAccentColor.js) if a course has no theme yet.
+  const courseThemeStyle = course.color ? { '--course-accent': course.color } : undefined
+
   return (
-    <div className="reader-shell">
+    <div className="reader-shell" style={courseThemeStyle}>
       <header className="reader-topbar">
         <Link to="/courses" className="reader-back-link">
           <ChevronLeft size={16} /> All courses
@@ -67,6 +89,8 @@ export function ReaderShell({
           {isDark ? <Sun aria-hidden="true" size={17} /> : <Moon aria-hidden="true" size={17} />}
         </button>
       </header>
+
+      {banner}
 
       <div className="reader-body">
         <nav className="reader-sidebar" aria-label="Course contents">
@@ -155,9 +179,37 @@ export function ReaderShell({
               </div>
             )
           })}
+
+          {course.finalExam && (
+            <div className="reader-module reader-module-exam">
+              {allModulesDone ? (
+                <Link to={`/courses/${course.slug}/exam`} className="reader-module-header">
+                  <GraduationCap size={14} className="reader-module-chevron" />
+                  <span className="reader-module-title">Final Exam</span>
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="reader-module-header reader-module-header-locked"
+                  disabled
+                  title="Finish every module first"
+                >
+                  <GraduationCap size={14} className="reader-module-chevron" />
+                  <span className="reader-module-title">Final Exam</span>
+                  <Lock size={14} className="reader-module-status" />
+                </button>
+              )}
+            </div>
+          )}
         </nav>
 
-        <main className="reader-content">{children}</main>
+        <main
+          ref={contentRef}
+          className={`reader-content${scrolled ? ' reader-content-scrolled' : ''}`}
+          onScroll={handleContentScroll}
+        >
+          {children}
+        </main>
       </div>
     </div>
   )

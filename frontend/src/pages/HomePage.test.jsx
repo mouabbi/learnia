@@ -4,11 +4,18 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuth } from '../features/auth/AuthContext'
 import { authApi } from '../features/auth/authApi'
+import { coursesApi } from '../features/courses/coursesApi'
 import { HomePage } from './HomePage'
 
 vi.mock('../features/auth/AuthContext', () => ({ useAuth: vi.fn() }))
 vi.mock('../features/auth/authApi', () => ({
   authApi: { sendVerificationEmail: vi.fn() },
+}))
+// HomePage calls coursesApi.listCourses() on mount (directly, and via
+// useLearnerXp in AppLayout-adjacent code) — mocked so it never hits a
+// real (relative, unmockable in jsdom) fetch URL.
+vi.mock('../features/courses/coursesApi', () => ({
+  coursesApi: { listCourses: vi.fn(), getCourse: vi.fn(), getProgress: vi.fn() },
 }))
 
 function renderPage() {
@@ -21,7 +28,10 @@ function renderPage() {
   )
 }
 
-beforeEach(() => vi.resetAllMocks())
+beforeEach(() => {
+  vi.resetAllMocks()
+  coursesApi.listCourses.mockResolvedValue([])
+})
 
 describe('HomePage', () => {
   it('greets the user by the local part of their email, no banner when verified', () => {
@@ -30,7 +40,7 @@ describe('HomePage', () => {
     })
     renderPage()
     expect(screen.getByRole('heading', { name: 'Hello, a' })).toBeInTheDocument()
-    expect(screen.queryByText("Your email isn't verified yet.")).not.toBeInTheDocument()
+    expect(screen.queryByText("Your email isn't verified yet")).not.toBeInTheDocument()
   })
 
   it('shows a resend banner when the email is unverified', async () => {
@@ -39,7 +49,7 @@ describe('HomePage', () => {
     })
     authApi.sendVerificationEmail.mockResolvedValue(null)
     renderPage()
-    expect(screen.getByText("Your email isn't verified yet.")).toBeInTheDocument()
+    expect(screen.getByText("Your email isn't verified yet")).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Resend verification email' }))
     expect(authApi.sendVerificationEmail).toHaveBeenCalled()
     expect(await screen.findByText('Sent — check your inbox.')).toBeInTheDocument()

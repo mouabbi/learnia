@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "What the Reflog Records",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Every time a ref moves, Git appends an entry to that ref's reflog: the old hash, the new hash, who did it, when, and why (commit, checkout, reset, rebase, merge, pull). HEAD has its own reflog recording every move of your current position. This is the log that lets you recover from almost any mistake involving commits."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git reflog\n9c1e2f7 (HEAD -> main) HEAD@{0}: reset: moving to HEAD~2\n3d4e5f6 HEAD@{1}: commit: Add stock tests\n8a9b0c1 HEAD@{2}: commit: Add stock endpoint\n9c1e2f7 HEAD@{3}: checkout: moving from feature/stock to main\n...\n\n# Reflog for a specific branch, with dates\n$ git reflog show --date=relative feature/stock"
+    },
+    {
+      "type": "heading",
+      "text": "Recovery Recipes",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Accident",
+        "Recovery"
+      ],
+      "rows": [
+        [
+          "git reset --hard removed commits",
+          "git reflog, find the entry before the reset, then git reset --hard HEAD@{1}"
+        ],
+        [
+          "Deleted a branch with unmerged commits",
+          "Find its last commit in git reflog (or the hash printed when deleting), then git branch <name> <hash>"
+        ],
+        [
+          "A rebase went wrong",
+          "git reset --hard ORIG_HEAD right after, or find the pre-rebase entry in git reflog"
+        ],
+        [
+          "Lost commits made in detached HEAD",
+          "git reflog shows them; create a branch at the hash"
+        ],
+        [
+          "Amended the wrong commit",
+          "git reset --soft HEAD@{1} returns to the pre-amend commit with changes staged"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "# Undo an accidental hard reset\n$ git reset --hard HEAD~2\nHEAD is now at 9c1e2f7 Initial stock model\n\n$ git reflog -3\n9c1e2f7 HEAD@{0}: reset: moving to HEAD~2\n3d4e5f6 HEAD@{1}: commit: Add stock tests\n8a9b0c1 HEAD@{2}: commit: Add stock endpoint\n\n$ git reset --hard HEAD@{1}\nHEAD is now at 3d4e5f6 Add stock tests\n\n# Restore a deleted branch\n$ git branch -D feature/export\nDeleted branch feature/export (was 7e8f9a0).\n$ git branch feature/export 7e8f9a0"
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "ORIG_HEAD is set by commands that move HEAD drastically: reset, rebase and merge. Right after one of them, git reset --hard ORIG_HEAD is a quick undo. For anything older, use the reflog."
+    },
+    {
+      "type": "heading",
+      "text": "Limits You Must Know",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Local only: the reflog is not pushed, not fetched and not part of a clone. A fresh clone has an empty reflog, and it cannot recover something that only existed on a teammate's machine.",
+        "Commits only: it tracks ref movements, so uncommitted changes lost to reset --hard or git restore are not in it. Staged content may survive as dangling blobs, recoverable with git fsck --lost-found.",
+        "It expires: by default, entries for commits still reachable are kept 90 days (gc.reflogExpire) and entries for unreachable commits 30 days (gc.reflogExpireUnreachable). After that, git gc may delete the objects.",
+        "Deleting a branch deletes that branch's own reflog, but the commits usually still appear in HEAD's reflog if you had them checked out."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Last Resort: git fsck",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "# Objects not reachable from any ref or reflog\n$ git fsck --lost-found\ndangling commit 5a7b9c1...\ndangling blob 2f3e4d5...\n\n$ git show 5a7b9c1          # inspect, then branch it if it is the one\n$ git cat-file -p 2f3e4d5   # a blob is raw file content, once staged"
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "A practical habit: before any risky operation (a big rebase, filter-repo, a reset on a branch with lots of work), create a backup branch with git branch backup/before-rebase. It costs nothing, since a branch is just a pointer, and makes recovery trivial without searching the reflog."
+    },
+    {
+      "type": "quote",
+      "text": "If you committed it, you can almost certainly get it back. If you never committed it, Git never knew it existed.",
+      "attribution": null
+    },
+    {
+      "type": "link",
+      "href": "https://git-scm.com/docs/git-reflog",
+      "text": "Official git reflog documentation"
+    },
+    {
+      "type": "link",
+      "href": "https://git-scm.com/book/en/v2/Git-Internals-Plumbing-and-Porcelain",
+      "text": "Pro Git: Git Internals (free book chapter)"
+    }
+  ]
+}

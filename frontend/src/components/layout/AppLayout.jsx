@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Menu, Sun, Moon, Sparkles } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { Menu, Sun, Moon, Sparkles, LogOut } from 'lucide-react'
 import { Link, Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { useAuth } from '../../features/auth/AuthContext'
@@ -16,6 +17,7 @@ export function AppLayout() {
   const { user, logout } = useAuth()
   const [isSidebarOpen, setSidebarOpen] = useState(false)
   const [isDesktopSidebarOpen, setDesktopSidebarOpen] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const { theme, toggleTheme } = useTheme()
   const learnerXp = useLearnerXp()
   const isDark =
@@ -24,9 +26,14 @@ export function AppLayout() {
       typeof window !== 'undefined' &&
       window.matchMedia?.('(prefers-color-scheme: dark)').matches)
 
+  // Shows a brief "Signing you out…" overlay (see .logout-overlay in
+  // index.css) before actually clearing the session, so logging out reads
+  // as a deliberate transition instead of the app just vanishing under you.
   async function handleLogout() {
     setSidebarOpen(false)
-    await logout()
+    setIsLoggingOut(true)
+    const minDisplay = new Promise((resolve) => setTimeout(resolve, 600))
+    await Promise.all([logout(), minDisplay])
   }
 
   // One trigger, two behaviors: below the desktop breakpoint it opens the
@@ -82,6 +89,7 @@ export function AppLayout() {
       <div className="sidebar-pinned">
         <Sidebar
           email={user.email}
+          isAdmin={user.is_admin}
           isOpen
           pinned
           collapsed={!isDesktopSidebarOpen}
@@ -92,6 +100,7 @@ export function AppLayout() {
 
       <Sidebar
         email={user.email}
+        isAdmin={user.is_admin}
         isOpen={isSidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onLogout={handleLogout}
@@ -100,6 +109,35 @@ export function AppLayout() {
       <main className="app-content">
         <Outlet />
       </main>
+
+      <AnimatePresence>
+        {isLoggingOut && (
+          <motion.div
+            className="logout-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <motion.div
+              className="logout-overlay-panel"
+              initial={{ opacity: 0, y: 10, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
+              <motion.span
+                className="logout-overlay-icon"
+                initial={{ rotate: -10, scale: 0.8 }}
+                animate={{ rotate: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 14, delay: 0.05 }}
+              >
+                <LogOut size={22} aria-hidden="true" />
+              </motion.span>
+              <p>Signing you out…</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

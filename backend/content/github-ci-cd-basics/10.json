@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Three Places to Put Ignore Rules",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Location",
+        "Shared with the team?",
+        "Use it for"
+      ],
+      "rows": [
+        [
+          ".gitignore (committed)",
+          "Yes",
+          "Anything the project produces: dependencies, build output, logs, .env"
+        ],
+        [
+          ".git/info/exclude",
+          "No, this repository on this machine only",
+          "Personal files in one project: your scratch notes, a local test script"
+        ],
+        [
+          "Global file (core.excludesFile)",
+          "No, all repositories for your user",
+          "Editor and OS files: .DS_Store, Thumbs.db, .idea/, *.swp"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Setting Up a Global Ignore File",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "If core.excludesFile is not set, Git already reads ~/.config/git/ignore (or $XDG_CONFIG_HOME/git/ignore). You can also point it elsewhere."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git config --global core.excludesFile ~/.gitignore_global\n$ cat ~/.gitignore_global\n.DS_Store\nThumbs.db\n.idea/\n.vscode/\n*.swp"
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Teams disagree on whether editor folders belong in the project's .gitignore. A practical rule: files produced by the project go in .gitignore; files produced by your personal tools go in your global ignore. Some teams intentionally commit shared settings such as .vscode/extensions.json, which a blanket .vscode/ rule in the project would block."
+    },
+    {
+      "type": "heading",
+      "text": "Untracking a File That Was Already Committed",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Someone committed node_modules/ or a local config file before .gitignore existed. Adding the pattern now is not enough; you must remove the file from the index while keeping it on disk."
+    },
+    {
+      "type": "terminal",
+      "text": "# One file\n$ echo \"config.local.yml\" >> .gitignore\n$ git rm --cached config.local.yml\nrm 'config.local.yml'\n\n# A whole directory\n$ git rm -r --cached node_modules/\n\n$ git commit -m \"Stop tracking local config and node_modules\""
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "git rm --cached keeps the file on your disk, but the commit records a deletion. When teammates pull that commit, Git deletes the file from their working trees. For config files, warn the team first or have them back up their local copy."
+    },
+    {
+      "type": "heading",
+      "text": "Re-applying .gitignore to the Whole Repository",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "# Remove everything from the index, then re-add; ignored files are left out\n$ git rm -r --cached .\n$ git add .\n$ git status        # review carefully before committing\n$ git commit -m \"Apply .gitignore to previously tracked files\""
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Untracking a file does not remove it from history. Every earlier commit still contains it. If the file held a secret, that secret is still exposed; see the next page."
+    },
+    {
+      "type": "heading",
+      "text": "Ignoring Local Changes to Tracked Files",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Sometimes a file must stay tracked (for example a default config), but you want Git to ignore your local edits to it. Two index flags exist, and they are often confused."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Flag",
+        "Intended purpose",
+        "Behaviour"
+      ],
+      "rows": [
+        [
+          "git update-index --assume-unchanged <file>",
+          "Performance: tell Git not to check a file for changes on slow filesystems",
+          "Git may still overwrite the file or notice changes; not a reliable way to keep local edits"
+        ],
+        [
+          "git update-index --skip-worktree <file>",
+          "Keep a local modification of a tracked file",
+          "Git tries to preserve your version; pull may fail if the file changes upstream"
+        ],
+        [
+          "--no-assume-unchanged / --no-skip-worktree",
+          "Undo the flag",
+          "Git tracks changes to the file normally again"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Both flags are local workarounds and invisible to teammates. The cleaner design is to commit a template (config.example.yml) and have the application read an ignored local file (config.local.yml) or environment variables."
+    }
+  ]
+}

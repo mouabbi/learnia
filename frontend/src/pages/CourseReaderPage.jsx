@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowLeft, ArrowRight, CheckSquare, GraduationCap, PartyPopper, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckSquare, GraduationCap, PartyPopper, Sparkles, X } from 'lucide-react'
 import { coursesApi } from '../features/courses/coursesApi'
 import { Quiz } from '../features/courses/Quiz'
 import { Skeleton } from '../components/Skeleton'
 import { ReaderShell } from '../components/reader/ReaderShell'
-import { markPageComplete, setLastPage } from '../features/courses/progressStore'
+import { BlockRenderer } from '../features/cms/BlockRenderer'
+import '../features/cms/cms.css'
+import { markPageComplete, setLastPage, markContentSeen } from '../features/courses/progressStore'
 import {
   learningProgress,
   isModuleLocked as computeModuleLocked,
@@ -47,6 +49,11 @@ export function CourseReaderPage() {
   // top of it instead of replacing the whole content pane.
   const [backdropPageId, setBackdropPageId] = useState(null)
   const [loadError, setLoadError] = useState(null)
+  // True for the rest of THIS visit if the course had unseen changes when
+  // the reader opened — kept even after markContentSeen() dismisses it
+  // server-side, so the banner doesn't vanish mid-read; it just won't
+  // reappear on the next visit.
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -61,6 +68,13 @@ export function CourseReaderPage() {
       const completed = new Set(progress.completedPageIds)
       setCompletedPageIds(completed)
       setModuleQuizzes(progress.moduleQuizzes)
+      if (progress.hasUnseenUpdate) {
+        setShowUpdateBanner(true)
+        // Fire-and-forget: dismiss the badge/banner for next time now that
+        // they've opened the reader — a failed request just means it'll
+        // show again next visit, which is harmless.
+        markContentSeen(data.id).catch(() => {})
+      }
 
       const flat = flattenPages(data)
       const pageExists = (id) => flat.some((f) => f.page.id === id)
@@ -239,6 +253,14 @@ export function CourseReaderPage() {
         onSelectPage={goToPage}
         onSelectQuiz={goToQuiz}
         allModulesDone={allModulesDone}
+        banner={
+          showUpdateBanner && (
+            <UpdateBanner
+              course={course}
+              onDismiss={() => setShowUpdateBanner(false)}
+            />
+          )
+        }
       >
         {view.kind === 'page' && (
           <PageView
@@ -304,6 +326,37 @@ export function CourseReaderPage() {
   )
 }
 
+// Inline notice shown once per visit when the admin changed this course's
+// content or assessments since the learner last opened it (see
+// backend routers/courses.py's progress endpoint hasUnseenUpdate). Points
+// at the final exam when the course has one, since that's the most likely
+// thing worth retaking; module quizzes are already reachable inline from
+// the sidebar/reader flow.
+function UpdateBanner({ course, onDismiss }) {
+  return (
+    <div className="reader-update-banner" role="status">
+      <Sparkles size={15} aria-hidden="true" />
+      <span>
+        This course was updated since you last opened it — you may want to review the new content
+        {course.finalExam ? ' or retake the final exam.' : '.'}
+      </span>
+      {course.finalExam && (
+        <Link to={`/courses/${course.slug}/exam`} className="reader-update-banner-cta">
+          <GraduationCap size={14} aria-hidden="true" /> Retake exam
+        </Link>
+      )}
+      <button
+        type="button"
+        className="reader-update-banner-close"
+        aria-label="Dismiss update notice"
+        onClick={onDismiss}
+      >
+        <X size={14} />
+      </button>
+    </div>
+  )
+}
+
 function PageView({
   entry,
   pageNumber,
@@ -322,8 +375,8 @@ function PageView({
   return (
     <motion.article
       className="reader-page content-card"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
     >
       <div className="reader-page-toolbar">
@@ -367,9 +420,15 @@ function PageView({
       </span>
       <h1>{coursePage.title}</h1>
       <div className="reader-page-body">
-        {coursePage.content.split('\n\n').map((paragraph, i) => (
-          <p key={i}>{paragraph}</p>
-        ))}
+        {coursePage.blocks && coursePage.blocks.length > 0 ? (
+          <BlockRenderer blocks={coursePage.blocks} />
+        ) : (
+          // Legacy fallback: a page authored before blocks existed (or
+          // whose content file is missing/unreadable) only has the
+          // flattened plain-text string — still show something rather
+          // than nothing.
+          coursePage.content.split('\n\n').map((paragraph, i) => <p key={i}>{paragraph}</p>)
+        )}
       </div>
     </motion.article>
   )

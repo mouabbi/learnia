@@ -10,7 +10,12 @@ import { AccountPage } from './pages/AccountPage'
 import { HomePage } from './pages/HomePage'
 import { CoursesPage } from './pages/CoursesPage'
 import { CourseReaderPage } from './pages/CourseReaderPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { WorkspacePage } from './pages/WorkspacePage'
+import { CmsHomePage } from './pages/CmsHomePage'
+import { AdminRoute } from './features/auth/AdminRoute'
 import { ExamPage } from './features/exam/ExamPage'
+import { GlobalSearch } from './features/search/GlobalSearch'
 import { LoginPage } from './pages/LoginPage'
 import { MfaChallengePage } from './pages/MfaChallengePage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -29,6 +34,10 @@ function App() {
     <BackendGate>
       <AuthProvider>
         <RouteLogger />
+        {/* Self-contained: owns its own Ctrl+K/Cmd+K open state (see
+            features/search/GlobalSearch.jsx) — mounted once here so it's
+            reachable from anywhere in the app. */}
+        <GlobalSearch />
         <Routes>
           <Route
             path="/login"
@@ -61,6 +70,7 @@ function App() {
             }
           >
             <Route path="/" element={<HomePage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/courses" element={<CoursesPage />} />
             <Route path="/account" element={<AccountPage />} />
           </Route>
@@ -88,6 +98,27 @@ function App() {
           {/* Reachable whether logged in or out: a just-registered user is
               logged in but still needs /verify-email; forgot/reset password
               must work for a logged-out user. */}
+          {/* CMS is a wholly separate surface from the learning app — its
+              own shell, its own tab (opened via target="_blank" from the
+              Sidebar), gated by AdminRoute instead of plain ProtectedRoute
+              so a signed-in non-admin gets a "wrong account" prompt rather
+              than the CMS UI itself. */}
+          <Route
+            path="/cms"
+            element={
+              <AdminRoute>
+                <CmsHomePage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/cms/:slug"
+            element={
+              <AdminRoute>
+                <WorkspacePage />
+              </AdminRoute>
+            }
+          />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />

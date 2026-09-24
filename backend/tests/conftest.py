@@ -14,6 +14,7 @@ from sqlalchemy.pool import StaticPool
 from learnia_backend import models  # noqa: F401  (registers tables on Base.metadata)
 from learnia_backend.database import Base, get_db
 from learnia_backend.main import app
+from learnia_backend.services.search_index import ensure_search_index
 
 
 @pytest.fixture
@@ -26,6 +27,10 @@ def db() -> Generator[Session, None, None]:
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
+    # search_index (14-global-search) is a raw-SQL FTS5 virtual table, not
+    # part of Base.metadata, and the app's lifespan only creates it against
+    # the real app engine — so every test needs it created here too.
+    ensure_search_index(engine)
     session = sessionmaker(bind=engine, autoflush=False)()
     try:
         yield session

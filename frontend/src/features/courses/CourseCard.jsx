@@ -1,7 +1,6 @@
-import { GitBranch, Code2, Globe, FlaskConical, Clock, BookOpen, CheckCircle2 } from 'lucide-react'
+import { Clock, BookOpen, CheckCircle2, Sparkles } from 'lucide-react'
 import { Skeleton } from '../../components/Skeleton'
-
-const ICONS = { GitBranch, Code2, Globe, FlaskConical }
+import { COURSE_ICON_COMPONENTS } from './courseIcons'
 
 // A gradient "thumbnail" per course icon, so the icon reads as a cover
 // image rather than a small inline glyph. Cycled by a stable hash of the
@@ -9,7 +8,7 @@ const ICONS = { GitBranch, Code2, Globe, FlaskConical }
 const THUMB_VARIANTS = ['thumb-indigo', 'thumb-amber', 'thumb-teal', 'thumb-rose']
 
 function thumbVariant(id) {
-  const hash = [...id].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
+  const hash = [...String(id)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
   return THUMB_VARIANTS[hash % THUMB_VARIANTS.length]
 }
 
@@ -18,8 +17,13 @@ function thumbVariant(id) {
 // `progressPct` is optional: when passed (parent has already fetched the
 // learner's progress for this course), a slim progress bar renders on the
 // card instead of leaving it flat for started courses.
-export function CourseCard({ course, progressPct }) {
-  const Icon = ICONS[course.icon] ?? BookOpen
+// `hasUnseenUpdate` is also optional: true when the admin changed this
+// course's content/assessments since this learner last opened it (see
+// backend schemas/courses.py's ProgressResponse.hasUnseenUpdate and
+// schemas/dashboard.py's DashboardCourse.hasUnseenUpdate) — renders an
+// "Updated" badge alongside/in place of the "Completed" one.
+export function CourseCard({ course, progressPct, hasUnseenUpdate }) {
+  const Icon = COURSE_ICON_COMPONENTS[course.icon] ?? BookOpen
   const started = typeof progressPct === 'number' && progressPct > 0
   const completed = started && progressPct >= 100
   return (
@@ -48,9 +52,19 @@ export function CourseCard({ course, progressPct }) {
         ) : (
           course.difficulty && <span className="course-card-badge">{course.difficulty}</span>
         )}
+        {hasUnseenUpdate && (
+          <span className="course-card-badge course-card-badge-updated course-card-badge-left">
+            <Sparkles size={13} /> Updated
+          </span>
+        )}
       </div>
       <div className="course-card-body">
         <h2>{course.title}</h2>
+        {hasUnseenUpdate && (
+          <p className="course-card-updated-note">
+            This course changed since you last opened it — review what's new or retake the quiz/exam.
+          </p>
+        )}
         <p>{course.description}</p>
         <span className="course-card-meta">
           <Clock size={14} /> {course.estimatedMinutes} min

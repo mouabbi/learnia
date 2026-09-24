@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Git Is a Content-Addressable Database",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Underneath the user-facing commands, Git is a simple key-value store. You give it content, it returns a key (a hash of that content), and it stores the content under .git/objects. Everything, including every file version, directory listing and commit, is one of four object types."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Object",
+        "Stores",
+        "Points to"
+      ],
+      "rows": [
+        [
+          "blob",
+          "The raw contents of one file (no name, no permissions)",
+          "Nothing"
+        ],
+        [
+          "tree",
+          "A directory listing: entries of mode, type, hash and name",
+          "Blobs and other trees"
+        ],
+        [
+          "commit",
+          "One snapshot plus metadata: root tree, parent(s), author, committer, message",
+          "One tree and zero or more parent commits"
+        ],
+        [
+          "tag (annotated)",
+          "A named, signed or annotated pointer: target, tagger, message",
+          "Usually a commit"
+        ]
+      ]
+    },
+    {
+      "type": "image",
+      "src": "generate: object graph; three commit nodes in a chain C1 <- C2 <- C3 (arrows point from child to parent); each commit points to a tree; trees point to blobs and subtrees (src/); C2 and C3 trees share several unchanged blob nodes, drawn with arrows from both trees to the same blob; an annotated tag object v1.0 points to C3",
+      "alt": "Commits pointing to trees, trees pointing to blobs, unchanged blobs shared between snapshots",
+      "caption": "Snapshots share unchanged content: a new commit only creates objects for what changed."
+    },
+    {
+      "type": "heading",
+      "text": "Inspecting Real Objects",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "git cat-file is the plumbing command for reading objects: -t prints the type, -p pretty-prints the content."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git cat-file -p HEAD\ntree 8f94139338f9404f26296befa88755fc2598c289\nparent 71a3e55c0f2b4a7d9e1c2d3b4a5f6e7d8c9b0a1f\nauthor Ada Lovelace <ada@example.com> 1727180000 +0000\ncommitter Ada Lovelace <ada@example.com> 1727180000 +0000\n\nAdd stock endpoint\n\n$ git cat-file -p 8f94139\n100644 blob a906cb2a4a904a152e80877d4088654daad0c859    README.md\n040000 tree 1c2e3d4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d    src\n100755 blob 5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f    run.sh\n\n$ git cat-file -t a906cb2\nblob\n$ git cat-file -p a906cb2\n# Inventory API"
+    },
+    {
+      "type": "heading",
+      "text": "Tree Entry Modes",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Mode",
+        "Meaning"
+      ],
+      "rows": [
+        [
+          "100644",
+          "Regular file"
+        ],
+        [
+          "100755",
+          "Executable file"
+        ],
+        [
+          "120000",
+          "Symbolic link (blob contains the link target)"
+        ],
+        [
+          "040000",
+          "Subdirectory (another tree)"
+        ],
+        [
+          "160000",
+          "Gitlink: a submodule pointing to a commit in another repository"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "File names and permissions live in trees, not in blobs. Two files with identical content in different directories are stored as one blob. Renaming a file creates a new tree but reuses the same blob, which is why Git has to detect renames after the fact instead of recording them."
+    },
+    {
+      "type": "heading",
+      "text": "Author vs Committer",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Every commit stores two identities. The author wrote the change; the committer last applied it. They differ after a rebase, cherry-pick, amend or when a maintainer applies someone else's patch. GitHub shows both when they differ, and the committer date, not the author date, changes when you rebase."
+    },
+    {
+      "type": "heading",
+      "text": "Building a Commit by Hand with Plumbing",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "The porcelain commands you use daily are built on plumbing commands. Building a commit manually shows there is no magic involved."
+    },
+    {
+      "type": "terminal",
+      "text": "$ echo 'hello' | git hash-object -w --stdin\nce013625030ba8dba906f756967f9e9ca394464a\n\n$ git update-index --add --cacheinfo 100644 ce01362 hello.txt\n$ git write-tree\naaa96ced2d9a1c8e72c56b253a0e2fe78393feb7\n\n$ echo 'First commit, by hand' | git commit-tree aaa96ce\nd6c8f1e...      # a real commit object, not yet on any branch\n\n$ git update-ref refs/heads/main d6c8f1e"
+    },
+    {
+      "type": "heading",
+      "text": "Loose Objects and Packfiles",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "New objects are written as individual zlib-compressed files (loose objects) under .git/objects/ab/cdef..., where the first two hex characters form the directory name. Periodically, git gc (also triggered automatically and during push/fetch) packs them into packfiles, which delta-compress similar objects against each other. This is how Git keeps full snapshots of every version while using little disk space."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git count-objects -vH\ncount: 12\nsize: 48.00 KiB\nin-pack: 3481\npacks: 1\nsize-pack: 2.31 MiB\n\n$ git gc"
+    },
+    {
+      "type": "heading",
+      "text": "Lightweight vs Annotated Tags",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "A lightweight tag is only a ref pointing directly at a commit; no object is created. An annotated tag (git tag -a v1.0 -m \"Release 1.0\") creates a tag object with its own tagger, date, message and optional GPG/SSH signature. Use annotated tags for releases; tools such as git describe ignore lightweight tags by default."
+    }
+  ]
+}

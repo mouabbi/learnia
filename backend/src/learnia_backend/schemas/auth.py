@@ -38,6 +38,7 @@ class UserRead(BaseModel):
     id: int
     email: str
     email_verified: bool
+    is_admin: bool
 
     model_config = {"from_attributes": True}  # lets Pydantic read this straight from a User row
 

@@ -62,5 +62,22 @@ class Settings(BaseSettings):
     # How long a completed-password / pending-TOTP login stays valid.
     mfa_login_ticket_ttl_minutes: int = 5
 
+    # --- Assets (15-assets: uploaded images/video/PDFs for course content) ---
+    # Allowlist, not a blocklist — anything not listed here is rejected even
+    # if some browser would happily render it (security > convenience for
+    # user-uploaded files, see 15's "mime sniffing vs. trusting extensions"
+    # learning opportunity).
+    asset_allowed_mime_types: list[str] = [
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/webp",
+        "image/svg+xml",
+        "video/mp4",
+        "video/webm",
+        "application/pdf",
+    ]
+    asset_max_size_bytes: int = 20 * 1024 * 1024  # 20MB
+
 
 settings = Settings()

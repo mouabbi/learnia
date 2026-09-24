@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Why Commit Quality Matters",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Code is written once but history is read many times: during review, when bisecting a regression, when deciding whether a change is safe to revert, and when generating release notes. A history of small, well-described commits is a debugging tool. A history of \"wip\", \"fix\" and \"more changes\" is noise."
+    },
+    {
+      "type": "heading",
+      "text": "Anatomy of a Good Message",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "Fix double charge when payment webhook is retried\n\nStripe retries webhooks if we respond slower than 10s. The handler\ncreated a new charge record on every delivery, so a slow database\ncould charge a customer twice.\n\nStore the Stripe event ID with a unique constraint and ignore\nduplicate deliveries.\n\nFixes #412",
+      "language": "text"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Separate the subject from the body with a blank line.",
+        "Keep the subject to about 50 characters (hard limit around 72).",
+        "Capitalize the subject and do not end it with a period.",
+        "Use the imperative mood: \"Fix bug\", not \"Fixed bug\" or \"Fixes bug\". A good subject completes the sentence \"If applied, this commit will...\".",
+        "Wrap the body at about 72 characters.",
+        "Explain what and why in the body; the diff already shows how.",
+        "Reference issues or tickets in the footer (Fixes #412 closes the issue on GitHub when merged into the default branch)."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Conventional Commits",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Many teams adopt the Conventional Commits format, a machine-readable convention that lets tools generate changelogs and choose version bumps automatically. You will use it for release automation in Module 7."
+    },
+    {
+      "type": "code",
+      "code": "<type>(<optional scope>): <description>\n\nfeat(api): add stock level endpoint\nfix(auth): reject expired refresh tokens\ndocs: document local setup with Docker\nrefactor(orders)!: rename total() to grand_total()\n\nBREAKING CHANGE: total() has been removed.",
+      "language": "text"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Type",
+        "Meaning",
+        "Semantic version effect"
+      ],
+      "rows": [
+        [
+          "feat",
+          "New feature",
+          "Minor bump"
+        ],
+        [
+          "fix",
+          "Bug fix",
+          "Patch bump"
+        ],
+        [
+          "docs, style, refactor, perf, test, build, ci, chore",
+          "Non-feature changes",
+          "Usually none"
+        ],
+        [
+          "! after type, or BREAKING CHANGE: footer",
+          "Incompatible change",
+          "Major bump"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Atomic Commits",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "An atomic commit contains exactly one logical change, complete enough that the project builds and tests pass at that commit. It is not about size: a large mechanical rename can be atomic, while a ten-line commit mixing a bug fix with formatting changes is not."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Benefit",
+        "Why atomicity delivers it"
+      ],
+      "rows": [
+        [
+          "Easier review",
+          "Reviewers evaluate one idea at a time"
+        ],
+        [
+          "Safe revert",
+          "Reverting one change does not also undo unrelated work"
+        ],
+        [
+          "Effective git bisect",
+          "Each commit builds, so bisect can test every step and pinpoint the culprit"
+        ],
+        [
+          "Cherry-picking",
+          "A fix can be ported to a release branch without dragging along other changes"
+        ],
+        [
+          "Useful blame",
+          "git blame leads to a commit whose message explains that line"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Anti-Patterns",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "\"WIP\", \"stuff\", \"fix\", \"asdf\" messages on shared branches.",
+        "One huge commit at the end of the day mixing features, fixes and formatting.",
+        "Commits that break the build in the middle of a series.",
+        "Committing formatter changes together with logic changes: reviewers cannot see the real change."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Local messy commits are fine as long as you clean them up before sharing. Use git add -p to split work, git commit --amend for the last commit, and git commit --fixup <sha> followed by git rebase -i --autosquash to fold corrections into earlier commits. Interactive rebase is covered in Module 2."
+    },
+    {
+      "type": "link",
+      "href": "https://www.conventionalcommits.org/",
+      "text": "Conventional Commits specification"
+    }
+  ]
+}

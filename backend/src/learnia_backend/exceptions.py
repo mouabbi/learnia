@@ -54,6 +54,15 @@ class UnauthorizedError(AppError):
     code = "UNAUTHORIZED"
 
 
+class ForbiddenError(AppError):
+    """Raised when a logged-in user is authenticated but lacks permission
+    (e.g. a non-admin hitting a CMS-only endpoint) — distinct from
+    UnauthorizedError, which means "not logged in at all"."""
+
+    status_code = 403
+    code = "FORBIDDEN"
+
+
 class TooManyRequestsError(AppError):
     """Raised when a caller is rate-limited or locked out after repeated failures."""
 

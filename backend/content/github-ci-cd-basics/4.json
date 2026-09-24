@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Two Ways to Get a Repository",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "You either turn an existing directory into a repository with git init, or you copy an existing repository, including its full history, with git clone."
+    },
+    {
+      "type": "heading",
+      "text": "git init",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ mkdir inventory-api && cd inventory-api\n$ git init\nInitialized empty Git repository in /home/ada/inventory-api/.git/\n\n$ ls -A .git\nHEAD  config  description  hooks  info  objects  refs"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Entry in .git",
+        "Purpose"
+      ],
+      "rows": [
+        [
+          "HEAD",
+          "Points to the current branch (for example ref: refs/heads/main)"
+        ],
+        [
+          "config",
+          "Repository-level configuration, including remotes"
+        ],
+        [
+          "objects/",
+          "The object database: every commit, tree and file content"
+        ],
+        [
+          "refs/",
+          "Branches (refs/heads), tags (refs/tags) and remote-tracking branches (refs/remotes)"
+        ],
+        [
+          "index",
+          "The staging area (created on the first git add)"
+        ],
+        [
+          "hooks/",
+          "Scripts Git can run on events such as pre-commit"
+        ],
+        [
+          "info/exclude",
+          "Repository-local ignore rules that are not shared"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "The .git directory is the repository. Your project files are only a checkout of one version of it. Deleting .git deletes all history; copying .git copies all history. Never run git init inside another repository by accident (for example in your home directory), because every file under it becomes an untracked candidate."
+    },
+    {
+      "type": "heading",
+      "text": "Bare Repositories",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "git init --bare creates a repository with no working tree: the contents of .git sit directly in the directory, conventionally named project.git. Servers use bare repositories, because nobody edits files there and pushing into a checked-out branch of a non-bare repository would leave its working tree out of sync. GitHub stores your repositories as bare repositories."
+    },
+    {
+      "type": "heading",
+      "text": "git clone",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "# HTTPS: authenticate with a credential manager or personal access token\n$ git clone https://github.com/acme/inventory-api.git\n\n# SSH: authenticate with an SSH key\n$ git clone git@github.com:acme/inventory-api.git\n\n# Clone into a different directory name\n$ git clone git@github.com:acme/inventory-api.git api"
+    },
+    {
+      "type": "paragraph",
+      "text": "git clone is a composite command. Understanding its steps explains the state you end up in:"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Create the target directory and run git init inside it.",
+        "Add a remote named origin pointing to the source URL.",
+        "Fetch all branches and tags, creating remote-tracking branches such as origin/main.",
+        "Create a local branch matching the remote's default branch, configured to track origin/main.",
+        "Check out that branch into the working tree."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Clone Options You Will Meet in Practice",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Option",
+        "Effect",
+        "When to use it"
+      ],
+      "rows": [
+        [
+          "--branch <name>",
+          "Check out a specific branch or tag after cloning",
+          "Starting on a release branch"
+        ],
+        [
+          "--depth 1",
+          "Shallow clone: only the latest commit",
+          "CI jobs that only need to build current code"
+        ],
+        [
+          "--single-branch",
+          "Fetch only one branch's history",
+          "Combined with --branch to save bandwidth"
+        ],
+        [
+          "--filter=blob:none",
+          "Partial clone: full history, file contents downloaded on demand",
+          "Very large repositories where you still need log and blame"
+        ],
+        [
+          "--recurse-submodules",
+          "Also clone submodules",
+          "Projects that use submodules (Module 4)"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Shallow clones break anything that needs history: git describe, changelog generation, git blame on old lines, and computing which files changed since the base branch. This is why actions/checkout in GitHub Actions defaults to depth 1 and you sometimes need fetch-depth: 0. You will use this in Module 6."
+    },
+    {
+      "type": "heading",
+      "text": "Publishing an Existing Local Project to GitHub",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "# 1. Create an empty repository on GitHub (no README, so histories do not diverge)\n# 2. Connect and push\n$ git remote add origin git@github.com:acme/inventory-api.git\n$ git branch -M main\n$ git push -u origin main"
+    },
+    {
+      "type": "paragraph",
+      "text": "The -u (--set-upstream) flag records origin/main as the upstream of your local main, so later a plain git push or git pull knows where to go. Remotes are covered in depth in Module 3."
+    }
+  ]
+}

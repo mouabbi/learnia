@@ -10,7 +10,7 @@ classes.
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, String
+from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from learnia_backend.database import Base
@@ -28,6 +28,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(), default=utc_now_naive)
     # None = email not verified yet.
     email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(), default=None)
+    is_admin: Mapped[bool] = mapped_column(Boolean(), default=False, server_default="0")
 
     @property
     def email_verified(self) -> bool:
