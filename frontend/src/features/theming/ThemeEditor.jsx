@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertTriangle, Loader2 } from 'lucide-react'
+import { AlertTriangle, Loader2, ImagePlus, ImageOff, X } from 'lucide-react'
 import { themeApi } from './themeApi'
+import { assetsApi } from '../assets/assetsApi'
+import { AssetPicker } from '../assets/AssetPicker'
+import { ImageCropModal } from './ImageCropModal'
+import './theme-editor.css'
+
+// Rules for a course thumbnail upload — checked client-side before the file
+// ever reaches the crop step, so a bad pick fails fast with a clear reason
+// instead of an opaque server error later.
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const MAX_IMAGE_MB = 8
 
 /**
  * ThemeEditor — CMS color-picker UI for a course's per-course theme
@@ -29,6 +39,10 @@ export function ThemeEditor({ courseId, onSave }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [showAssetPicker, setShowAssetPicker] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
+  const [pendingFile, setPendingFile] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -55,6 +69,46 @@ export function ThemeEditor({ courseId, onSave }) {
       return { ...prev, [group]: { ...prev[group], [key]: value } }
     })
   }, [])
+
+  const handleUpload = useCallback(
+    async (file) => {
+      setUploading(true)
+      setUploadError(null)
+      try {
+        const asset = await assetsApi.uploadAsset(courseId, file)
+        setField(['image'], asset.url)
+      } catch (err) {
+        setUploadError(err.message ?? 'Upload failed')
+      } finally {
+        setUploading(false)
+      }
+    },
+    [courseId, setField],
+  )
+
+  // Step 1 of the "profile-picture style" flow: validate the raw file pick,
+  // then hand it to the crop modal instead of uploading it as-is — the crop
+  // step is what fixes badly-composed source images (see ImageCropModal.jsx).
+  const handleFilePicked = useCallback((file) => {
+    setUploadError(null)
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setUploadError('Please choose a JPEG, PNG, WebP, or GIF image.')
+      return
+    }
+    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+      setUploadError(`Image is too large — please choose one under ${MAX_IMAGE_MB} MB.`)
+      return
+    }
+    setPendingFile(file)
+  }, [])
+
+  const handleCropSave = useCallback(
+    (blob) => {
+      setPendingFile(null)
+      handleUpload(new File([blob], 'thumbnail.png', { type: 'image/png' }))
+    },
+    [handleUpload],
+  )
 
   const setModulePaletteColor = useCallback((index, value) => {
     setTheme((prev) => {
@@ -96,6 +150,83 @@ export function ThemeEditor({ courseId, onSave }) {
 
   return (
     <div className="theme-editor">
+      <section className="theme-editor-section theme-editor-thumbnail-section">
+        <h3>Course thumbnail</h3>
+        <p className="theme-editor-hint">
+          Shown as the cover image on the learner catalog card — falls back to the course icon
+          (see the Icon picker above) when no thumbnail is set.
+        </p>
+        <div className="theme-editor-thumbnail-row">
+          <div className="theme-editor-thumbnail-preview">
+            {theme.image ? (
+              <img src={theme.image} alt="Course thumbnail" />
+            ) : (
+              <span className="theme-editor-thumbnail-empty">No image</span>
+            )}
+          </div>
+          <div className="theme-editor-thumbnail-actions">
+            <label className="cms-btn-secondary theme-editor-upload-btn">
+              {uploading ? <Loader2 size={14} className="theme-editor-spinner" /> : <ImagePlus size={14} />}
+              {uploading ? 'Uploading…' : 'Upload image'}
+              <input
+                type="file"
+                accept="image/*"
+                hidden
+                disabled={uploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (file) handleFilePicked(file)
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              className="cms-btn-secondary"
+              onClick={() => setShowAssetPicker((v) => !v)}
+            >
+              Choose from assets
+            </button>
+            {theme.image && (
+              <button
+                type="button"
+                className="cms-btn-secondary theme-editor-remove-thumb"
+                onClick={() => setField(['image'], null)}
+                title="Remove thumbnail"
+              >
+                <ImageOff size={14} /> Remove
+              </button>
+            )}
+          </div>
+        </div>
+        {uploadError && <p className="theme-editor-error-text">{uploadError}</p>}
+        {showAssetPicker && (
+          <div className="theme-editor-asset-picker">
+            <div className="theme-editor-asset-picker-header">
+              <span className="cms-hint">Pick an already-uploaded image:</span>
+              <button type="button" className="cms-btn-icon" onClick={() => setShowAssetPicker(false)} aria-label="Close">
+                <X size={14} />
+              </button>
+            </div>
+            <AssetPicker
+              courseId={courseId}
+              accept="image/"
+              onSelect={(asset) => {
+                setField(['image'], asset.url)
+                setShowAssetPicker(false)
+              }}
+            />
+          </div>
+        )}
+        {pendingFile && (
+          <ImageCropModal
+            file={pendingFile}
+            onCancel={() => setPendingFile(null)}
+            onSave={handleCropSave}
+          />
+        )}
+      </section>
+
       <section className="theme-editor-section">
         <h3>Brand colors</h3>
         <ColorField label="Accent" value={theme.accent} onChange={(v) => setField(['accent'], v)} />

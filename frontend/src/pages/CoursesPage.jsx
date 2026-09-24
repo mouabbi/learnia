@@ -19,6 +19,10 @@ export function CoursesPage() {
   // Map of courseId -> completion percentage, fetched alongside the course
   // list so cards can show progress and the filter chips can work.
   const [progressByCourse, setProgressByCourse] = useState({})
+  // Map of courseId -> hasUnseenUpdate (see progress.hasUnseenUpdate),
+  // fetched from the same per-course progress call as progressByCourse —
+  // no extra round trip.
+  const [updatedByCourse, setUpdatedByCourse] = useState({})
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
 
@@ -35,10 +39,13 @@ export function CoursesPage() {
             coursesApi.getProgress(summary.id),
           ])
           const pct = learningProgress(course, progress.completedPageIds).pct
-          return [summary.id, pct]
+          return [summary.id, pct, progress.hasUnseenUpdate]
         }),
       )
-      if (!cancelled) setProgressByCourse(Object.fromEntries(entries))
+      if (!cancelled) {
+        setProgressByCourse(Object.fromEntries(entries.map(([id, pct]) => [id, pct])))
+        setUpdatedByCourse(Object.fromEntries(entries.map(([id, , updated]) => [id, updated])))
+      }
     }).catch((error) => {
       if (cancelled) return
       console.error('Failed to load courses', error)
@@ -114,7 +121,11 @@ export function CoursesPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
           >
-            <CourseCard course={course} progressPct={progressByCourse[course.id]} />
+            <CourseCard
+              course={course}
+              progressPct={progressByCourse[course.id]}
+              hasUnseenUpdate={updatedByCourse[course.id]}
+            />
           </motion.div>
         ))}
       </div>

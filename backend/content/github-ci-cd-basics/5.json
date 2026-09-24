@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Staging: Choosing What Goes Into the Next Commit",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Command",
+        "Stages",
+        "Scope"
+      ],
+      "rows": [
+        [
+          "git add <path>",
+          "New, modified and deleted files under that path",
+          "The given file or directory"
+        ],
+        [
+          "git add .",
+          "New, modified and deleted files",
+          "Current directory and below"
+        ],
+        [
+          "git add -A",
+          "New, modified and deleted files",
+          "The entire working tree, from anywhere in the repo"
+        ],
+        [
+          "git add -u",
+          "Modified and deleted files only (no new files)",
+          "The entire working tree"
+        ],
+        [
+          "git add -p",
+          "Selected hunks of tracked files",
+          "Interactive"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Since Git 2.0, git add . also stages deletions. Old tutorials claiming it ignores deleted files describe Git 1.x behaviour."
+    },
+    {
+      "type": "heading",
+      "text": "Partial Staging with git add -p",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Suppose one file contains a bug fix and an unrelated rename of a variable. Instead of committing both together, stage them separately. Git shows each change hunk and asks what to do with it."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git add -p src/orders.py\n@@ -42,7 +42,7 @@ def total(order):\n-    return sum(i.price for i in order.items)\n+    return sum(i.price * i.qty for i in order.items)\n(1/2) Stage this hunk [y,n,q,a,d,s,e,?]? y\n\n@@ -80,4 +80,4 @@ def fmt(o):\n-    tmp = o.id\n+    order_id = o.id\n(2/2) Stage this hunk [y,n,q,a,d,s,e,?]? n\n\n$ git commit -m \"Fix order total ignoring item quantity\""
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Key",
+        "Action"
+      ],
+      "rows": [
+        [
+          "y / n",
+          "Stage / skip this hunk"
+        ],
+        [
+          "s",
+          "Split the hunk into smaller hunks"
+        ],
+        [
+          "e",
+          "Manually edit the hunk before staging"
+        ],
+        [
+          "a / d",
+          "Stage / skip this and all remaining hunks in the file"
+        ],
+        [
+          "q",
+          "Quit, keeping choices made so far"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Committing",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "# Short message inline\n$ git commit -m \"Add inventory endpoint\"\n\n# Open the editor for a subject plus body (recommended for non-trivial changes)\n$ git commit\n\n# Show the staged diff inside the editor while you write the message\n$ git commit -v\n\n# Subject and body from the command line\n$ git commit -m \"Add inventory endpoint\" -m \"Returns stock per warehouse.\""
+    },
+    {
+      "type": "paragraph",
+      "text": "A commit records the current index as a new snapshot, the ID of the parent commit, author and committer information, and your message. It then moves the current branch pointer to the new commit. Nothing is sent to GitHub; that requires git push."
+    },
+    {
+      "type": "heading",
+      "text": "Removing and Renaming Files",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "# Delete from working tree and stage the deletion\n$ git rm old_config.yml\n\n# Stop tracking but keep the file on disk\n$ git rm --cached secrets.env\n\n# Rename (equivalent to mv + git rm + git add)\n$ git mv utils.py helpers.py"
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Git does not record renames. It stores snapshots and detects renames afterwards by comparing content similarity (50% by default). If you rename a file and heavily rewrite it in the same commit, Git may show a delete plus an add, and git log --follow loses track. Rename in one commit, modify in the next."
+    },
+    {
+      "type": "heading",
+      "text": "Useful Details",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Unstage without losing edits: git restore --staged <file>.",
+        "Review before every commit: git diff --staged.",
+        "git commit --allow-empty -m \"Trigger CI\" creates a commit with no changes, occasionally used to re-run a pipeline.",
+        "Empty directories cannot be committed, because Git tracks file contents, not directories. The convention is to add a placeholder file such as .gitkeep.",
+        "Executable permissions are tracked (mode 100755 vs 100644). Set core.fileMode false only if a filesystem reports modes incorrectly."
+      ]
+    }
+  ]
+}

@@ -27,9 +27,50 @@ from learnia_backend.schemas.content import PageContent
 from learnia_backend.schemas.prompt_builder import (
     ChapterMetadataJSON,
     CourseMetadataJSON,
+    ModuleContentJSON,
     ModuleMetadataJSON,
 )
 from learnia_backend.schemas.questions import QuestionWriteRequest
+
+# Shared "how to write" bar, reused by every content-generation prompt
+# (structure/module-content/page) so the tone stays consistent: dense and
+# interview-ready, not padded, but never so terse it loses the substance —
+# a "cheat sheet that actually teaches", not a bullet-point stub.
+CONTENT_DEPTH_BAR = (
+    "Writing style: short AND deep — like a sharp interview-prep cheat "
+    "sheet or summary, not a textbook chapter and not a shallow bullet "
+    "list either. Every sentence should carry real information (the "
+    "non-obvious mechanism, the gotcha, the thing an expert actually "
+    "checks) — cut throat-clearing, restating the question, and generic "
+    "filler, but don't cut the substance just to be brief. If a topic "
+    "genuinely needs more words to be correct and useful, use them; if it "
+    "can be said precisely in two sentences, don't pad it to five."
+)
+
+# Question-count guidance, reused by build_module_qcm_prompt,
+# build_final_exam_prompt, and build_batch_prompt so the three copies of
+# this instruction can't drift. Deliberately a range tied to how much
+# material there actually is, not a fixed number — a 2-page module and a
+# 12-page module shouldn't get the same quiz size.
+MODULE_QCM_SIZE_GUIDANCE = (
+    "Question count: scale it to how much this module actually covers — "
+    "don't pad to a round number and don't force more questions than the "
+    "material genuinely supports. Roughly: a small module (~1-3 pages) "
+    "needs about 10-15 questions, a medium module (~4-6 pages) needs about "
+    "15-30, a large/content-heavy module (~7+ pages) needs about 30-40. "
+    "Hard floor of 10, hard cap of 40 either way."
+)
+
+FINAL_EXAM_SIZE_GUIDANCE = (
+    "Question count: scale it to the size of the whole course, not a fixed "
+    "number — a small course (2-3 modules) needs around 40 questions, a "
+    "medium course (4-6 modules) needs around 50-70, a large course (7+ "
+    "modules) needs around 100. Hard cap of 100. Hard floor of 40 — if this "
+    "course is small enough that a final exam barely makes sense, that's a "
+    "call for whoever decided to generate one in the first place, not "
+    "something to solve by padding to 40 with trivial questions; write 40 "
+    "genuinely good ones instead."
+)
 
 STRICT_JSON_INSTRUCTIONS = """\
 Respond with STRICT JSON ONLY.
@@ -117,19 +158,29 @@ class PromptBuilderService:
             task = (
                 "Task: refine this course's own metadata (title + description), "
                 "AND design its FULL structure from scratch, from A to Z:\n"
-                "- 4-8 modules, each covering one coherent theme/skill area of "
-                "the subject, ordered from foundational to advanced.\n"
-                "- Each module broken into 2-5 chapters.\n"
-                "- Each chapter broken into 2-6 pages (page = one focused "
-                "lesson/topic, not a whole chapter's worth of content).\n"
+                "- However many modules the subject actually needs — could be "
+                "2, could be 10. Each module covers one coherent theme/skill "
+                "area, ordered from foundational to advanced. Don't pad the "
+                "count to hit a round number, and don't force unrelated "
+                "topics into one module just to have fewer of them.\n"
+                "- Each module broken into however many chapters IT needs — a "
+                "narrow module might only need 1 chapter, a broad one might "
+                "need 5+. Same for chapters: however many pages it needs, "
+                "could be 1, could be 10 (page = one focused lesson/topic, "
+                "not a whole chapter's worth of content). Let the actual "
+                "subject matter decide every one of these numbers, not a "
+                "target range.\n"
                 "- Leave every page's \"blocks\" as an empty array for now — "
-                "page content is generated separately, per page, once the "
+                "page content is generated separately, per module, once the "
                 "structure is committed.\n\n"
-                "Depth bar: this is for someone preparing for real technical "
-                "interviews and real-world use, not a shallow overview. "
-                "Structure the progression so it builds from fundamentals to "
-                "advanced/expert-level material an experienced practitioner "
-                "would expect a strong candidate to know."
+                f"{CONTENT_DEPTH_BAR}\n\n"
+                "This course is for someone preparing for real technical "
+                "interviews and real-world use, not a shallow overview — "
+                "structure the progression so it builds from fundamentals to "
+                "the advanced/expert-level material an experienced "
+                "practitioner would expect a strong candidate to know, "
+                "covered with the short-and-deep style above rather than "
+                "padded out."
             )
 
         return (
@@ -194,12 +245,65 @@ class PromptBuilderService:
             f"{context}\n\n"
             f"Target chapter: \"{chapter.title}\"\n"
             f"Existing pages in this chapter:\n{sibling_lines}\n\n"
+            f"{CONTENT_DEPTH_BAR}\n\n"
             f"Task: write the full block content for the next page in this "
-            f"chapter — thorough, well-structured, using a good mix of block "
-            f"types where they fit (headings to break up sections, code blocks "
-            f"for real code, callouts for tips/warnings, etc).\n\n"
+            f"chapter — well-structured, using a good mix of block types "
+            f"where they genuinely fit (headings to break up sections, code "
+            f"blocks for real code, callouts for tips/warnings, etc) — not "
+            f"blocks added just to check a box.\n\n"
             f"{STRICT_JSON_INSTRUCTIONS}\n\nJSON schema to satisfy:\n{schema}"
         )
+
+    def build_module_content_prompt(self, course_id: int, module_id: int) -> str:
+        course = self._get_course(course_id)
+        modules = self._modules(course_id)
+        module = next((m for m in modules if m.id == module_id), None)
+        if module is None:
+            raise NotFoundError(f"Module not found in course {course_id}: {module_id}")
+        context = _course_summary(course, modules)
+        page_count = sum(len(self._pages(c.id)) for c in self._chapters(module_id))
+        skeleton = self._module_skeleton(module_id)
+        schema = _schema_block(ModuleContentJSON)
+        return (
+            f"You are writing the full lesson content for one module of a "
+            f"course on a learning platform. Page content is a list of typed "
+            f"\"blocks\" (heading, paragraph, code, terminal, image, video, "
+            f"youtube, link, quote, callout, list, table).\n\n"
+            f"{context}\n\n"
+            f"Target module: \"{module.title}\"\n"
+            f"This module's existing page skeleton, in order (write content "
+            f"for every page listed, in this exact order):\n{skeleton}\n\n"
+            f"{CONTENT_DEPTH_BAR}\n\n"
+            f"Write like a senior practitioner prepping a strong engineer for "
+            f"real interviews and real work — the non-obvious/advanced parts "
+            f"an expert actually cares about, with concrete examples (real "
+            f"code where relevant), not padded restatements of the page "
+            f"title.\n\n"
+            f"Media: you cannot attach real image/video files. Where a "
+            f"diagram or screenshot would genuinely help, add an \"image\" "
+            f"block whose \"src\" starts with \"generate:\" followed by a "
+            f"description of what it should show (e.g. "
+            f"\"generate: a diagram of...\") — never invent a fake real URL. "
+            f"Same convention for \"video\" blocks.\n\n"
+            f"IMPORTANT: respond with content for EXACTLY {page_count} page(s), "
+            f"in the exact same order as the skeleton above — one entry in "
+            f"\"pages\" per page listed, no more, no fewer. This scope only "
+            f"fills in content for pages that already exist; it never adds, "
+            f"removes, or renames pages (use the Structure tab / "
+            f"\"Generate chapter with AI\" for that).\n\n"
+            f"{STRICT_JSON_INSTRUCTIONS}\n\nJSON schema to satisfy:\n{schema}"
+        )
+
+    def _module_skeleton(self, module_id: int) -> str:
+        """Chapter/page titles for one module, in reading order — shared by
+        every prompt that needs to ground itself in a module's actual scope
+        without pulling in full page content (module-content, module-qcm)."""
+        lines = []
+        for chapter in self._chapters(module_id):
+            lines.append(f"  Chapter: {chapter.title}")
+            for page in self._pages(chapter.id):
+                lines.append(f"    - {page.title}")
+        return "\n".join(lines) or "  (no chapters/pages yet)"
 
     def build_module_qcm_prompt(self, course_id: int, module_id: int) -> str:
         course = self._get_course(course_id)
@@ -208,15 +312,19 @@ class PromptBuilderService:
         if module is None:
             raise NotFoundError(f"Module not found in course {course_id}: {module_id}")
         context = _course_summary(course, modules)
+        skeleton = self._module_skeleton(module_id)
         schema = _schema_block(QuestionWriteRequest, as_list=True)
         return (
             f"You are a technical interviewer writing an assessment quiz for one "
             f"module of a course, styled like a real technical-interview "
             f"screening round — not a trivia quiz.\n\n"
             f"{context}\n\n"
-            f"Target module: \"{module.title}\"\n\n"
-            f"Task: write AT LEAST 50 multiple-choice questions covering this "
-            f"module's material.\n"
+            f"Target module: \"{module.title}\"\n"
+            f"This module's chapters and pages (the actual scope to test — "
+            f"don't test material outside this list):\n{skeleton}\n\n"
+            f"Task: write multiple-choice questions covering this module's "
+            f"material.\n"
+            f"- {MODULE_QCM_SIZE_GUIDANCE}\n"
             f"- Mix of difficulty: roughly a third fundamentals (do they know "
             f"the basics cold), a third applied/scenario-based (would they get "
             f"this right under real conditions), a third advanced/expert-level "
@@ -248,10 +356,10 @@ class PromptBuilderService:
             f"they're ready for a real technical interview or real-world work "
             f"in this subject.\n\n"
             f"{context}\n\n"
-            f"Task: write a serious, comprehensive final exam of AT LEAST 100 "
-            f"multiple-choice questions, covering every module above (roughly "
-            f"proportional to how much of the course each module represents — "
-            f"don't skip any module entirely).\n"
+            f"Task: write a serious, comprehensive final exam covering every "
+            f"module above (roughly proportional to how much of the course "
+            f"each module represents — don't skip any module entirely).\n"
+            f"- {FINAL_EXAM_SIZE_GUIDANCE}\n"
             f"- Same difficulty mix and \"test understanding, not memorization\" "
             f"bar as the per-module quizzes: fundamentals, applied/scenario-based, "
             f"and advanced/expert-level questions, styled like a real "
@@ -267,6 +375,189 @@ class PromptBuilderService:
             f"matching this schema:\n{schema}"
         )
 
+    def build_batch_prompt(
+        self,
+        course_id: int,
+        *,
+        module_content_ids: list[str],
+        module_qcm_ids: list[str],
+        include_final_exam: bool,
+    ) -> str:
+        """One combined prompt covering several modules' content/quiz plus
+        (optionally) the final exam, so the "Generate All" flow needs only
+        one copy-paste round-trip instead of one per module/exam. Reuses the
+        exact same task wording as the single-scope prompts (minus their
+        repeated course-context preamble) so output quality doesn't drift
+        between "generate one module" and "generate everything"."""
+        if not module_content_ids and not module_qcm_ids and not include_final_exam:
+            raise ValidationAppError("Nothing selected to generate")
+
+        course = self._get_course(course_id)
+        modules = self._modules(course_id)
+        modules_by_id = {m.id: m for m in modules}
+        context = _course_summary(course, modules)
+
+        sections: list[str] = [
+            "You are helping author content for a course on a learning "
+            "platform. This is a COMBINED request covering several tasks at "
+            "once — read every section below carefully, they each target a "
+            "different part of the response JSON.\n\n" + context
+        ]
+
+        schema_properties: dict = {}
+        schema_required: list[str] = []
+
+        if module_content_ids:
+            id_lines = []
+            for mid_str in module_content_ids:
+                mid = int(mid_str)
+                module = modules_by_id.get(mid)
+                if module is None:
+                    raise NotFoundError(f"Module not found in course {course_id}: {mid}")
+                id_lines.append(f"  - Module id {mid_str}: \"{module.title}\"")
+            sections.append(
+                "=== SECTION: module content ===\n"
+                "For EACH module listed below, write the full lesson content "
+                "for every page already in that module (page content is a "
+                "list of typed \"blocks\": heading, paragraph, code, "
+                "terminal, image, video, youtube, link, quote, callout, "
+                "list, table).\n\n"
+                f"{CONTENT_DEPTH_BAR}\n\n"
+                "Write like a senior practitioner prepping a strong engineer "
+                "for real interviews and real work — the non-obvious/"
+                "advanced parts an expert actually cares about, with "
+                "concrete examples (real code where relevant), not padded "
+                "restatements of the page title.\n\n"
+                "Media: you cannot attach real image/video files. Where a "
+                "diagram or screenshot would genuinely help, add an "
+                "\"image\" block whose \"src\" starts with \"generate:\" "
+                "followed by a description of what it should show — never "
+                "invent a fake real URL. Same convention for \"video\" "
+                "blocks.\n\n"
+                "IMPORTANT: for each module, respond with content for "
+                "EXACTLY the pages listed in its skeleton, in the exact same "
+                "order — one entry per page, no more, no fewer. This never "
+                "adds, removes, or renames pages.\n\n"
+                "Modules for this section (id -> title):\n" + "\n".join(id_lines)
+            )
+            for mid_str in module_content_ids:
+                mid = int(mid_str)
+                skeleton = self._module_skeleton(mid)
+                module = modules_by_id[mid]
+                sections.append(
+                    f"--- module content target: id {mid_str} (\"{module.title}\") ---\n"
+                    f"Page skeleton, in order:\n{skeleton}"
+                )
+            schema_properties["moduleContent"] = {
+                "type": "object",
+                "description": (
+                    "Keyed by the exact module id strings listed above for "
+                    "the module-content section."
+                ),
+                "properties": {
+                    mid_str: ModuleContentJSON.model_json_schema()
+                    for mid_str in module_content_ids
+                },
+                "required": list(module_content_ids),
+            }
+            schema_required.append("moduleContent")
+
+        if module_qcm_ids:
+            id_lines = []
+            for mid_str in module_qcm_ids:
+                mid = int(mid_str)
+                module = modules_by_id.get(mid)
+                if module is None:
+                    raise NotFoundError(f"Module not found in course {course_id}: {mid}")
+                id_lines.append(f"  - Module id {mid_str}: \"{module.title}\"")
+            sections.append(
+                "=== SECTION: module quiz (QCM) ===\n"
+                "You are a technical interviewer writing an assessment quiz "
+                "for EACH module listed below, styled like a real "
+                "technical-interview screening round — not a trivia quiz.\n\n"
+                "For each module, write multiple-choice questions covering "
+                "that module's material only (don't test material outside "
+                "its own listed scope).\n"
+                f"- {MODULE_QCM_SIZE_GUIDANCE}\n"
+                "- Mix of difficulty: roughly a third fundamentals, a third "
+                "applied/scenario-based, a third advanced/expert-level.\n"
+                "- Test understanding and reasoning, not memorization.\n"
+                "- Each question needs 3-5 plausible options (wrong options "
+                "genuinely tempting, not obviously silly), one or more "
+                "correct option ids (correctOptionIds), a short explanation, "
+                "and a difficulty (\"easy\"|\"medium\"|\"hard\"). Option ids "
+                "only need to be unique within their own question.\n\n"
+                "Modules for this section (id -> title):\n" + "\n".join(id_lines)
+            )
+            for mid_str in module_qcm_ids:
+                mid = int(mid_str)
+                skeleton = self._module_skeleton(mid)
+                module = modules_by_id[mid]
+                sections.append(
+                    f"--- module quiz target: id {mid_str} (\"{module.title}\") ---\n"
+                    f"This module's chapters/pages (the actual scope to "
+                    f"test):\n{skeleton}"
+                )
+            question_schema = QuestionWriteRequest.model_json_schema()
+            schema_properties["moduleQcm"] = {
+                "type": "object",
+                "description": (
+                    "Keyed by the exact module id strings listed above for "
+                    "the module quiz section. Each value is an array of "
+                    "questions."
+                ),
+                "properties": {
+                    mid_str: {"type": "array", "items": question_schema}
+                    for mid_str in module_qcm_ids
+                },
+                "required": list(module_qcm_ids),
+            }
+            schema_required.append("moduleQcm")
+
+        if include_final_exam:
+            sections.append(
+                "=== SECTION: final exam ===\n"
+                "You are also designing the final certification exam for "
+                "the ENTIRE course above — the exam someone takes to prove "
+                "they're ready for a real technical interview or real-world "
+                "work in this subject.\n\n"
+                "Write a serious, comprehensive final exam covering every "
+                "module of the course above (roughly proportional to how "
+                "much of the course each module represents — don't skip any "
+                "module entirely).\n"
+                f"- {FINAL_EXAM_SIZE_GUIDANCE}\n"
+                "- Same difficulty mix and \"test understanding, not "
+                "memorization\" bar as the module quizzes.\n"
+                "- Include a handful of cross-module questions that connect "
+                "concepts from different modules.\n"
+                "- Each question needs 3-5 plausible options, one or more "
+                "correct option ids (correctOptionIds), a short explanation, "
+                "and a difficulty (\"easy\"|\"medium\"|\"hard\")."
+            )
+            schema_properties["finalExam"] = {
+                "type": "array",
+                "items": QuestionWriteRequest.model_json_schema(),
+            }
+            schema_required.append("finalExam")
+
+        wrapper_schema = {
+            "type": "object",
+            "properties": schema_properties,
+            "required": schema_required,
+        }
+        schema = json.dumps(wrapper_schema, indent=2)
+
+        sections.append(
+            f"{STRICT_JSON_INSTRUCTIONS}\n\n"
+            "Respond with a SINGLE JSON object combining every section "
+            "above, shaped exactly like this (only the keys for the "
+            "sections actually requested are present — moduleContent/"
+            "moduleQcm are objects KEYED BY THE EXACT MODULE ID STRINGS "
+            "listed in each section above, not by title):\n" + schema
+        )
+
+        return "\n\n".join(sections)
+
     # -- schema-only (for the optional /schema endpoint) -----------------
 
     def schema_for(self, scope: str) -> dict:
@@ -278,6 +569,8 @@ class PromptBuilderService:
             return ChapterMetadataJSON.model_json_schema()
         if scope == "page":
             return PageContent.model_json_schema()
+        if scope == "module-content":
+            return ModuleContentJSON.model_json_schema()
         if scope in ("module-qcm", "final-exam"):
             return {"type": "array", "items": QuestionWriteRequest.model_json_schema()}
         raise ValidationAppError(f"Unknown scope: {scope!r}")
@@ -295,6 +588,10 @@ class PromptBuilderService:
             if chapter_id is None:
                 raise ValidationAppError("chapterId is required for scope=page")
             return self.build_page_prompt(course_id, chapter_id)
+        if scope == "module-content":
+            if module_id is None:
+                raise ValidationAppError("moduleId is required for scope=module-content")
+            return self.build_module_content_prompt(course_id, module_id)
         if scope == "module-qcm":
             if module_id is None:
                 raise ValidationAppError("moduleId is required for scope=module-qcm")

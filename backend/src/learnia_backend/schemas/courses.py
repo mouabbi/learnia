@@ -18,6 +18,7 @@ import re
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from learnia_backend.models.enums import ContentStatus
+from learnia_backend.schemas.content import ContentBlock
 
 _SLUG_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
@@ -138,7 +139,12 @@ class FinalExam(BaseModel):
 class PageOut(BaseModel):
     id: str
     title: str
+    # Legacy flattened plain text (still used by 14-global-search-style
+    # snippet consumers) — `blocks` is the real, typed content a page was
+    # authored with (headings/code/lists/callouts/...) and what the reader
+    # should actually render (see BlockRenderer.jsx).
     content: str
+    blocks: list[ContentBlock] = Field(default_factory=list)
 
 
 class ChapterOut(BaseModel):
@@ -249,3 +255,9 @@ class ProgressResponse(BaseModel):
     last_page_id: str | None = Field(default=None, alias="lastPageId")
     module_quizzes: dict = Field(default_factory=dict, alias="moduleQuizzes")
     final_exam: dict | None = Field(default=None, alias="finalExam")
+    # True when the admin has changed this course's content/assessments
+    # since this learner last acknowledged it (see repositories/
+    # progress_repository.py's has_unseen_update) — backs the "Updated"
+    # badge/banner on the frontend. Always false for a learner with no
+    # progress on this course yet.
+    has_unseen_update: bool = Field(default=False, alias="hasUnseenUpdate")

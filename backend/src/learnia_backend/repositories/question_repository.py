@@ -16,6 +16,7 @@ from learnia_backend.models.course import Course
 from learnia_backend.models.enums import QuestionScope
 from learnia_backend.models.module import Module
 from learnia_backend.models.question import Question
+from learnia_backend.repositories.course_repository import CourseRepository
 
 
 def _assign_option_ids(options: list[dict]) -> list[dict]:
@@ -90,6 +91,7 @@ class QuestionRepository:
         self.db.add(question)
         self.db.commit()
         self.db.refresh(question)
+        CourseRepository(self.db).touch(module.course_id)
         return question
 
     def create_final_exam_question(
@@ -119,6 +121,7 @@ class QuestionRepository:
         self.db.add(question)
         self.db.commit()
         self.db.refresh(question)
+        CourseRepository(self.db).touch(course.id)
         return question
 
     def update_question(
@@ -140,9 +143,12 @@ class QuestionRepository:
         question.difficulty = difficulty
         self.db.commit()
         self.db.refresh(question)
+        CourseRepository(self.db).touch(question.course_id)
         return question
 
     def delete_question(self, question_id: int) -> None:
         question = self.get(question_id)
+        course_id = question.course_id
         self.db.delete(question)
         self.db.commit()
+        CourseRepository(self.db).touch(course_id)

@@ -15,9 +15,13 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.5rem;
-  background: #14141c;
+  background: rgb(20 20 28 / 92%);
+  backdrop-filter: blur(10px);
   color: #f4f4f6;
   border-bottom: 1px solid rgb(255 255 255 / 10%);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .cms-shell-brand {
@@ -45,6 +49,148 @@
 
 .cms-shell-header .cms-btn-secondary:hover {
   background: rgb(255 255 255 / 10%);
+}
+
+.cms-hero {
+  background:
+    radial-gradient(1200px 300px at 15% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--bg)), var(--bg));
+  border-bottom: 1px solid var(--border);
+  padding: 2.5rem 1.5rem 2rem;
+}
+
+.cms-hero-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.cms-hero-inner h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.9rem;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+}
+
+.cms-hero-cta {
+  margin-top: 1.1rem;
+}
+
+.cms-course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.cms-course-card {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cms-course-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.cms-course-card-thumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 5.5rem;
+  padding: 0.75rem 1rem;
+  color: #fff;
+}
+
+.cms-thumb-indigo { background: linear-gradient(135deg, #6366f1, #4338ca); }
+.cms-thumb-amber { background: linear-gradient(135deg, #f59e0b, #b45309); }
+.cms-thumb-teal { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+.cms-thumb-rose { background: linear-gradient(135deg, #f43f5e, #be123c); }
+
+.cms-course-card-thumb .cms-status-tag {
+  background: rgb(0 0 0 / 30%);
+  color: #fff;
+  border-color: rgb(255 255 255 / 30%);
+  backdrop-filter: blur(2px);
+}
+
+.cms-course-card-body {
+  padding: 0.9rem 1rem 1.1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.cms-course-card-body h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-strong);
+}
+
+.cms-course-card-body p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.cms-course-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.cms-course-card-skeleton {
+  height: 11rem;
+  background: linear-gradient(
+    100deg,
+    var(--surface) 30%,
+    color-mix(in srgb, var(--accent) 8%, var(--surface)) 50%,
+    var(--surface) 70%
+  );
+  background-size: 200% 100%;
+  animation: cms-shimmer 1.4s ease-in-out infinite;
+  cursor: default;
+}
+
+@keyframes cms-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.cms-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 3rem 1.5rem;
+  color: var(--text);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.cms-empty-state h3 {
+  margin: 0;
+  color: var(--text-strong);
+}
+
+.cms-empty-state .cms-btn-primary {
+  margin-top: 0.5rem;
 }
 
 .cms-course-picker-list {
@@ -186,6 +332,62 @@
   color: var(--accent);
 }
 
+.cms-workspace-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.cms-readiness-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: default;
+}
+
+.cms-readiness-ok {
+  color: #16a34a;
+  background: color-mix(in srgb, #16a34a 12%, transparent);
+}
+
+.cms-readiness-warn {
+  color: #d97706;
+  background: color-mix(in srgb, #d97706 12%, transparent);
+}
+
+/* Per-tab "problem" indicator — same idea as VS Code's red dot/count on a
+   file tab with errors: a small badge riding the corner of the tab pill,
+   listing how many readiness issues (see courseReadiness.js) live under
+   that tab. Hover/title shows the actual messages. */
+.cms-tab {
+  position: relative;
+}
+
+.cms-tab-problem-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: #d97706;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cms-tab-active .cms-tab-problem-dot {
+  background: #fff;
+  color: var(--accent);
+}
+
 .cms-workspace-header h1 {
   margin: 0;
   font-size: 1.6rem;
@@ -244,8 +446,9 @@
   margin: 0 0 1.25rem;
   width: fit-content;
   position: sticky;
-  top: 0.75rem;
+  top: 3.5rem;
   z-index: 5;
+  box-shadow: 0 6px 16px -10px rgb(0 0 0 / 30%);
 }
 
 .cms-tab {
@@ -275,6 +478,23 @@
 
 .cms-tab-panel {
   min-height: 300px;
+}
+
+.cms-content-editor,
+.cms-assessments,
+.cms-settings,
+.cms-tree {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.cms-module-picker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
 }
 
 /* -- generic buttons ----------------------------------------------------- */
@@ -399,6 +619,37 @@ button:disabled {
   box-shadow: 0 2px 8px -4px rgb(0 0 0 / 15%);
 }
 
+.cms-tree-row-clickable {
+  cursor: pointer;
+}
+
+.cms-tree-row-clickable:hover {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+.cms-tree-row-clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Module rows (top-level of the tree) read as the primary hierarchy level:
+   a touch bigger, bolder, with a left accent bar — chapters/pages nested
+   under .cms-tree-indent stay visually lighter. */
+.cms-tree > .cms-tree-list > .cms-tree-node > .cms-tree-row {
+  padding: 0.6rem 0.75rem;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+
+.cms-tree > .cms-tree-list > .cms-tree-node > .cms-tree-row .cms-tree-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.cms-tree-indent .cms-tree-row {
+  background: var(--bg);
+}
+
 .cms-tree-actions button {
   transition: color 0.15s ease, transform 0.1s ease;
 }
@@ -454,6 +705,20 @@ button:disabled {
 
 .cms-tree-actions button:hover {
   color: var(--accent);
+}
+
+.cms-tree-action-ai-content {
+  font-size: 0.7rem !important;
+  font-weight: 600;
+  padding: 0.2rem 0.4rem !important;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)) !important;
+  color: var(--accent) !important;
+}
+
+.cms-tree-action-ai-content:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: var(--accent) !important;
 }
 
 .cms-tree-add-child {
@@ -671,17 +936,195 @@ button:disabled {
   text-transform: capitalize;
 }
 
-.cms-modal-steps {
+/* -- image crop modal (features/theming/ImageCropModal.jsx) -------------- */
+
+.crop-frame {
+  position: relative;
+  margin: 0.75rem auto 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  /* Checkerboard, not a solid color — this is what shows through a
+     transparent-background image (e.g. a logo) when zoomed out past
+     "fill the frame", so empty space reads as "transparent", not "black". */
+  background-image:
+    linear-gradient(45deg, #808080 25%, transparent 25%),
+    linear-gradient(-45deg, #808080 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #808080 75%),
+    linear-gradient(-45deg, transparent 75%, #808080 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  background-color: #bbb;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.crop-frame:active {
+  cursor: grabbing;
+}
+
+.crop-frame-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+
+.crop-zoom-row {
   display: flex;
-  gap: 1rem;
-  margin: 0.75rem 0 1rem;
-  font-size: 0.85rem;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 420px;
+  margin: 0.75rem auto 0;
   color: var(--text);
 }
 
-.cms-step-active {
-  color: var(--accent);
+.crop-zoom-row input[type='range'] {
+  flex: 1;
+}
+
+.cms-modal-steps {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0 1.25rem;
+  font-size: 0.85rem;
+}
+
+.cms-modal-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 600;
+  color: var(--text);
+}
+
+.cms-modal-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--border);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cms-step-active {
+  color: var(--text-strong);
+}
+
+.cms-step-active .cms-modal-step-badge {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.cms-step-done .cms-modal-step-badge {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.cms-modal-step-connector {
+  width: 2.5rem;
+  height: 2px;
+  margin: 0 0.6rem;
+  background: var(--border);
+}
+
+.cms-json-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.cms-btn-format {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.6rem;
+}
+
+/* Transparent textarea stacked over a highlighted <pre> — both share exact
+   font metrics so the caret/selection in the (invisible-text) textarea
+   lines up with the colored text rendered underneath. See
+   JsonCodeEditor.jsx for why this needs two layers instead of one. */
+.cms-json-editor {
+  position: relative;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  /* Fixed dark code-editor background regardless of app theme (like any
+     code block) — the highlight palette below is tuned for this, not for
+     var(--bg), which can be light. */
+  background: #1a1a24;
+  overflow: hidden;
+}
+
+.cms-json-editor-highlight,
+.cms-json-editor-input {
+  margin: 0;
+  padding: 0.6rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  height: calc(var(--json-editor-rows, 10) * 1.5em + 1.2rem);
+  overflow: auto;
+}
+
+.cms-json-editor-highlight {
+  color: #e4e4ec;
+  pointer-events: none;
+}
+
+.cms-json-editor-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: none;
+  resize: none;
+  background: transparent;
+  color: transparent;
+  caret-color: #e4e4ec;
+}
+
+.cms-json-editor-input:focus {
+  outline: none;
+}
+
+.cms-json-editor:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.json-key { color: #7dd3fc; }
+.json-string { color: #86efac; }
+.json-number { color: #fca5a5; }
+.json-boolean { color: #c4b5fd; }
+.json-null { color: #94a3b8; font-style: italic; }
+
+.cms-format-error {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+}
+
+.cms-btn-validate-ok {
+  color: #16a34a;
+  border-color: #16a34a;
+}
+
+.cms-preview-check {
+  color: #16a34a;
+  vertical-align: -2px;
+  margin-right: 0.15rem;
 }
 
 .cms-prompt-textarea {
@@ -737,19 +1180,323 @@ button:disabled {
   color: var(--text-strong);
 }
 
-.cms-danger-zone {
-  margin-top: 2rem;
-  padding: 1rem;
-  border: 1px solid var(--danger);
-  border-radius: var(--radius);
+.cms-settings {
+  display: grid;
+  gap: 1.25rem;
 }
 
-.cms-danger-zone h4 {
-  margin: 0 0 0.25rem;
+.cms-settings-section {
+  display: grid;
+  gap: 0.6rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cms-settings-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.cms-settings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cms-settings-section-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-strong);
+}
+
+.cms-settings-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.cms-settings-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.cms-settings-meta dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.cms-settings-meta dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.cms-icon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cms-icon-option {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+.cms-icon-option:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.cms-icon-option-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.cms-status-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cms-status-option {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.cms-status-option:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.cms-status-option-active {
+  color: #fff;
+  border-color: transparent;
+}
+
+.cms-status-option-active.cms-status-published { background: #16a34a; }
+.cms-status-option-active.cms-status-draft,
+.cms-status-option-active.cms-status-planned { background: #d97706; }
+.cms-status-option-active.cms-status-ready { background: var(--accent); }
+.cms-status-option-active.cms-status-archived { background: var(--danger); }
+
+.cms-danger-zone {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
+}
+
+.cms-danger-zone-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--danger);
+}
+
+.cms-danger-zone-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--danger);
+}
+
+.cms-danger-zone-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cms-danger-zone-title {
+  margin: 0 0 0.15rem;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.cms-danger-zone .cms-btn-danger {
+  flex-shrink: 0;
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+
+.cms-danger-zone .cms-btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 85%, black 15%);
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--danger) 60%, transparent);
+}
+
+/* -- asset picker (features/assets/AssetPicker.jsx) ---------------------- */
+
+.asset-picker-status {
+  color: var(--text);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.asset-picker-error {
+  color: var(--danger);
+}
+
+.asset-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 0.6rem;
+}
+
+.asset-picker-tile {
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.asset-picker-tile:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.asset-picker-tile-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.asset-picker-thumb {
+  width: 100%;
+  height: 3.5rem;
+  object-fit: cover;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.asset-picker-filename {
+  font-size: 0.68rem;
+  color: var(--text);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cms-option-row input[type='checkbox'] {
   width: 1rem;
   height: 1rem;
+}
+
+/* -- batch generate modal ("Generate All") ------------------------------- */
+
+.cms-modal-wide {
+  width: min(820px, 100%);
+}
+
+.cms-batch-module-list {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.cms-batch-module-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.cms-batch-module-title {
+  font-weight: 600;
+  color: var(--text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cms-batch-module-toggles {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.cms-batch-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+.cms-batch-toggle:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.cms-batch-toggle-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.cms-batch-final-exam {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-strong);
+  margin: 0.5rem 0;
+  cursor: pointer;
+}
+
+.cms-batch-final-exam input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+}
+
+.cms-batch-summary {
+  font-size: 0.8rem;
+  color: var(--text);
+  margin: 0 0 0.75rem;
 }

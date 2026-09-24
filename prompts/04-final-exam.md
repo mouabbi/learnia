@@ -18,10 +18,13 @@ Course description/goal: {{courseDescription}}
 Full course outline (every module this exam must draw from):
 {{fullCourseOutlineJSON}}
 
-Task: write a serious, comprehensive final exam of AT LEAST 100
-multiple-choice questions, covering every module above (roughly
-proportional to how much of the course each module represents — don't
-skip any module entirely).
+Task: write a serious, comprehensive final exam covering every module
+above (roughly proportional to how much of the course each module
+represents — don't skip any module entirely).
+- Question count: scale it to the size of the whole course, not a fixed
+  number — a small course (2-3 modules) needs around 40 questions, a
+  medium course (4-6 modules) needs around 50-70, a large course (7+
+  modules) needs around 100. Hard cap of 100, hard floor of 40.
 - Same difficulty mix and "test understanding, not memorization" bar as
   the per-module quizzes: fundamentals, applied/scenario-based, and
   advanced/expert-level questions, styled like a real technical-interview

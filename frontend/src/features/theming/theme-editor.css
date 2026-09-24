@@ -1,0 +1,287 @@
+/* Theme editor (16-theming) — was completely unstyled before this (raw
+   browser <input type="color"> squares stacked with no layout), which is
+   why it looked broken. Uses the same design tokens as index.css. */
+
+.theme-editor {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.theme-editor-loading,
+.theme-editor-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+  padding: 1rem 0;
+}
+
+.theme-editor-spinner {
+  animation: theme-editor-spin 0.8s linear infinite;
+}
+
+@keyframes theme-editor-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.theme-editor-section {
+  display: grid;
+  gap: 0.65rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.theme-editor-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.theme-editor-section h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-strong);
+}
+
+.theme-editor-hint {
+  margin: -0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+/* Brand-color fields sit side by side; the module palette row wraps its
+   own compact swatches (see .theme-editor-swatch-row). */
+.theme-editor-section:not(.theme-editor-preview) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: flex-start;
+}
+
+.theme-editor-section:not(.theme-editor-preview) > h3,
+.theme-editor-section:not(.theme-editor-preview) > .theme-editor-hint {
+  flex-basis: 100%;
+}
+
+.theme-editor-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex-basis: 100%;
+}
+
+/* The swatch itself: a real circular color chip (not the browser's raw
+   rectangular input) with a hex readout underneath. The native
+   <input type="color"> is hidden entirely and reduced to an invisible,
+   full-bleed hit target layered over the chip via ::after-style stacking
+   (absolute positioning), so clicking the chip still opens the OS color
+   picker. */
+.theme-editor-field {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.theme-editor-field input[type='color'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border: 3px solid var(--surface);
+  outline: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 6px -2px rgb(0 0 0 / 25%);
+  transition: outline-color 0.15s ease, transform 0.15s ease;
+}
+
+.theme-editor-field input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 50%;
+}
+
+.theme-editor-field input[type='color']::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.theme-editor-field input[type='color']::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.theme-editor-field:hover input[type='color'] {
+  outline-color: var(--accent);
+  transform: scale(1.06);
+}
+
+.theme-editor-field span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+}
+
+.theme-editor-field-compact input[type='color'] {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.theme-editor-thumbnail-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.theme-editor-thumbnail-preview {
+  width: 7rem;
+  height: 4.5rem;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.theme-editor-thumbnail-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.theme-editor-thumbnail-empty {
+  font-size: 0.72rem;
+  color: var(--text);
+}
+
+.theme-editor-thumbnail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.theme-editor-upload-btn {
+  cursor: pointer;
+}
+
+.theme-editor-remove-thumb {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.theme-editor-asset-picker {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.theme-editor-asset-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.theme-editor-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.theme-editor-preview-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 1rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.theme-editor-preview-label {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.theme-editor-preview-card h4 {
+  margin: 0;
+}
+
+.theme-editor-preview-surface {
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.theme-editor-preview-button {
+  justify-self: start;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: default;
+}
+
+.theme-editor-warnings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.theme-editor-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  color: #b45309;
+  font-size: 0.82rem;
+}
+
+.theme-editor-error-text {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.theme-editor-save {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-text);
+  padding: 0.55rem 1.1rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.theme-editor-save:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--accent) 60%, transparent);
+  transform: translateY(-1px);
+}
+
+.theme-editor-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

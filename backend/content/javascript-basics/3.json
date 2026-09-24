@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Arithmetic",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Operator",
+        "Example",
+        "Result",
+        "Note"
+      ],
+      "rows": [
+        [
+          "+ - * /",
+          "7 / 2",
+          "3.5",
+          "No integer division; use Math.trunc(7 / 2) or Math.floor"
+        ],
+        [
+          "%",
+          "-7 % 3",
+          "-1",
+          "Remainder takes the sign of the left operand, not a true modulo"
+        ],
+        [
+          "**",
+          "2 ** 10",
+          "1024",
+          "Right-associative: 2 ** 3 ** 2 is 2 ** 9"
+        ],
+        [
+          "++ / --",
+          "x++ vs ++x",
+          "old vs new value",
+          "Postfix returns the value before incrementing"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "let n = 5;\nconst a = n++; // a = 5, n = 6\nconst b = ++n; // b = 7, n = 7\n\nlet total = 10;\ntotal += 5;  // 15\ntotal *= 2;  // 30\ntotal ??= 0; // assigns only if total is null/undefined\n\n-2 ** 2;     // SyntaxError: write (-2) ** 2",
+      "language": "javascript"
+    },
+    {
+      "type": "heading",
+      "text": "The + Operator and Strings",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "If either operand of + is a string, + concatenates. Every other arithmetic operator converts operands to numbers. This asymmetry is the source of most coercion puzzles."
+    },
+    {
+      "type": "code",
+      "code": "'5' + 3;     // '53'\n'5' - 3;     // 2\n'5' * '2';   // 10\n1 + 2 + '3'; // '33'  (left to right: 3 + '3')\n'3' + 1 + 2; // '312'\n\n// Convert input explicitly before doing math\nconst qty = Number('42');   // 42\nNumber('');                 // 0   (surprise)\nNumber('12px');             // NaN\nparseInt('12px', 10);       // 12  (parses a prefix, always pass the radix)",
+      "language": "javascript"
+    },
+    {
+      "type": "heading",
+      "text": "Comparison: == vs ===",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "=== compares type and value with no conversion. == converts types first using rules few people remember. Use === everywhere."
+    },
+    {
+      "type": "code",
+      "code": "0 == '';            // true\n0 == '0';           // true\n'' == '0';          // false  (== is not transitive)\nnull == undefined;  // true\nnull == 0;          // false\nnull >= 0;          // true   (relational operators convert null to 0)\n[1] == 1;           // true\n\n0 === '';           // false\n[1, 2] === [1, 2];  // false: different objects, compared by reference",
+      "language": "javascript"
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "The one accepted use of ==: value == null is true for both null and undefined, a compact way to check \"missing\"."
+    },
+    {
+      "type": "heading",
+      "text": "Logical Operators Return Values, Not Booleans",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "'Ada' || 'Guest'; // 'Ada'   (first truthy operand)\n'' || 'Guest';    // 'Guest'\n'Ada' && 'ok';    // 'ok'    (first falsy operand, or the last one)\n\nconst count = 0;\ncount || 10;      // 10  (bug: 0 is a valid value)\ncount ?? 10;      // 0   (?? only falls back on null/undefined)\n\nuser && user.save();  // short-circuit: save() runs only if user is truthy\nuser?.address?.city;  // optional chaining: undefined instead of a TypeError",
+      "language": "javascript"
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Precedence: * and / bind tighter than + and -; comparisons bind tighter than && which binds tighter than ||. Mixing ?? with || or && without parentheses is a SyntaxError. When in doubt, add parentheses; they cost nothing."
+    }
+  ]
+}

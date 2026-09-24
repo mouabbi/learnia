@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "The Problem Before Version Control",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Every developer has seen a folder like this: report_final.docx, report_final_v2.docx, report_final_v2_REAL.docx, project_backup_friday.zip. That folder is a homemade version control system. It breaks the moment two people edit the same file, the moment you need to know why a line changed, or the moment you have to rebuild exactly what ran in production three weeks ago."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Lost work: someone overwrites a colleague's changes while copying files around.",
+        "No history: you can see what the code is now, but not how or why it got there.",
+        "No safe experimentation: trying a risky refactor means duplicating the whole project.",
+        "No accountability: nobody can tell who introduced a bug or which change broke a feature.",
+        "No reproducibility: you cannot reliably rebuild the exact version a customer is running."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "What a Version Control System Gives You",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Capability",
+        "What it means in practice"
+      ],
+      "rows": [
+        [
+          "Complete history",
+          "Every saved state (commit) is kept forever, with author, timestamp and message."
+        ],
+        [
+          "Diffs and blame",
+          "You can see exactly which lines changed between any two versions, and who last touched each line."
+        ],
+        [
+          "Branching",
+          "You can develop features, fixes and experiments in parallel, isolated lines of work."
+        ],
+        [
+          "Merging",
+          "Parallel work can be combined, with the tool detecting and reporting overlapping edits."
+        ],
+        [
+          "Collaboration",
+          "Many people can work on one codebase and exchange changes in a controlled way."
+        ],
+        [
+          "Reproducibility and audit",
+          "Any past release can be checked out exactly; history doubles as an audit trail."
+        ],
+        [
+          "Automation hook",
+          "CI/CD systems react to new commits, which is the foundation for the second half of this course."
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Centralized vs Distributed Version Control",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Older systems such as Subversion (SVN) and Perforce are centralized: one server holds the history, and developers check out a working copy. Git is distributed: every clone is a complete repository with the full history, so most operations (commit, log, diff, branch, merge) are local and fast, and there is no single point of failure."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Aspect",
+        "Centralized (SVN, Perforce)",
+        "Distributed (Git, Mercurial)"
+      ],
+      "rows": [
+        [
+          "Where history lives",
+          "On a central server only",
+          "In every clone"
+        ],
+        [
+          "Committing",
+          "Requires network access to the server",
+          "Local; sharing is a separate step (push)"
+        ],
+        [
+          "Speed of log/diff/branch",
+          "Network-bound",
+          "Local disk speed"
+        ],
+        [
+          "Offline work",
+          "Very limited",
+          "Full, except exchanging changes"
+        ],
+        [
+          "Branching cost",
+          "Historically expensive (directory copies)",
+          "Cheap: a branch is a 41-byte pointer file"
+        ],
+        [
+          "Access control",
+          "Fine-grained per path",
+          "Per repository (hosting platforms add more)"
+        ],
+        [
+          "Huge binary assets",
+          "Often handled better",
+          "Needs extensions such as Git LFS"
+        ]
+      ]
+    },
+    {
+      "type": "image",
+      "src": "generate: side-by-side diagram; left shows a central server with full history and several developer machines holding only working copies connected by arrows; right shows several developer machines each holding a full repository icon plus a shared remote (GitHub), with push/pull arrows between them",
+      "alt": "Centralized vs distributed version control topology",
+      "caption": "Centralized: one copy of history. Distributed: every clone is a full repository."
+    },
+    {
+      "type": "heading",
+      "text": "Snapshots, Not Diffs",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Conceptually, Git stores snapshots. Each commit records the complete state of the project tree at that moment. Unchanged files are not duplicated; the new snapshot simply points to the same stored content as before. This differs from older systems that modelled history as a chain of per-file deltas. You will see exactly how this works in the chapter on Git internals."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Interview nuance: \"Git stores snapshots\" describes the data model. On disk, Git compresses objects into packfiles, and packfiles do use delta compression between similar objects. The model is snapshots; the storage optimization uses deltas. Being able to state both precisely signals real understanding."
+    },
+    {
+      "type": "heading",
+      "text": "Git vs GitHub",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Git is the version control tool: open-source software that runs on your machine. GitHub (like GitLab, Bitbucket or Azure DevOps) is a hosting platform built around Git repositories. It adds collaboration features Git itself does not have: Pull Requests, code review, issues, access control, branch protection and GitHub Actions for CI/CD. You can use Git with no hosting platform at all; you cannot use GitHub's repository features without Git."
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "When someone says \"push it to Git\", they almost always mean \"push it to the remote repository on GitHub\". In interviews, keep the two terms distinct."
+    }
+  ]
+}

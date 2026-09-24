@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "How an Object ID Is Computed",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "An object's ID is the SHA-1 hash of a small header followed by the content: the object type, a space, the content length in bytes, a null byte, then the content itself. Because the ID is derived purely from content, it is called content-addressable storage."
+    },
+    {
+      "type": "terminal",
+      "text": "$ echo 'hello' | git hash-object --stdin\nce013625030ba8dba906f756967f9e9ca394464a\n\n# The same result without Git: header \"blob 6\\0\" + \"hello\\n\" (6 bytes)\n$ printf 'blob 6\\0hello\\n' | sha1sum\nce013625030ba8dba906f756967f9e9ca394464a  -"
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "This hash is identical on every machine in the world. Anyone who stores the text \"hello\" followed by a newline in a Git repository gets blob ce01362. That determinism is what makes the rest of Git's design work."
+    },
+    {
+      "type": "heading",
+      "text": "Consequences of Content Addressing",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Property",
+        "What it gives you"
+      ],
+      "rows": [
+        [
+          "Deduplication",
+          "Identical content is stored once, across files, directories and commits"
+        ],
+        [
+          "Integrity",
+          "If a single bit on disk is corrupted, the content no longer matches its hash; git fsck detects it"
+        ],
+        [
+          "Immutability",
+          "You cannot change an object without changing its ID, so objects are effectively read-only"
+        ],
+        [
+          "Cheap comparison",
+          "Two trees with the same hash are identical, so Git can skip entire unchanged directories when diffing"
+        ],
+        [
+          "Efficient transfer",
+          "During fetch and push, Git exchanges hashes to find out which objects the other side is missing"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "History as a Merkle Tree",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "A commit's content includes its tree hash and its parent's hash. Its own hash therefore depends on the entire project snapshot and on all of its ancestors. Change anything in an old commit (a message, a file, an author email) and that commit gets a new ID, which changes its child's content, which changes the child's ID, and so on up to the branch tip."
+    },
+    {
+      "type": "image",
+      "src": "generate: chain of four commit boxes A <- B <- C <- D with hashes; below, a second chain where A is edited to A' and B', C', D' are shown with different hashes in red, illustrating that editing one commit rewrites every descendant",
+      "alt": "Changing one commit changes the hash of all descendants",
+      "caption": "Editing one commit produces new IDs for every commit after it. This is what \"rewriting history\" means."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "This is why rebase, amend and filter-repo cause diverged branches and require force pushes: the rewritten commits are genuinely new objects. It is also why a single commit hash is enough to identify and verify an exact state of the whole codebase, which is what CI systems and deployment records store."
+    },
+    {
+      "type": "heading",
+      "text": "Short Hashes",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Git accepts any unambiguous prefix of a hash, with a minimum of 4 characters. Default abbreviations are about 7 characters and grow automatically in large repositories. In a repository with millions of objects, an old 7-character reference in a commit message or ticket can become ambiguous later."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git rev-parse HEAD\n9c1e2f7a8b3d4c5e6f7a8b9c0d1e2f3a4b5c6d7e\n$ git rev-parse --short HEAD\n9c1e2f7\n$ git show 9c1e\nerror: short object ID 9c1e is ambiguous"
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "In scripts, deployment records and anything long-lived, store the full 40-character hash. Use short hashes only for humans in conversation."
+    },
+    {
+      "type": "heading",
+      "text": "Is SHA-1 Still Safe?",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "In 2017 the SHAttered attack produced the first practical SHA-1 collision: two different PDF files with the same SHA-1 hash. Git responded by switching to a hardened SHA-1 implementation (collision detection, sha1dc) in version 2.13, which detects and rejects content crafted with that known attack technique. Git also supports a SHA-256 object format (git init --object-format=sha256), but interoperability between SHA-1 and SHA-256 repositories and support on hosting platforms are still limited, so almost all repositories remain on SHA-1."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Hashes guarantee integrity, not authenticity. They prove the content has not changed, but anyone can create a commit claiming to be authored by anyone, since author name and email are just text. To prove who made a commit, sign it with GPG or SSH (git commit -S) and let GitHub show the Verified badge."
+    }
+  ]
+}

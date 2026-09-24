@@ -22,6 +22,7 @@ final exam uses the LATEST one.
 from sqlalchemy.orm import Session
 
 from learnia_backend.models.assessment import AssessmentAttempt
+from learnia_backend.models.course import Course
 from learnia_backend.models.enums import AttemptStatus, LearningStatus
 from learnia_backend.models.final_exam import FinalExamAttempt
 from learnia_backend.models.learning_progress import LearningProgress, PageProgress
@@ -31,6 +32,26 @@ from learnia_backend.utils.time import utc_now_naive
 
 def _to_ms(dt) -> int:
     return int(dt.replace(tzinfo=None).timestamp() * 1000) if dt else 0
+
+
+def has_unseen_update(course: Course, progress: LearningProgress | None) -> bool:
+    """True when `course` has been touched (CourseRepository.touch — any
+    module/chapter/page/content/question mutation, see that method's
+    docstring) more recently than this learner last acknowledged it, AND
+    they have some existing engagement with the course at all. A learner
+    who never started the course (no progress row) doesn't need an
+    "updated" badge — they'll just see the current version when they do.
+
+    TODO (next version, per user direction 2026-09-24): this is a single
+    combined "something changed" signal, not a granular "which module" or
+    "content vs. exam" diff — acceptable v1 simplification per the
+    requesting user.
+    """
+    if progress is None:
+        return False
+    if progress.content_seen_at is None:
+        return True
+    return course.updated_at > progress.content_seen_at
 
 
 class ProgressRepository:
@@ -140,6 +161,17 @@ class ProgressRepository:
         )
         return round((completed_pages / total_pages) * 100)
 
+    def mark_content_seen(self, user_id: int, course_id: int) -> None:
+        """Dismiss this course's "updated" signal for this learner — called
+        when they open the reader (CourseReaderPage) or explicitly
+        acknowledge the change notice. get_or_create so a learner who has
+        never actually started the course can still call this harmlessly
+        (though has_unseen_update below never flags them anyway, since it
+        also requires an existing progress row)."""
+        progress = self.get_or_create_learning_progress(user_id, course_id)
+        progress.content_seen_at = utc_now_naive()
+        self.db.commit()
+
     def get_learning_progress(self, user_id: int, course_id: int) -> LearningProgress | None:
         """Read-only lookup (no get-or-create row insert) — for callers like
         the dashboard that only want to know progress if it already exists."""
@@ -211,9 +243,11 @@ class ProgressRepository:
             else None
         )
 
+        course = self.db.get(Course, course_id)
         return {
             "completedPageIds": completed_page_ids,
             "lastPageId": str(progress.current_page_id) if progress.current_page_id else None,
             "moduleQuizzes": module_quizzes,
             "finalExam": final_exam,
+            "hasUnseenUpdate": has_unseen_update(course, progress) if course is not None else False,
         }

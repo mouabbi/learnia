@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Three Ways to Define a Function",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "// Declaration: hoisted, callable before its line\nfunction add(a, b) {\n  return a + b;\n}\n\n// Expression: not callable before the assignment runs\nconst subtract = function (a, b) {\n  return a - b;\n};\n\n// Arrow: concise; implicit return for a single expression\nconst multiply = (a, b) => a * b;\nconst makeUser = (name) => ({ name }); // wrap object literals in ()",
+      "language": "javascript"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "Declaration",
+        "Expression / Arrow"
+      ],
+      "rows": [
+        [
+          "Call before definition",
+          "Works (fully hoisted)",
+          "ReferenceError (TDZ with const/let)"
+        ],
+        [
+          "Own this and arguments",
+          "Yes",
+          "Arrow: no, inherits from surrounding scope"
+        ],
+        [
+          "Usable with new",
+          "Yes",
+          "Arrow: no"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Parameters vs Arguments",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Parameters are the names in the definition; arguments are the values passed at the call. JavaScript never checks the count: missing arguments become undefined, extra ones are ignored."
+    },
+    {
+      "type": "code",
+      "code": "function greet(name, greeting = 'Hello') {\n  return `${greeting}, ${name}!`;\n}\n\ngreet('Ada');            // 'Hello, Ada!'\ngreet();                 // 'Hello, undefined!'\ngreet('Ada', undefined); // 'Hello, Ada!'  default applies\ngreet('Ada', null);      // 'null, Ada!'   default does NOT apply to null\n\nfunction sum(...nums) {  // rest parameter collects extras into a real array\n  return nums.reduce((acc, n) => acc + n, 0);\n}\nsum(1, 2, 3);            // 6",
+      "language": "javascript"
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Default values are evaluated at call time, on every call. function f(list = []) gives each call a fresh array, unlike Python's shared mutable default."
+    },
+    {
+      "type": "heading",
+      "text": "Return Values",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "function noReturn() { const x = 1; }\nnoReturn();        // undefined\n\nfunction broken() {\n  return            // automatic semicolon insertion ends the statement here\n  {\n    ok: true\n  };\n}\nbroken();          // undefined, not { ok: true }",
+      "language": "javascript"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Keep the returned expression on the same line as return. A line break right after return makes the function return undefined."
+    },
+    {
+      "type": "heading",
+      "text": "Passing Objects: Mutation Is Visible, Reassignment Is Not",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "function rename(user) {\n  user.name = 'Bob';      // mutates the caller's object\n  user = { name: 'Eve' }; // rebinds the local parameter only\n}\n\nconst u = { name: 'Ada' };\nrename(u);\nu.name; // 'Bob'",
+      "language": "javascript"
+    },
+    {
+      "type": "paragraph",
+      "text": "Everything is passed by value, but for objects that value is a reference (\"call by sharing\"). A function without side effects that always returns the same output for the same input is a pure function: easier to test, reuse and debug."
+    },
+    {
+      "type": "code",
+      "code": "// Impure: depends on and changes outside state\nlet total = 0;\nfunction addToTotal(x) { total += x; }\n\n// Pure\nconst addTax = (price, rate) => price * (1 + rate);",
+      "language": "javascript"
+    }
+  ]
+}

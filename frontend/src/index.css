@@ -1,3 +1,12 @@
+/* Editorial reading fonts — used only inside the course reader (see
+   .reader-page-body below), never the app UI, so the rest of the app keeps
+   its plain system-font look. Lora (a warm, screen-optimized serif built
+   for body text) for prose, Fraunces (a big-personality display serif with
+   real character in its curves) for in-page headings — a deliberate
+   magazine/editorial pairing instead of reusing the UI sans at a bigger
+   size. */
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Fraunces:opsz,wght@9..144,500..800&display=swap');
+
 /* Design tokens: change a color here and the whole app follows.
    The dark-mode block below overrides the same names, so components
    never need to know which theme is active. */
@@ -1053,6 +1062,28 @@ button:disabled {
   background: color-mix(in srgb, #16a34a 75%, black 15%);
 }
 
+/* "Updated" badge — an admin changed this course's content/assessments
+   since the learner last opened it (CourseCard's hasUnseenUpdate prop).
+   Left-aligned so it can coexist with the completed/difficulty badge on
+   the right without overlapping. */
+.course-card-badge-updated {
+  background: color-mix(in srgb, var(--accent) 80%, black 10%);
+}
+
+.course-card-badge-left {
+  left: 0.5rem;
+  right: auto;
+}
+
+.course-card-updated-note {
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.72rem;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: calc(var(--radius) - 2px);
+}
+
 .course-card-progress {
   display: grid;
   gap: 0.25rem;
@@ -1654,12 +1685,15 @@ button:disabled {
 }
 
 .reader-topbar {
+  position: relative;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1.25rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .reader-back-link {
@@ -1701,6 +1735,57 @@ button:disabled {
   text-decoration: none;
 }
 
+/* Inline "this course was updated" notice (CourseReaderPage's
+   UpdateBanner) — sits between the topbar and the body, same accent
+   language as .course-card-updated-note. */
+.reader-update-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.82rem;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.reader-update-banner span {
+  flex: 1;
+  min-width: 0;
+}
+
+.reader-update-banner-cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent);
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.reader-update-banner-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.reader-update-banner-close:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
 .reader-theme-toggle {
   flex-shrink: 0;
   display: inline-flex;
@@ -1728,10 +1813,10 @@ button:disabled {
 }
 
 .reader-sidebar {
-  width: 280px;
+  width: 288px;
   flex-shrink: 0;
   overflow-y: auto;
-  padding: 0.75rem;
+  padding: 1.25rem 1rem;
   background: var(--surface);
   border-right: 1px solid var(--border);
   scrollbar-width: thin;
@@ -1777,7 +1862,17 @@ button:disabled {
 }
 
 .reader-module + .reader-module {
-  margin-top: 0.2rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.reader-module-exam .reader-module-header:not(.reader-module-header-locked) {
+  color: var(--course-accent);
+}
+
+.reader-module-exam .reader-module-header:not(.reader-module-header-locked) .reader-module-chevron {
+  color: var(--course-accent);
 }
 
 .reader-module-header {
@@ -1785,18 +1880,20 @@ button:disabled {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.5rem 0.4rem;
-  font-size: 0.85rem;
-  font-weight: 600;
+  padding: 0.6rem 0.6rem;
+  font-size: 0.93rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
   color: var(--text-strong);
   text-align: left;
   background: transparent;
   border: 0;
-  border-radius: calc(var(--radius) - 2px);
+  border-radius: var(--radius);
+  transition: background 0.15s ease;
 }
 
 .reader-module-header:hover:not(:disabled) {
-  background: var(--bg);
+  background: color-mix(in srgb, var(--course-accent, var(--accent)) 6%, var(--bg));
 }
 
 .reader-module-header-locked {
@@ -1828,21 +1925,24 @@ button:disabled {
 }
 
 .reader-module-body {
-  padding: 0.1rem 0 0.4rem 0.9rem;
+  padding: 0.2rem 0 0.5rem 0.95rem;
+  margin-left: 0.6rem;
+  border-left: 1px solid var(--border);
 }
 
 .reader-chapter + .reader-chapter {
-  margin-top: 0.5rem;
+  margin-top: 0.65rem;
 }
 
 .reader-chapter-title {
   display: block;
-  margin: 0.3rem 0 0.15rem;
+  margin: 0.55rem 0 0.3rem;
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.07em;
   color: var(--text);
+  opacity: 0.7;
 }
 
 .reader-page-list {
@@ -1850,39 +1950,46 @@ button:disabled {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.05rem;
+  gap: 0.2rem;
 }
 
 .reader-page-item,
 .reader-quiz-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
   width: 100%;
-  padding: 0.4rem 0.5rem;
+  padding: 0.5rem 0.65rem;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.89rem;
+  line-height: 1.35;
   text-align: left;
   color: var(--text-strong);
   background: transparent;
   border: 0;
-  border-radius: calc(var(--radius) - 2px);
-  transition: background 0.15s ease, color 0.15s ease;
+  border-left: 2px solid transparent;
+  border-radius: 0 calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
 .reader-quiz-item {
-  margin-top: 0.15rem;
+  margin-top: 0.3rem;
   font-weight: 600;
 }
 
 .reader-page-item:hover:not(:disabled),
 .reader-quiz-item:hover:not(:disabled) {
-  background: var(--bg);
+  background: color-mix(in srgb, var(--course-accent, var(--accent)) 8%, var(--bg));
+  transform: translateX(1px);
 }
 
 .reader-page-item-active {
   background: color-mix(in srgb, var(--course-accent) 14%, transparent);
+  border-left-color: var(--course-accent);
+  border-radius: calc(var(--radius) - 2px);
   color: var(--course-accent);
+  font-weight: 700;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--course-accent) 8%, transparent);
 }
 
 .reader-quiz-item-locked {
@@ -1903,10 +2010,16 @@ button:disabled {
 .reader-content {
   flex: 1;
   min-width: 0;
-  padding: 1.25rem;
+  padding: 2rem 3rem 4rem 3.5rem;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
+}
+
+@media (max-width: 860px) {
+  .reader-content {
+    padding: 1.5rem 1.25rem 3rem;
+  }
 }
 
 .reader-page {
@@ -1920,11 +2033,50 @@ button:disabled {
 /* ---- Reader page top toolbar: progress + prev/next/mark (PageView) ---- */
 
 .reader-page-toolbar {
-  margin: -1.5rem -1.75rem 1.25rem;
-  padding: 0.85rem 1.75rem 0.75rem;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: -1.5rem -1.75rem 1.75rem;
+  padding: 0.65rem 1.75rem 0.75rem;
   border-bottom: 1px solid var(--border);
-  background: var(--surface);
   border-radius: 14px 14px 0 0;
+  background: var(--surface);
+  box-shadow: none;
+  transition: margin 0.25s ease, padding 0.25s ease, border-radius 0.25s ease,
+    box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+}
+
+/* Once the reader pane has actually scrolled (see ReaderShell.jsx's
+   onScroll -> .reader-content-scrolled), the toolbar detaches from the
+   card and becomes a compact floating pill riding just under the top
+   topbar — a visible reaction to scrolling, not a toolbar that was quietly
+   "fixed" the whole time. */
+.reader-content-scrolled .reader-page-toolbar {
+  position: fixed;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  margin: 0;
+  max-width: calc(68ch + 3.5rem);
+  padding: 0.6rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 28px -14px rgb(0 0 0 / 35%);
+}
+
+.reader-content-scrolled .reader-page-toolbar-top {
+  margin-bottom: 0;
+}
+
+.reader-content-scrolled .reader-page-toolbar-track {
+  display: none;
+}
+
+.reader-content-scrolled .reader-page-toolbar-position {
+  opacity: 0.8;
 }
 
 .reader-page-toolbar-top {
@@ -1995,20 +2147,296 @@ button:disabled {
 }
 
 .reader-page-eyebrow {
+  display: block;
+  margin: 0;
+  padding: 0 20px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   color: var(--course-accent);
 }
 
 .reader-page h1 {
-  margin: 0.3rem 0 1rem;
+  margin: 0.4rem 0 1.1rem;
+  padding: 0 20px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(1.7rem, 1.3rem + 1.5vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* Reading typography — deliberately different from the rest of the app's
+   UI font: a serif built for long-form reading (Georgia's x-height and
+   letterforms stay legible at speed, unlike a UI sans stretched to body-
+   text size), larger and looser than UI text, and capped line length
+   (measured in `ch`, so it scales with the font) since a line that's too
+   wide is the single biggest cause of "my eyes are tired" on a reading
+   page — not the font choice itself. */
+.reader-page-body {
+  --reader-font: 'Lora', Georgia, 'Iowan Old Style', serif;
+  --reader-display-font: 'Fraunces', Georgia, serif;
+  margin: 0;
+  padding: 0 20px;
+  font-family: var(--reader-font);
 }
 
 .reader-page-body p {
-  font-size: 0.95rem;
+  font-size: 1.18rem;
+  line-height: 1.9;
   white-space: pre-line;
+}
+
+/* Rich block content in the reader — reuses BlockRenderer.jsx (built for
+   the CMS preview) but is styled noticeably richer here: this is the real
+   learning surface, not a compact editor preview. Scoped under
+   .reader-page-body so it never affects the CMS's own use of the same
+   classes in cms.css. */
+.reader-page-body .cms-block-renderer {
+  display: grid;
+  gap: 1.2rem;
+  font-size: 1.18rem;
+  line-height: 1.9;
+}
+
+.reader-page-body .cms-block-heading {
+  margin: 0;
+  font-family: var(--reader-display-font);
+  font-weight: 600;
+  color: var(--text-strong);
+  letter-spacing: -0.015em;
+  position: relative;
+  padding-bottom: 0.3rem;
+}
+
+.reader-page-body .cms-block-heading::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 2.75rem;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--course-accent, var(--accent)), transparent);
+}
+
+.reader-page-body .cms-block-paragraph {
+  margin: 0;
+  color: var(--text-strong);
+}
+
+.reader-page-body .cms-block-code,
+.reader-page-body .cms-block-terminal {
+  position: relative;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  padding: 2.1rem 1.25rem 1.25rem;
+  border-radius: 10px;
+  box-shadow: 0 14px 28px -18px rgb(0 0 0 / 50%);
+}
+
+/* A little macOS-style window chrome (three dots) on every code/terminal
+   block — purely decorative, but it makes a code sample read as "a real
+   terminal/editor", not a gray box of text. */
+.reader-page-body .cms-block-code::before,
+.reader-page-body .cms-block-terminal::before {
+  content: '';
+  position: absolute;
+  top: 0.85rem;
+  left: 1.1rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff5f56;
+  box-shadow: 18px 0 0 #ffbd2e, 36px 0 0 #27c93f;
+}
+
+.reader-page-body .cms-block-code {
+  background: #14141c;
+  color: #e4e4ec;
+  border-color: #14141c;
+}
+
+.reader-page-body .cms-block-terminal {
+  background: #0b0b10;
+  color: #7ef29c;
+  font-family: 'Courier New', monospace;
+  border-color: #0b0b10;
+}
+
+:root[data-theme='dark'] .reader-page-body .cms-block-code,
+:root[data-theme='dark'] .reader-page-body .cms-block-terminal {
+  background: #1c1f27;
+  border-color: color-mix(in srgb, white 14%, transparent);
+  box-shadow: 0 14px 28px -18px rgb(0 0 0 / 50%), inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+}
+
+:root[data-theme='dark'] .reader-page-body .cms-block-terminal {
+  background: #14171d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .reader-page-body .cms-block-code,
+  :root:not([data-theme='light']) .reader-page-body .cms-block-terminal {
+    background: #1c1f27;
+    border-color: color-mix(in srgb, white 14%, transparent);
+    box-shadow: 0 14px 28px -18px rgb(0 0 0 / 50%), inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+  }
+
+  :root:not([data-theme='light']) .reader-page-body .cms-block-terminal {
+    background: #14171d;
+  }
+}
+
+/* ---- Syntax highlighting (highlight.js, atom-one-dark-ish palette) ---- */
+
+.reader-page-body .cms-block-code .hljs-keyword,
+.reader-page-body .cms-block-code .hljs-selector-tag,
+.reader-page-body .cms-block-code .hljs-literal,
+.reader-page-body .cms-block-code .hljs-section,
+.reader-page-body .cms-block-code .hljs-link {
+  color: #c678dd;
+}
+
+.reader-page-body .cms-block-code .hljs-function .hljs-keyword {
+  color: #c678dd;
+}
+
+.reader-page-body .cms-block-code .hljs-string,
+.reader-page-body .cms-block-code .hljs-attr,
+.reader-page-body .cms-block-code .hljs-regexp,
+.reader-page-body .cms-block-code .hljs-addition {
+  color: #98c379;
+}
+
+.reader-page-body .cms-block-code .hljs-number,
+.reader-page-body .cms-block-code .hljs-built_in,
+.reader-page-body .cms-block-code .hljs-builtin-name,
+.reader-page-body .cms-block-code .hljs-type,
+.reader-page-body .cms-block-code .hljs-params {
+  color: #d19a66;
+}
+
+.reader-page-body .cms-block-code .hljs-title,
+.reader-page-body .cms-block-code .hljs-title.function_,
+.reader-page-body .cms-block-code .hljs-attribute {
+  color: #61afef;
+}
+
+.reader-page-body .cms-block-code .hljs-comment,
+.reader-page-body .cms-block-code .hljs-quote,
+.reader-page-body .cms-block-code .hljs-deletion {
+  color: #7f848e;
+  font-style: italic;
+}
+
+.reader-page-body .cms-block-code .hljs-variable,
+.reader-page-body .cms-block-code .hljs-template-variable,
+.reader-page-body .cms-block-code .hljs-name,
+.reader-page-body .cms-block-code .hljs-symbol,
+.reader-page-body .cms-block-code .hljs-bullet {
+  color: #e06c75;
+}
+
+.reader-page-body .cms-block-code .hljs-meta {
+  color: #61afef;
+}
+
+.reader-page-body .cms-block-code .hljs-emphasis {
+  font-style: italic;
+}
+
+.reader-page-body .cms-block-code .hljs-strong {
+  font-weight: 700;
+}
+
+.reader-page-body .cms-block-quote {
+  position: relative;
+  border-left: none;
+  padding: 0.2rem 0 0.2rem 2.5rem;
+  font-family: var(--reader-display-font);
+  font-size: 1.3rem;
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--text-strong);
+}
+
+.reader-page-body .cms-block-quote::before {
+  content: '\201C';
+  position: absolute;
+  left: -0.15rem;
+  top: -0.5rem;
+  font-family: var(--reader-display-font);
+  font-size: 3.5rem;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--course-accent, var(--accent));
+  opacity: 0.5;
+}
+
+.reader-page-body .cms-block-callout {
+  position: relative;
+  padding: 1rem 1.2rem 1rem 3.1rem;
+  border-radius: 12px;
+  border-width: 1px;
+  border-left-width: 4px;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  box-shadow: 0 8px 20px -16px rgb(0 0 0 / 40%);
+}
+
+.reader-page-body .cms-block-callout::before {
+  position: absolute;
+  left: 0.9rem;
+  top: 0.85rem;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.reader-page-body .cms-callout-tip::before { content: '💡'; }
+.reader-page-body .cms-callout-warning::before { content: '⚠️'; }
+.reader-page-body .cms-callout-important::before { content: '❗'; }
+.reader-page-body .cms-callout-note::before { content: '📝'; }
+
+.reader-page-body .cms-block-list {
+  margin: 0;
+  padding-left: 1.4rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.reader-page-body .cms-block-list li::marker {
+  color: var(--course-accent, var(--accent));
+}
+
+.reader-page-body .cms-block-table {
+  font-size: 0.9rem;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.reader-page-body .cms-block-figure {
+  margin: 0;
+}
+
+.reader-page-body .cms-block-figure img,
+.reader-page-body .cms-block-figure video {
+  box-shadow: 0 16px 32px -20px rgb(0 0 0 / 45%);
+}
+
+.reader-page-body .cms-block-figure figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text);
+  text-align: center;
+}
+
+.reader-page-body .cms-block-figure iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: none;
+  border-radius: var(--radius);
 }
 
 .reader-pager {
@@ -2171,6 +2599,7 @@ button:disabled {
 .home {
   display: grid;
   gap: 1.25rem;
+  margin-top: 1rem;
 }
 
 .home-hello h1 {

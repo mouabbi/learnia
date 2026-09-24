@@ -243,6 +243,20 @@ def reindex_course_structure(db: Session, course_id: int) -> None:
     db.commit()
 
 
+def remove_course_from_index(db: Session, course_id: int) -> None:
+    """
+    Delete every index row belonging to a course (the course row itself plus
+    every module/chapter/page row under it). Call this when the COURSE
+    ITSELF is being hard-deleted (repositories/course_repository.py's
+    delete()) — the FTS5 table above has no FK to `courses`, so the DB-level
+    `ondelete="CASCADE"` that cleans up modules/chapters/pages/questions/
+    assets can't reach it, and without this call a deleted course's rows
+    would keep showing up in global search results forever.
+    """
+    db.execute(text(f"DELETE FROM {_TABLE} WHERE course_id = :cid"), {"cid": course_id})
+    db.commit()
+
+
 def reindex_all(db: Session) -> None:
     """
     Full rebuild: wipes the index and re-inserts every course/module/

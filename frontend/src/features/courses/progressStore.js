@@ -30,3 +30,10 @@ export function recordFinalExamAttempt(courseId, { score, total }) {
     .post(`/courses/${courseId}/progress/final-exam`, { score, total })
     .then((progress) => progress.finalExam)
 }
+
+// Dismisses the "this course was updated" badge/banner (progress.hasUnseenUpdate)
+// for this learner — called once they've seen the reader for a course
+// flagged as changed. See backend routers/courses.py's mark-content-seen.
+export function markContentSeen(courseId) {
+  return apiClient.post(`/courses/${courseId}/progress/mark-content-seen`)
+}

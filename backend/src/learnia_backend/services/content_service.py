@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 from learnia_backend.exceptions import NotFoundError
 from learnia_backend.models.course import Course
 from learnia_backend.models.page import Page
+from learnia_backend.repositories.course_repository import CourseRepository
 from learnia_backend.services.search_index import reindex_page
 from learnia_backend.schemas.content import (
     CalloutBlock,
@@ -35,6 +36,21 @@ from learnia_backend.schemas.content import (
 )
 
 CONTENT_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "content"
+
+
+def delete_content_file(content_path: str | None) -> None:
+    """
+    Remove a single page's content JSON file from disk, if it has one.
+    Safe/idempotent when `content_path` is None or already gone — same
+    "safe to call on an already-missing file" convention as
+    `services/storage.py`'s `AssetStorage.delete`. Callers (structure_repository's
+    delete_page/delete_chapter/delete_module) must capture `content_path`
+    BEFORE deleting the owning Page row, since the DB row (and thus this
+    value) is gone once the delete commits.
+    """
+    if not content_path:
+        return
+    (CONTENT_ROOT / content_path).unlink(missing_ok=True)
 
 
 def _extract_text(content: PageContent) -> str:
@@ -86,4 +102,5 @@ class ContentService:
         page.search_text = _extract_text(content)
         self.db.commit()
         reindex_page(self.db, page.id)  # 14-global-search: keep the FTS5 index in sync
+        CourseRepository(self.db).touch(page.course_id)
         return content

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { Trash2, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { ThemeEditor } from '../theming/ThemeEditor'
+import { COURSE_ICON_COMPONENTS, COURSE_ICON_NAMES } from '../courses/courseIcons'
 import { cmsApi } from './cmsApi'
 
 const STATUS_OPTIONS = ['planned', 'draft', 'ready', 'published', 'archived']
@@ -17,7 +18,9 @@ export function SettingsTab({ course, onChange }) {
   const navigate = useNavigate()
   const [status, setStatus] = useState(course?.contentStatus ?? 'planned')
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [error, setError] = useState(null)
+  const [savingIcon, setSavingIcon] = useState(false)
 
   if (!course) return null
 
@@ -25,13 +28,29 @@ export function SettingsTab({ course, onChange }) {
     setStatus(next)
     setSaving(true)
     setError(null)
+    setSaved(false)
     try {
       await cmsApi.updateCourse(course.id, { contentStatus: next })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 1800)
       onChange?.()
     } catch (err) {
       setError(err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleIconChange(icon) {
+    setSavingIcon(true)
+    setError(null)
+    try {
+      await cmsApi.updateCourse(course.id, { icon })
+      onChange?.()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingIcon(false)
     }
   }
 
@@ -43,38 +62,112 @@ export function SettingsTab({ course, onChange }) {
 
   return (
     <div className="cms-settings">
-      <div className="cms-content-header">
-        <h3>{course.title}</h3>
-      </div>
-      <p className="cms-hint">
-        Slug: <code>{course.slug}</code>
-      </p>
+      <section className="cms-settings-section">
+        <div className="cms-settings-section-header">
+          <h3>Overview</h3>
+        </div>
+        <dl className="cms-settings-meta">
+          <div>
+            <dt>Course</dt>
+            <dd>{course.title}</dd>
+          </div>
+          <div>
+            <dt>Slug</dt>
+            <dd>
+              <code>{course.slug}</code>
+            </dd>
+          </div>
+        </dl>
+      </section>
 
-      <div className="cms-field" style={{ maxWidth: 260, margin: '1rem 0' }}>
-        <span>Status</span>
-        <select value={status} onChange={(e) => handleStatusChange(e.target.value)} disabled={saving}>
+      <section className="cms-settings-section">
+        <div className="cms-settings-section-header">
+          <h3>Icon</h3>
+        </div>
+        <p className="cms-hint">
+          Shown on the learner catalog card when no thumbnail image is set (see Theme below).
+        </p>
+        <div className="cms-icon-picker" role="group" aria-label="Course icon">
+          {COURSE_ICON_NAMES.map((name) => {
+            const Icon = COURSE_ICON_COMPONENTS[name]
+            const active = (course.icon || 'BookOpen') === name
+            return (
+              <button
+                key={name}
+                type="button"
+                className={`cms-icon-option${active ? ' cms-icon-option-active' : ''}`}
+                disabled={savingIcon}
+                onClick={() => handleIconChange(name)}
+                title={name}
+                aria-pressed={active}
+              >
+                <Icon size={20} aria-hidden="true" />
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="cms-settings-section">
+        <div className="cms-settings-section-header">
+          <h3>Status</h3>
+          {saved && (
+            <span className="cms-settings-saved">
+              <CheckCircle2 size={14} aria-hidden="true" /> Saved
+            </span>
+          )}
+        </div>
+
+        <div className="cms-status-picker" role="group" aria-label="Course status">
           {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
+            <button
+              key={s}
+              type="button"
+              className={`cms-status-option cms-status-${s}${status === s ? ' cms-status-option-active' : ''}`}
+              disabled={saving}
+              onClick={() => handleStatusChange(s)}
+            >
               {s[0].toUpperCase() + s.slice(1)}
-            </option>
+            </button>
           ))}
-        </select>
-      </div>
-      {error && <p className="cms-hint" style={{ color: 'var(--danger)' }}>{error}</p>}
-      <p className="cms-hint">
-        Set to <strong>Published</strong> to make this course visible in the learner catalog.
-        The final exam is managed from the Assessments tab's "Final exam" bank.
-      </p>
+        </div>
 
-      <ThemeEditor courseId={course.id} />
+        {error && (
+          <p className="cms-hint" style={{ color: 'var(--danger)' }}>
+            {error}
+          </p>
+        )}
+        <p className="cms-hint">
+          Set to <strong>Published</strong> to make this course visible in the learner catalog. The
+          final exam is managed from the Assessments tab's "Final exam" bank.
+        </p>
+      </section>
 
-      <div className="cms-danger-zone">
-        <h4>Danger zone</h4>
-        <p className="cms-hint">Permanently deletes the course and everything in it.</p>
-        <button type="button" className="cms-btn-danger" onClick={handleDelete}>
-          <Trash2 size={14} aria-hidden="true" /> Delete course
-        </button>
-      </div>
+      <section className="cms-settings-section">
+        <div className="cms-settings-section-header">
+          <h3>Theme</h3>
+        </div>
+        <ThemeEditor courseId={course.id} />
+      </section>
+
+      <section className="cms-danger-zone">
+        <div className="cms-danger-zone-header">
+          <AlertTriangle size={18} aria-hidden="true" />
+          <h3>Danger zone</h3>
+        </div>
+        <div className="cms-danger-zone-row">
+          <div>
+            <p className="cms-danger-zone-title">Delete this course</p>
+            <p className="cms-hint">
+              Permanently removes the course and everything in it — modules, chapters, pages, and
+              question banks. This can't be undone.
+            </p>
+          </div>
+          <button type="button" className="cms-btn-danger" onClick={handleDelete}>
+            <Trash2 size={14} aria-hidden="true" /> Delete course
+          </button>
+        </div>
+      </section>
     </div>
   )
 }

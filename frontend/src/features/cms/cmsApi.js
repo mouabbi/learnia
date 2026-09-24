@@ -68,6 +68,19 @@ export const cmsApi = {
     )
   },
 
+  // -- AI batch prompt/import ("Generate All") -----------------------------
+  // selections: { moduleContentIds: string[], moduleQcmIds: string[], includeFinalExam: bool }
+  getBatchPrompt: (courseId, selections) =>
+    apiClient.post(`/courses/${courseId}/prompts/batch`, selections),
+  validateBatchImport: (courseId, selections, json) =>
+    apiClient.post(`/courses/${courseId}/import/batch/validate`, { json, ...selections }),
+  commitBatchImport: (courseId, selections, json, replace) =>
+    apiClient.post(`/courses/${courseId}/import/batch/commit`, {
+      json,
+      ...selections,
+      replace: !!replace,
+    }),
+
   // -- course metadata (basic settings tab; theme handled by ThemeEditor) --
   getCourse: (slug) => apiClient.get(`/courses/${slug}`),
 

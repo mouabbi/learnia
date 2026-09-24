@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Primitive Types",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "JavaScript has seven primitive types; everything else is an object. Primitives are immutable and compared by value; objects are compared by reference."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Type",
+        "Example",
+        "typeof result"
+      ],
+      "rows": [
+        [
+          "string",
+          "'hello'",
+          "\"string\""
+        ],
+        [
+          "number",
+          "42, 3.14, NaN",
+          "\"number\""
+        ],
+        [
+          "boolean",
+          "true",
+          "\"boolean\""
+        ],
+        [
+          "undefined",
+          "undefined",
+          "\"undefined\""
+        ],
+        [
+          "null",
+          "null",
+          "\"object\" (historic bug)"
+        ],
+        [
+          "bigint",
+          "10n",
+          "\"bigint\""
+        ],
+        [
+          "symbol",
+          "Symbol('id')",
+          "\"symbol\""
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "typeof null === 'object' is a bug kept for backward compatibility. Check null with value === null. Also, typeof on an array returns 'object'; use Array.isArray(value)."
+    },
+    {
+      "type": "heading",
+      "text": "Numbers",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "There is one number type for integers and decimals: a 64-bit IEEE-754 floating-point double. That explains most number surprises."
+    },
+    {
+      "type": "code",
+      "code": "0.1 + 0.2 === 0.3;                          // false (0.30000000000000004)\nMath.abs(0.1 + 0.2 - 0.3) < Number.EPSILON; // true: compare with a tolerance\n\nNumber.MAX_SAFE_INTEGER;        // 9007199254740991 (2^53 - 1)\n9007199254740992 === 9007199254740993; // true: precision lost\n\n10 / 0;      // Infinity (no error)\n'abc' * 2;   // NaN (\"Not a Number\" is of type number)\nNaN === NaN; // false: the only value not equal to itself\nNumber.isNaN(NaN);   // true\nisNaN('abc');        // true: global isNaN coerces first, avoid it",
+      "language": "javascript"
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "For money, store integer cents (1999 instead of 19.99) or use a decimal library. Use BigInt (123n) for integers beyond 2^53."
+    },
+    {
+      "type": "heading",
+      "text": "Strings",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "const first = 'Ada';\nconst greeting = `Hello, ${first}! 2 + 2 = ${2 + 2}`; // template literal\nconst multi = `line 1\nline 2`;                                        // real newlines allowed\n\nconst s = 'cat';\ns[0] = 'b';          // silently ignored: strings are immutable\ns.toUpperCase();     // returns a NEW string 'CAT'; s is still 'cat'\n\n'😀'.length;          // 2: length counts UTF-16 code units, not characters\n[...'😀'].length;     // 1",
+      "language": "javascript"
+    },
+    {
+      "type": "heading",
+      "text": "Booleans and Truthiness",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Conditions accept any value and convert it to a boolean. Only eight values are falsy; everything else, including every object and array, is truthy."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Falsy values",
+        "Surprisingly truthy"
+      ],
+      "rows": [
+        [
+          "false",
+          "'false'"
+        ],
+        [
+          "0, -0, 0n",
+          "'0'"
+        ],
+        [
+          "'' (empty string)",
+          "' ' (a space)"
+        ],
+        [
+          "null, undefined",
+          "[] and {}"
+        ],
+        [
+          "NaN",
+          "new Boolean(false)"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "Boolean('');     // false\nBoolean('0');    // true\nBoolean([]);     // true\n!!'hello';       // true: double negation converts to boolean",
+      "language": "javascript"
+    },
+    {
+      "type": "heading",
+      "text": "undefined vs null",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "undefined means \"no value was ever assigned\": uninitialized variables, missing function arguments, missing object properties, functions without return. null is an intentional \"empty\" set by a programmer. JSON has null but no undefined, so undefined properties disappear in JSON.stringify."
+    }
+  ]
+}

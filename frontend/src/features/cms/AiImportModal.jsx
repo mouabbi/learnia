@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { X, Copy, Check, Loader2, AlertTriangle } from 'lucide-react'
+import { X, Copy, Check, Loader2, AlertTriangle, Braces } from 'lucide-react'
 import { cmsApi } from './cmsApi'
 import { BlockRenderer } from './BlockRenderer'
+import { JsonCodeEditor } from './JsonCodeEditor'
 
 /**
  * AiImportModal — the manual AI workflow (12 + 13), reachable as a
@@ -15,7 +16,7 @@ import { BlockRenderer } from './BlockRenderer'
  *
  * Props:
  *  - open, onClose
- *  - courseId, scope ("course"|"module"|"chapter"|"page"|"module-qcm"|"final-exam")
+ *  - courseId, scope ("course"|"module"|"chapter"|"page"|"module-content"|"module-qcm"|"final-exam")
  *  - targetIds: { moduleId?, chapterId?, pageId? } — passed straight through
  *    to the prompt-builder and commit endpoints.
  *  - onCommitted(result): called after a successful commit.
@@ -28,6 +29,7 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
   const [copied, setCopied] = useState(false)
 
   const [pastedJson, setPastedJson] = useState('')
+  const [formatError, setFormatError] = useState(null)
   const [validating, setValidating] = useState(false)
   const [validateResult, setValidateResult] = useState(null)
   const [needsReplaceConfirm, setNeedsReplaceConfirm] = useState(false)
@@ -38,6 +40,7 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
     if (!open) return
     setStep(1)
     setPastedJson('')
+    setFormatError(null)
     setValidateResult(null)
     setNeedsReplaceConfirm(false)
     setCommitError(null)
@@ -61,6 +64,19 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
     } catch {
       // Clipboard API can fail (permissions, non-secure context) — the
       // textarea is still selectable/copyable manually, so this is silent.
+    }
+  }
+
+  // Re-indents whatever was pasted (LLMs often return single-line or
+  // inconsistently-indented JSON) — pure formatting, doesn't validate
+  // against the real schema, that's still what "Validate" is for.
+  const formatJson = () => {
+    try {
+      const parsed = JSON.parse(pastedJson)
+      setPastedJson(JSON.stringify(parsed, null, 2))
+      setFormatError(null)
+    } catch (err) {
+      setFormatError(err.message)
     }
   }
 
@@ -128,8 +144,15 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
           </div>
 
           <div className="cms-modal-steps">
-            <span className={step === 1 ? 'cms-step-active' : ''}>1. Copy prompt</span>
-            <span className={step === 2 ? 'cms-step-active' : ''}>2. Paste JSON</span>
+            <span className={`cms-modal-step${step === 1 ? ' cms-step-active' : ''}${step > 1 ? ' cms-step-done' : ''}`}>
+              <span className="cms-modal-step-badge">{step > 1 ? <Check size={12} /> : 1}</span>
+              Copy prompt
+            </span>
+            <span className="cms-modal-step-connector" />
+            <span className={`cms-modal-step${step === 2 ? ' cms-step-active' : ''}`}>
+              <span className="cms-modal-step-badge">2</span>
+              Paste JSON
+            </span>
           </div>
 
           <AnimatePresence mode="wait">
@@ -176,45 +199,66 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
                 transition={{ duration: 0.15 }}
                 className="cms-modal-body"
               >
-                <p className="cms-hint">Paste the JSON your AI tool returned:</p>
-                <textarea
-                  className="cms-prompt-textarea cms-mono"
-                  rows={10}
+                <div className="cms-json-editor-toolbar">
+                  <p className="cms-hint">Paste the JSON your AI tool returned:</p>
+                  <button type="button" className="cms-btn-secondary cms-btn-format" onClick={formatJson} disabled={!pastedJson.trim()}>
+                    <Braces size={14} aria-hidden="true" /> Format
+                  </button>
+                </div>
+                <JsonCodeEditor
                   value={pastedJson}
-                  onChange={(e) => {
-                    setPastedJson(e.target.value)
+                  onChange={(next) => {
+                    setPastedJson(next)
+                    setFormatError(null)
                     setValidateResult(null)
                     setNeedsReplaceConfirm(false)
                   }}
                   placeholder="{ ... }"
+                  rows={10}
                 />
+                {formatError && (
+                  <p className="cms-error cms-format-error">
+                    <AlertTriangle size={13} /> Can't format — not valid JSON yet: {formatError}
+                  </p>
+                )}
 
                 <div className="cms-modal-actions">
                   <button type="button" className="cms-btn-secondary" onClick={() => setStep(1)}>
                     Back
                   </button>
-                  <button
+                  <motion.button
                     type="button"
-                    className="cms-btn-secondary"
+                    className={`cms-btn-secondary${validateResult?.valid ? ' cms-btn-validate-ok' : ''}`}
                     onClick={runValidate}
                     disabled={!pastedJson.trim() || validating}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    {validating ? <Loader2 className="cms-spin" size={16} /> : null}
+                    {validating ? (
+                      <Loader2 className="cms-spin" size={16} />
+                    ) : validateResult?.valid ? (
+                      <Check size={16} />
+                    ) : null}
                     Validate
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
                     type="button"
                     className="cms-btn-primary"
                     disabled={!validateResult?.valid || committing}
                     onClick={() => runCommit(false)}
+                    whileTap={{ scale: 0.95 }}
                   >
                     {committing ? <Loader2 className="cms-spin" size={16} /> : null}
                     Commit
-                  </button>
+                  </motion.button>
                 </div>
 
                 {validateResult && !validateResult.valid && (
-                  <div className="cms-error-list">
+                  <motion.div
+                    className="cms-error-list"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     <p className="cms-error">
                       <AlertTriangle size={14} /> Invalid JSON — fix these and re-validate:
                     </p>
@@ -225,14 +269,29 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </motion.div>
                 )}
 
                 {validateResult?.valid && (
-                  <div className="cms-preview">
-                    <p className="cms-hint">Looks valid. Preview:</p>
+                  <motion.div
+                    className="cms-preview"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <p className="cms-hint">
+                      <Check size={14} className="cms-preview-check" aria-hidden="true" /> Looks valid. Preview:
+                    </p>
                     {scope === 'page' ? (
                       <BlockRenderer blocks={parsedPreview?.blocks} />
+                    ) : scope === 'module-content' ? (
+                      <ul className="cms-question-preview-list">
+                        {(parsedPreview?.pages || []).map((p, i) => (
+                          <li key={i}>
+                            Page {i + 1}: {p.blocks?.length || 0} block{p.blocks?.length === 1 ? '' : 's'}
+                          </li>
+                        ))}
+                      </ul>
                     ) : Array.isArray(parsedPreview) ? (
                       <ul className="cms-question-preview-list">
                         {parsedPreview.map((q, i) => (
@@ -242,7 +301,7 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
                     ) : (
                       <pre className="cms-mono">{JSON.stringify(parsedPreview, null, 2)}</pre>
                     )}
-                  </div>
+                  </motion.div>
                 )}
 
                 {commitError && (

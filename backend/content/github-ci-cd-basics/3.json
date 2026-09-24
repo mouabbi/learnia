@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Installing Git",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Linux (Debian/Ubuntu): sudo apt install git. On Fedora: sudo dnf install git.",
+        "macOS: install the Xcode Command Line Tools (xcode-select --install) or use Homebrew: brew install git for a newer version.",
+        "Windows: install Git for Windows, which includes Git Bash, a credential manager and optional integration with the Windows terminal.",
+        "CI runners: GitHub-hosted runners already ship with a recent Git version."
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ git --version\ngit version 2.46.0"
+    },
+    {
+      "type": "heading",
+      "text": "The Configuration Levels",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Git reads configuration from several files. More specific levels override broader ones, so a repository can use a different email than your global default."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Level",
+        "Flag",
+        "Typical file",
+        "Scope"
+      ],
+      "rows": [
+        [
+          "System",
+          "--system",
+          "/etc/gitconfig (Git for Windows: inside the install directory)",
+          "Every user on the machine"
+        ],
+        [
+          "Global",
+          "--global",
+          "~/.gitconfig or ~/.config/git/config",
+          "Every repository of the current user"
+        ],
+        [
+          "Local",
+          "--local (default when writing inside a repo)",
+          ".git/config",
+          "One repository"
+        ],
+        [
+          "Worktree",
+          "--worktree",
+          ".git/config.worktree",
+          "One linked worktree (requires extensions.worktreeConfig)"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Precedence, from strongest to weakest: worktree, local, global, system. The last value read wins, and Git reads the most specific file last. Command-line overrides such as git -c key=value beat all of them."
+    },
+    {
+      "type": "heading",
+      "text": "Essential First-Time Setup",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ git config --global user.name \"Ada Lovelace\"\n$ git config --global user.email \"ada@example.com\"\n$ git config --global init.defaultBranch main\n$ git config --global core.editor \"code --wait\"\n$ git config --global merge.conflictStyle zdiff3\n$ git config --global fetch.prune true\n\n# Inspect everything, and see which file each value came from\n$ git config --list --show-origin\n$ git config --show-origin user.email\nfile:/home/ada/.gitconfig    ada@example.com"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "user.name and user.email are written into every commit you create. GitHub uses the email to link commits to your account.",
+        "init.defaultBranch sets the name of the first branch in new repositories.",
+        "core.editor is used for commit messages, interactive rebase and more. The --wait flag makes Git wait until you close the file in a GUI editor.",
+        "merge.conflictStyle zdiff3 also shows the common ancestor inside conflict markers, which makes conflicts much easier to resolve (Module 2).",
+        "fetch.prune removes remote-tracking branches that were deleted on the server."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Line Endings: A Real-World Trap",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Windows uses CRLF line endings; Linux and macOS use LF. Without a policy, a Windows and a Mac developer can produce diffs where every line appears changed. Git can normalize this in two ways."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "core.autocrlf",
+        "Behaviour",
+        "Typical use"
+      ],
+      "rows": [
+        [
+          "true",
+          "Convert LF to CRLF on checkout, CRLF to LF on commit",
+          "Windows developers without .gitattributes"
+        ],
+        [
+          "input",
+          "Convert CRLF to LF on commit only",
+          "macOS/Linux developers"
+        ],
+        [
+          "false",
+          "No conversion",
+          "When .gitattributes handles it"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "A per-user setting cannot enforce consistency across a team. The robust solution is a committed .gitattributes file, which applies to everyone who clones the repository:"
+    },
+    {
+      "type": "code",
+      "code": "# Normalize all text files to LF in the repository\n* text=auto eol=lf\n\n# Windows scripts must keep CRLF\n*.bat text eol=crlf\n*.ps1 text eol=crlf\n\n# Never touch binary files\n*.png binary\n*.jpg binary\n*.zip binary",
+      "language": "gitattributes"
+    },
+    {
+      "type": "heading",
+      "text": "Different Identities for Work and Personal Projects",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Conditional includes let Git load extra configuration based on where a repository lives. This is the standard way to avoid committing to your employer's repositories with your personal email."
+    },
+    {
+      "type": "code",
+      "code": "# ~/.gitconfig\n[user]\n    name = Ada Lovelace\n    email = ada@personal.dev\n\n[includeIf \"gitdir:~/work/\"]\n    path = ~/.gitconfig-work\n\n# ~/.gitconfig-work\n[user]\n    email = ada.lovelace@company.com",
+      "language": "ini"
+    },
+    {
+      "type": "heading",
+      "text": "Aliases",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "[alias]\n    st = status -sb\n    co = checkout\n    sw = switch\n    lg = log --oneline --graph --decorate --all\n    last = log -1 HEAD --stat\n    unstage = restore --staged",
+      "language": "ini"
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "If you do not want your real email to be public, GitHub provides a noreply address (ID+username@users.noreply.github.com) under Settings > Emails. Commits made with it are still attributed to your account."
+    }
+  ]
+}

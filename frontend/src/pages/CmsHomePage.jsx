@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LayoutGrid, LogOut, Plus, X } from 'lucide-react'
+import { motion } from 'motion/react'
+import { LayoutGrid, LogOut, Plus, X, BookOpen, ArrowRight } from 'lucide-react'
 import { cmsApi } from '../features/cms/cmsApi'
 import { useAuth } from '../features/auth/AuthContext'
 import '../features/cms/cms.css'
@@ -11,6 +12,13 @@ const STATUS_LABELS = {
   ready: 'Ready',
   published: 'Published',
   archived: 'Archived',
+}
+
+const THUMB_VARIANTS = ['cms-thumb-indigo', 'cms-thumb-amber', 'cms-thumb-teal', 'cms-thumb-rose']
+
+function thumbVariant(id) {
+  const hash = [...String(id)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0)
+  return THUMB_VARIANTS[hash % THUMB_VARIANTS.length]
 }
 
 // Landing page for the CMS surface (see App.jsx's /cms route) — a course
@@ -43,35 +51,65 @@ export function CmsHomePage() {
         </button>
       </header>
 
-      <div className="cms-workspace-body">
-        <div className="cms-content-header">
-          <div>
-            <h1>Courses</h1>
-            <p className="cms-hint">Pick a course to edit its structure, content, and assessments.</p>
-          </div>
-          <button type="button" className="cms-btn-primary" onClick={() => setShowCreate(true)}>
-            <Plus size={15} aria-hidden="true" /> New course
+      <div className="cms-hero">
+        <div className="cms-hero-inner">
+          <h1>Courses</h1>
+          <p className="cms-hint">Pick a course to edit its structure, content, and assessments.</p>
+          <button type="button" className="cms-btn-primary cms-hero-cta" onClick={() => setShowCreate(true)}>
+            <Plus size={16} aria-hidden="true" /> New course
           </button>
         </div>
+      </div>
 
-        <ul className="cms-course-picker-list">
-          {courses === null && <li className="cms-hint">Loading…</li>}
-          {courses?.length === 0 && <li className="cms-hint">No courses yet — create the first one.</li>}
-          {courses?.map((course) => (
-            <li key={course.id}>
-              <button
+      <div className="cms-workspace-body">
+        {courses === null && (
+          <div className="cms-course-grid">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="cms-course-card cms-course-card-skeleton" />
+            ))}
+          </div>
+        )}
+
+        {courses?.length === 0 && (
+          <div className="cms-empty-state">
+            <BookOpen size={32} aria-hidden="true" />
+            <h3>No courses yet</h3>
+            <p className="cms-hint">Create the first one to start building a learning path.</p>
+            <button type="button" className="cms-btn-primary" onClick={() => setShowCreate(true)}>
+              <Plus size={15} aria-hidden="true" /> New course
+            </button>
+          </div>
+        )}
+
+        {courses && courses.length > 0 && (
+          <div className="cms-course-grid">
+            {courses.map((course, i) => (
+              <motion.button
+                key={course.id}
                 type="button"
-                className="cms-course-picker-item"
+                className="cms-course-card"
                 onClick={() => navigate(`/cms/${course.slug}`)}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04, duration: 0.2 }}
               >
-                <span>{course.title}</span>
-                <span className={`cms-status-tag cms-status-${course.contentStatus}`}>
-                  {STATUS_LABELS[course.contentStatus] ?? course.contentStatus}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+                <div className={`cms-course-card-thumb ${thumbVariant(course.id)}`}>
+                  <BookOpen size={28} strokeWidth={1.6} aria-hidden="true" />
+                  <span className={`cms-status-tag cms-status-${course.contentStatus}`}>
+                    {STATUS_LABELS[course.contentStatus] ?? course.contentStatus}
+                  </span>
+                </div>
+                <div className="cms-course-card-body">
+                  <h3>{course.title}</h3>
+                  <p className="cms-hint">{course.description || 'No description yet.'}</p>
+                  <span className="cms-course-card-cta">
+                    Open workspace <ArrowRight size={14} aria-hidden="true" />
+                  </span>
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        )}
       </div>
 
       {showCreate && (
@@ -122,8 +160,20 @@ function CreateCourseModal({ onClose, onCreated }) {
   }
 
   return (
-    <div className="cms-modal-overlay" onClick={onClose}>
-      <div className="cms-modal" onClick={(e) => e.stopPropagation()}>
+    <motion.div
+      className="cms-modal-overlay"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
+    >
+      <motion.div
+        className="cms-modal"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+      >
         <div className="cms-modal-header">
           <h3>New course</h3>
           <button type="button" className="cms-btn-icon" onClick={onClose} aria-label="Close">
@@ -180,7 +230,7 @@ function CreateCourseModal({ onClose, onCreated }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

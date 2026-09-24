@@ -29,6 +29,7 @@ class DashboardCourse(CourseSummary):
 
     learning_status: str = Field(alias="learningStatus")
     progress_pct: int = Field(alias="progressPct")
+    has_unseen_update: bool = Field(default=False, alias="hasUnseenUpdate")
 
 
 class DashboardStats(BaseModel):

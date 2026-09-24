@@ -1,7 +1,17 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { ChevronLeft, LayoutGrid, LogOut, ListTree, FileText, ClipboardCheck, Settings2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  LayoutGrid,
+  LogOut,
+  ListTree,
+  FileText,
+  ClipboardCheck,
+  Settings2,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react'
 import { useAuth } from '../features/auth/AuthContext'
 import { cmsApi } from '../features/cms/cmsApi'
 import { StructureTree } from '../features/cms/StructureTree'
@@ -9,13 +19,15 @@ import { ContentTab } from '../features/cms/ContentTab'
 import { AssessmentsTab } from '../features/cms/AssessmentsTab'
 import { SettingsTab } from '../features/cms/SettingsTab'
 import { AiImportModal } from '../features/cms/AiImportModal'
+import { BatchGenerateModal } from '../features/cms/BatchGenerateModal'
+import { computeReadiness, readinessTotal } from '../features/cms/courseReadiness'
 import '../features/cms/cms.css'
 
 const TABS = [
-  { id: 'Structure', icon: ListTree },
-  { id: 'Content', icon: FileText },
-  { id: 'Assessments', icon: ClipboardCheck },
-  { id: 'Settings', icon: Settings2 },
+  { id: 'Structure', icon: ListTree, readinessKey: 'structure' },
+  { id: 'Content', icon: FileText, readinessKey: 'content' },
+  { id: 'Assessments', icon: ClipboardCheck, readinessKey: 'assessments' },
+  { id: 'Settings', icon: Settings2, readinessKey: 'settings' },
 ]
 
 const structureActions = {
@@ -49,6 +61,7 @@ export function WorkspacePage() {
   const [selectedPage, setSelectedPage] = useState(null)
   const [assessmentTarget, setAssessmentTarget] = useState(null)
   const [aiModal, setAiModal] = useState(null) // { scope, moduleId?, chapterId? }
+  const [showBatchModal, setShowBatchModal] = useState(false)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -63,6 +76,9 @@ export function WorkspacePage() {
   }, [slug])
 
   useEffect(load, [load])
+
+  const readiness = useMemo(() => computeReadiness(course), [course])
+  const totalIssues = readinessTotal(readiness)
 
   if (loading && !course) return <div className="cms-shell cms-loading">Loading workspace…</div>
   if (error) return <div className="cms-shell cms-error">{error}</div>
@@ -86,24 +102,58 @@ export function WorkspacePage() {
           <Link to="/cms" className="cms-back-link">
             <ChevronLeft size={16} /> All courses
           </Link>
-          <h1>{course.title}</h1>
-          <p className="cms-hint">Content workspace</p>
+          <div className="cms-workspace-header-title">
+            <h1>{course.title}</h1>
+            {course.contentStatus && (
+              <span className={`cms-status-tag cms-status-${course.contentStatus}`}>
+                {course.contentStatus}
+              </span>
+            )}
+            <span
+              className={`cms-readiness-badge${totalIssues === 0 ? ' cms-readiness-ok' : ' cms-readiness-warn'}`}
+              title={
+                totalIssues === 0
+                  ? 'No issues found in structure, content, assessments or settings.'
+                  : [...readiness.structure, ...readiness.content, ...readiness.assessments, ...readiness.settings].join('\n')
+              }
+            >
+              {totalIssues === 0 ? (
+                <>
+                  <CheckCircle2 size={13} aria-hidden="true" /> Ready
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={13} aria-hidden="true" /> {totalIssues} issue{totalIssues === 1 ? '' : 's'}
+                </>
+              )}
+            </span>
+          </div>
+          <p className="cms-hint">{course.description || 'Content workspace'}</p>
         </div>
       </header>
 
       <div className="cms-workspace-body">
         <nav className="cms-tabs">
-          {TABS.map(({ id, icon: TabIcon }) => (
-            <button
-              key={id}
-              type="button"
-              className={`cms-tab${tab === id ? ' cms-tab-active' : ''}`}
-              onClick={() => setTab(id)}
-            >
-              <TabIcon size={15} aria-hidden="true" />
-              {id}
-            </button>
-          ))}
+          {TABS.map(({ id, icon: TabIcon, readinessKey }) => {
+            const issues = readiness[readinessKey] || []
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`cms-tab${tab === id ? ' cms-tab-active' : ''}`}
+                onClick={() => setTab(id)}
+                title={issues.length ? issues.join('\n') : undefined}
+              >
+                <TabIcon size={15} aria-hidden="true" />
+                {id}
+                {issues.length > 0 && (
+                  <span className="cms-tab-problem-dot" aria-label={`${issues.length} issue(s)`}>
+                    {issues.length}
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </nav>
 
         <AnimatePresence mode="wait">
@@ -126,6 +176,7 @@ export function WorkspacePage() {
               }}
               selectedPageId={selectedPage?.id}
               onGenerateWithAi={setAiModal}
+              onGenerateAll={() => setShowBatchModal(true)}
             />
           )}
 
@@ -167,6 +218,13 @@ export function WorkspacePage() {
         courseId={course.id}
         scope={aiModal?.scope}
         targetIds={{ moduleId: aiModal?.moduleId, chapterId: aiModal?.chapterId, pageId: aiModal?.pageId }}
+        onCommitted={load}
+      />
+
+      <BatchGenerateModal
+        open={showBatchModal}
+        onClose={() => setShowBatchModal(false)}
+        course={course}
         onCommitted={load}
       />
     </div>

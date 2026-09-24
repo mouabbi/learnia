@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Pick the Tool by Where the Change Lives",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Undoing in Git depends on two questions: which area the change is in (working tree, index, or a commit), and whether the commit has already been shared with others."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Situation",
+        "Command",
+        "Destructive?"
+      ],
+      "rows": [
+        [
+          "Discard unstaged edits to a file",
+          "git restore <file>",
+          "Yes, the edits are gone"
+        ],
+        [
+          "Unstage a file but keep the edits",
+          "git restore --staged <file>",
+          "No"
+        ],
+        [
+          "Restore a file as it was in an older commit",
+          "git restore --source=HEAD~2 <file>",
+          "Overwrites current file content"
+        ],
+        [
+          "Fix the last commit's message or add a forgotten file",
+          "git commit --amend",
+          "Rewrites the last commit"
+        ],
+        [
+          "Undo local commits, keep changes staged",
+          "git reset --soft HEAD~1",
+          "No"
+        ],
+        [
+          "Undo local commits, keep changes unstaged",
+          "git reset HEAD~1 (--mixed)",
+          "No"
+        ],
+        [
+          "Throw away local commits and all changes",
+          "git reset --hard HEAD~1",
+          "Yes"
+        ],
+        [
+          "Undo a commit that is already pushed",
+          "git revert <sha>",
+          "No, adds a new commit"
+        ],
+        [
+          "Delete untracked files",
+          "git clean -n, then git clean -fd",
+          "Yes"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "git restore",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "git restore (Git 2.23+) replaces the file-restoring half of the overloaded git checkout. By default it restores the working tree from the index; --staged restores the index from HEAD; --source picks any commit."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git restore src/api.py                 # discard unstaged edits\n$ git restore --staged src/api.py        # unstage, keep edits\n$ git restore --staged --worktree src/api.py   # both: back to HEAD\n$ git restore --source=v1.2.0 config.yml # take the file from a tag"
+    },
+    {
+      "type": "heading",
+      "text": "git commit --amend",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ git commit -m \"Add stock endpont\"\n$ git add tests/test_stock.py            # forgot the test\n$ git commit --amend -m \"Add stock endpoint\"\n\n# Keep the message, just add staged changes\n$ git commit --amend --no-edit"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Amend does not modify a commit; commits are immutable. It creates a new commit with a new ID and moves the branch to it. If the old commit was already pushed, your branch and the remote now diverge and you would need a force push. Only amend commits you have not shared."
+    },
+    {
+      "type": "heading",
+      "text": "git reset: Moving the Branch Pointer",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "git reset <commit> moves the current branch to another commit. The mode decides what happens to the index and the working tree."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Mode",
+        "Branch/HEAD",
+        "Index",
+        "Working tree",
+        "Typical use"
+      ],
+      "rows": [
+        [
+          "--soft",
+          "Moved",
+          "Unchanged",
+          "Unchanged",
+          "Squash the last few commits into one: reset --soft, then commit"
+        ],
+        [
+          "--mixed (default)",
+          "Moved",
+          "Reset to target",
+          "Unchanged",
+          "Undo commits and re-stage selectively"
+        ],
+        [
+          "--hard",
+          "Moved",
+          "Reset to target",
+          "Reset to target",
+          "Discard everything and return to a known state"
+        ]
+      ]
+    },
+    {
+      "type": "image",
+      "src": "generate: three rows labelled --soft, --mixed, --hard; each row shows three boxes HEAD, Index, Working Tree; soft highlights only HEAD as changed; mixed highlights HEAD and Index; hard highlights all three; a commit chain A-B-C above with the branch pointer arrow moving from C back to A",
+      "alt": "Effect of git reset soft, mixed and hard",
+      "caption": "The three reset modes differ only in how many areas they overwrite."
+    },
+    {
+      "type": "terminal",
+      "text": "# Combine the last 3 local commits into one\n$ git reset --soft HEAD~3\n$ git commit -m \"Add stock endpoint with tests\""
+    },
+    {
+      "type": "heading",
+      "text": "git revert: Undoing Shared History Safely",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "git revert creates a new commit whose changes are the inverse of an existing commit. History is only appended to, never rewritten, so it is safe on branches other people have pulled, including main."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git revert 4b8d0a1\n[main 8e2f1d0] Revert \"Fix CORS config\"\n\n# Revert a range without committing each one, then commit once\n$ git revert --no-commit HEAD~3..HEAD\n$ git commit -m \"Revert stock feature\""
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Reverting a merge commit requires telling Git which parent is the main line: git revert -m 1 <merge-sha>. It also has a subtle consequence when you later try to re-merge the same branch. Module 4 covers this in detail."
+    },
+    {
+      "type": "heading",
+      "text": "The Golden Rule",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "quote",
+      "text": "Rewrite history freely while it is private; once it is shared, add to it instead of rewriting it.",
+      "attribution": null
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "git reset --hard and git restore on unstaged edits destroy work that was never committed, and the reflog cannot bring it back because the reflog only tracks commits. Content that had been staged may still be recoverable as dangling blobs with git fsck --lost-found, but do not rely on it. When in doubt, commit or stash first."
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Legacy equivalents you will see in older docs and answers: git checkout -- <file> equals git restore <file>, and git reset HEAD <file> equals git restore --staged <file>. Prefer the newer commands; they have one clear job each."
+    }
+  ]
+}

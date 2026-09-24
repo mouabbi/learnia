@@ -25,7 +25,7 @@ from learnia_backend.models.course import Course
 from learnia_backend.models.enums import ContentStatus, LearningStatus
 from learnia_backend.models.page import Page
 from learnia_backend.repositories.course_repository import CourseRepository
-from learnia_backend.repositories.progress_repository import ProgressRepository
+from learnia_backend.repositories.progress_repository import ProgressRepository, has_unseen_update
 
 
 def _page_title(db: Session, page_id: int | None) -> str | None:
@@ -54,6 +54,7 @@ def get_dashboard(db: Session, user_id: int) -> dict:
                 **course_repo.course_summary(course),
                 "learningStatus": status.value,
                 "progressPct": pct,
+                "hasUnseenUpdate": has_unseen_update(course, progress),
             }
         )
 

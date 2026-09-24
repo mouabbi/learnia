@@ -10,16 +10,20 @@ every page currently has no content file and reads back as "".
 """
 
 import json
+import shutil
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from learnia_backend.models.asset import Asset
 from learnia_backend.models.chapter import Chapter
 from learnia_backend.models.course import Course
 from learnia_backend.models.enums import ContentStatus, QuestionScope
 from learnia_backend.models.module import Module
 from learnia_backend.models.page import Page
 from learnia_backend.models.question import Question
+from learnia_backend.services.search_index import remove_course_from_index
+from learnia_backend.services.storage import AssetStorage, get_storage
 from learnia_backend.utils.time import utc_now_naive
 
 # Where a page's content_path (relative) resolves against — see
@@ -112,9 +116,54 @@ class CourseRepository:
         self.db.refresh(course)
         return course
 
-    def delete(self, course: Course) -> None:
+    def delete(self, course: Course, *, storage: AssetStorage | None = None) -> None:
+        """
+        Hard-delete a course. DB rows (modules/chapters/pages/questions/
+        assets/progress/attempts) cascade via each model's DB-level
+        `ondelete="CASCADE"` FK — see this module's docstring — but three
+        things hang off a course that NO foreign key reaches, so they'd
+        silently survive the row delete if not handled here explicitly:
+          - the search index (services/search_index.py's FTS5 table has no
+            FK to `courses`)
+          - each page's content JSON file (models/page.py: content lives
+            outside the DB, addressed only by `content_path`)
+          - each asset's file on disk (models/asset.py: the DB row is only
+            the record, the bytes live under AssetStorage)
+        Asset rows/paths and the index are captured BEFORE the delete since
+        the DB row (our only pointer to storage_path) is gone once it
+        commits; the content directory is just `content/{slug}/`, so it's
+        removed wholesale rather than per-page.
+        """
+        storage = storage or get_storage()
+        asset_paths = [
+            asset.storage_path
+            for asset in self.db.query(Asset).filter(Asset.course_id == course.id).all()
+        ]
+        course_slug = course.slug
+
+        remove_course_from_index(self.db, course.id)  # 14-global-search
+
         self.db.delete(course)
         self.db.commit()
+
+        for storage_path in asset_paths:
+            storage.delete(storage_path)
+        shutil.rmtree(CONTENT_ROOT / course_slug, ignore_errors=True)
+
+    def touch(self, course_id: int) -> None:
+        """Bump Course.updated_at even when the Course ROW ITSELF isn't
+        otherwise changing — called by every other repository/service that
+        mutates something hanging off a course (a module/chapter/page,
+        page content, or a question bank) so `updated_at` reflects the
+        latest change to the course's content or assessments, not just
+        edits to its own title/description/theme. This is what backs the
+        learner-facing "this course was updated" signal (see
+        repositories/progress_repository.py's has_unseen_update). A no-op
+        if the course no longer exists (e.g. deleted mid-request)."""
+        course = self.db.get(Course, course_id)
+        if course is not None:
+            course.updated_at = utc_now_naive()
+            self.db.commit()
 
     def course_summary(self, course: Course) -> dict:
         theme = course.theme or {}
@@ -177,6 +226,14 @@ class CourseRepository:
             ):
                 questions_by_module[question.module_id].append(question)
 
+        # Deferred import: content_service.py imports CourseRepository (for
+        # touch()), so importing it at module load time here would be a
+        # circular import — importing inside the function, once per call,
+        # breaks the cycle at no real cost (this is a read endpoint, not a
+        # hot loop).
+        from learnia_backend.services.content_service import ContentService
+
+        content_service = ContentService(self.db)
         modules_out = []
         for m in modules:
             chapters_out = [
@@ -193,6 +250,14 @@ class CourseRepository:
                             "id": str(p.id),
                             "title": p.title,
                             "content": _read_page_content(p.content_path),
+                            # The real, typed blocks (headings/code/lists/
+                            # callouts/...) a page was authored with — added
+                            # alongside the legacy flattened `content` string
+                            # (kept for search-snippet-style consumers) so the
+                            # reader can finally render rich content instead
+                            # of plain-text paragraphs (see BlockRenderer.jsx,
+                            # already used by the CMS's own preview).
+                            "blocks": content_service.read(p).blocks,
                         }
                         for p in pages_by_chapter.get(c.id, [])
                     ],
@@ -220,7 +285,13 @@ class CourseRepository:
         theme = course.theme or {}
         final_exam = (
             {
-                "durationMinutes": theme.get("finalExamDurationMinutes", 30),
+                # `.get(key, 30)` alone isn't enough: once a course's theme has
+                # been saved at all (schemas/theme.py's CourseTheme always
+                # writes this key back, defaulting to None if unset), the key
+                # is PRESENT with value None — dict.get's default only kicks
+                # in when the key is missing entirely, so `or 30` is needed
+                # to actually catch the None case too.
+                "durationMinutes": theme.get("finalExamDurationMinutes") or 30,
                 "questions": [_question_out(q) for q in final_exam_questions],
             }
             if final_exam_questions

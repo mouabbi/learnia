@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Refs: Human-Readable Names for Hashes",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Nobody wants to type 40-character hashes. A ref is a name that stores a commit hash. A branch is nothing more than a file containing the hash of its latest commit, which is why creating a branch in Git is instant."
+    },
+    {
+      "type": "terminal",
+      "text": "$ cat .git/refs/heads/main\n9c1e2f7a8b3d4c5e6f7a8b9c0d1e2f3a4b5c6d7e\n\n$ cat .git/HEAD\nref: refs/heads/main\n\n# Refs may also be packed into one file for efficiency\n$ cat .git/packed-refs\n4b8d0a1... refs/remotes/origin/main\n71a3e55... refs/tags/v1.0.0"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Namespace",
+        "Contains",
+        "Moves when"
+      ],
+      "rows": [
+        [
+          "refs/heads/",
+          "Local branches",
+          "You commit, merge, reset or rebase on them"
+        ],
+        [
+          "refs/remotes/<remote>/",
+          "Remote-tracking branches, such as origin/main",
+          "You fetch or pull (never by committing locally)"
+        ],
+        [
+          "refs/tags/",
+          "Tags",
+          "Normally never; tags are meant to be fixed"
+        ],
+        [
+          "refs/stash",
+          "The stash stack",
+          "You run git stash"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Always use git rev-parse, git show-ref or git for-each-ref in scripts instead of reading .git/refs files directly, because refs can live in packed-refs or, in newer setups, in the reftable format."
+    },
+    {
+      "type": "heading",
+      "text": "HEAD: Where You Are",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "HEAD is a special ref that marks your current position. Normally it is a symbolic ref: it points to a branch, and the branch points to a commit. When you commit, Git creates the new commit with the current commit as parent, then moves the branch HEAD points to. HEAD follows along automatically."
+    },
+    {
+      "type": "image",
+      "src": "generate: two panels; left panel 'attached HEAD': HEAD -> main -> commit C3, with C1 <- C2 <- C3 chain; right panel 'detached HEAD': HEAD pointing directly to commit C2 while main still points to C3",
+      "alt": "Attached HEAD vs detached HEAD",
+      "caption": "Attached: HEAD points to a branch. Detached: HEAD points directly to a commit."
+    },
+    {
+      "type": "heading",
+      "text": "Revision Syntax",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Expression",
+        "Meaning"
+      ],
+      "rows": [
+        [
+          "HEAD~1 or HEAD~",
+          "First parent of HEAD"
+        ],
+        [
+          "HEAD~3",
+          "Three generations back along first parents"
+        ],
+        [
+          "HEAD^",
+          "First parent (same as HEAD~1)"
+        ],
+        [
+          "HEAD^2",
+          "Second parent of a merge commit (the branch that was merged in)"
+        ],
+        [
+          "main@{u}",
+          "The upstream of main, for example origin/main"
+        ],
+        [
+          "main@{2}",
+          "Where main pointed two moves ago (from the reflog)"
+        ],
+        [
+          "main@{yesterday}",
+          "Where main pointed yesterday (from the reflog)"
+        ],
+        [
+          "v1.0^{commit}",
+          "The commit an annotated tag points to"
+        ],
+        [
+          ":/fix login",
+          "The youngest commit whose message matches \"fix login\""
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "~ moves up generations; ^ selects among parents. They only differ on merge commits. HEAD~2 is the grandparent via first parents; HEAD^2 is the second parent of a merge. On a non-merge commit, HEAD^2 does not exist."
+    },
+    {
+      "type": "heading",
+      "text": "Detached HEAD",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "If you check out something that is not a local branch, such as a commit hash, a tag or a remote-tracking branch, HEAD points directly at a commit. This is called detached HEAD. It is a normal, useful state, not an error."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git switch --detach v1.0.0     # or: git checkout v1.0.0\nHEAD is now at 71a3e55 Add inventory model\n\n$ git status\nHEAD detached at v1.0.0"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Inspecting or building an old release.",
+        "git bisect checks out commits in detached mode while it searches for a bug.",
+        "CI systems often check out an exact commit; actions/checkout on a pull request checks out a merge commit in detached HEAD state.",
+        "Trying a quick experiment you may throw away."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "The Risk: Commits Nobody Points To",
+      "level": 3,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "You can commit in detached HEAD, and HEAD moves forward with you. But no branch points at those commits. As soon as you switch elsewhere, they become unreachable and, after the reflog expires, garbage-collected."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git commit -m \"Experiment\"\n[detached HEAD 5a7b9c1] Experiment\n\n$ git switch main\nWarning: you are leaving 1 commit behind, not connected to\nany of your branches:\n  5a7b9c1 Experiment\n\n# Save it: create a branch at that commit\n$ git branch experiment 5a7b9c1\n\n# Or, while still detached, create a branch where you are\n$ git switch -c experiment"
+    },
+    {
+      "type": "heading",
+      "text": "Plumbing for Refs",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ git rev-parse HEAD               # resolve any revision to a full hash\n$ git symbolic-ref HEAD            # which branch HEAD points to\nrefs/heads/main\n$ git for-each-ref --format='%(refname:short) %(objectname:short)' refs/heads\n$ git update-ref refs/heads/hotfix 4b8d0a1   # move a ref safely"
+    }
+  ]
+}

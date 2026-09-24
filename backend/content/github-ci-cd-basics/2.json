@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "The Mental Model That Explains Everything",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Most Git confusion disappears once you understand that your changes move between three places. Nearly every command either moves content between these areas or inspects the difference between them."
+    },
+    {
+      "type": "image",
+      "src": "generate: diagram with three columns labelled Working Tree, Staging Area (Index), Repository (.git); arrows left to right labelled 'git add' and 'git commit'; arrows right to left labelled 'git restore --staged' and 'git restore / git checkout'; beneath, arrows showing 'git diff' between working tree and index, 'git diff --staged' between index and HEAD",
+      "alt": "Working tree, index and repository with the commands that move data between them",
+      "caption": "Changes flow from the working tree, through the index, into the repository."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Area",
+        "What it is",
+        "Moves in with",
+        "Compare with"
+      ],
+      "rows": [
+        [
+          "Working tree",
+          "The actual files on disk that you edit in your IDE",
+          "git checkout / git switch / git restore",
+          "git diff (working tree vs index)"
+        ],
+        [
+          "Staging area (index)",
+          "A proposed snapshot of the next commit, stored in the binary file .git/index",
+          "git add",
+          "git diff --staged (index vs HEAD)"
+        ],
+        [
+          "Repository",
+          "The object database and refs inside .git: all commits ever made",
+          "git commit",
+          "git log, git show"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Walking Through a Change",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ echo \"print('hello')\" > app.py\n$ git status --short\n?? app.py            # untracked: Git has never seen this file\n\n$ git add app.py\n$ git status --short\nA  app.py            # staged: will be in the next commit\n\n$ git commit -m \"Add hello script\"\n[main (root-commit) 3f2a1c9] Add hello script\n 1 file changed, 1 insertion(+)\n\n$ git status --short\n                     # clean: working tree == index == HEAD"
+    },
+    {
+      "type": "heading",
+      "text": "File States",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Untracked: exists in the working tree but not in the index or the last commit.",
+        "Unmodified: tracked, and identical in working tree, index and HEAD.",
+        "Modified: working tree differs from the index.",
+        "Staged: index differs from HEAD, so the change will be part of the next commit."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "The Index Is a Snapshot, Not a Checklist",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "A common misunderstanding is that git add marks a file to be committed. It does more than that: it copies the file's content, as it is at that moment, into the index. If you edit the file again afterwards, the index still holds the old version. A single file can therefore be both staged and modified at the same time."
+    },
+    {
+      "type": "terminal",
+      "text": "$ echo \"v1\" > notes.txt && git add notes.txt\n$ echo \"v2\" >> notes.txt\n$ git status --short\nAM notes.txt         # A = added to index, M = modified again since\n\n$ git diff --staged  # shows only 'v1' (what will be committed)\n$ git diff           # shows the extra 'v2' line (not yet staged)"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "If you commit now, only \"v1\" is committed. Always run git status before committing, and re-run git add after further edits."
+    },
+    {
+      "type": "heading",
+      "text": "Why the Staging Area Exists",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Crafting focused commits: you changed five files but only three belong to this logical change. Stage those three.",
+        "Partial staging: git add -p lets you stage individual hunks of a file, splitting unrelated edits in the same file into separate commits.",
+        "Review checkpoint: git diff --staged shows exactly what you are about to record.",
+        "Merge conflict resolution: during a conflicted merge, the index holds multiple versions (stages 1, 2 and 3) of conflicting files. Marking a conflict resolved is literally git add."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "git commit -a stages all modifications and deletions of tracked files, then commits. It skips untracked files entirely, so a newly created file is silently left out. It is convenient, but it removes the review step the index exists for."
+    }
+  ]
+}

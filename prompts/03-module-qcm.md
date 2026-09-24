@@ -19,7 +19,13 @@ Module content just written (base every question on this — don't invent
 material the module doesn't cover):
 {{moduleContentJSON}}
 
-Task: write AT LEAST 50 multiple-choice questions for this module.
+Task: write multiple-choice questions for this module.
+- Question count: scale it to how much this module actually covers — don't
+  pad to a round number and don't force more questions than the material
+  genuinely supports. Roughly: a small module (~1-3 pages) needs about
+  10-15 questions, a medium module (~4-6 pages) needs about 15-30, a
+  large/content-heavy module (~7+ pages) needs about 30-40. Hard floor of
+  10, hard cap of 40 either way.
 - Mix of difficulty: roughly a third fundamentals ("do they know the
   basics cold"), a third applied/scenario-based ("would they get this
   right under real conditions"), a third advanced/expert-level (the kind

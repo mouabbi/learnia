@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "git status",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "git status compares the three areas and reports what differs. The short format is denser and easier to scan once you know the two-column code: the left column is the index (compared with HEAD), the right column is the working tree (compared with the index)."
+    },
+    {
+      "type": "terminal",
+      "text": "$ git status -sb\n## main...origin/main [ahead 2, behind 1]\nM  src/api.py        # staged modification\n M README.md         # unstaged modification\nMM src/models.py     # staged, then modified again\nA  src/stock.py      # new file, staged\nD  legacy.py         # deletion, staged\nR  util.py -> lib.py # rename, staged\n?? scratch.txt       # untracked\nUU config.yml        # unresolved merge conflict"
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "The branch line ## main...origin/main [ahead 2, behind 1] tells you your local branch has 2 commits not yet pushed and the remote-tracking branch has 1 commit you have not integrated. This is based on your last fetch, not on live server state."
+    },
+    {
+      "type": "heading",
+      "text": "git diff: Comparing Any Two States",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Command",
+        "Compares"
+      ],
+      "rows": [
+        [
+          "git diff",
+          "Working tree vs index (unstaged changes)"
+        ],
+        [
+          "git diff --staged (alias --cached)",
+          "Index vs HEAD (what will be committed)"
+        ],
+        [
+          "git diff HEAD",
+          "Working tree vs HEAD (all uncommitted changes)"
+        ],
+        [
+          "git diff main feature",
+          "Tip of main vs tip of feature"
+        ],
+        [
+          "git diff main...feature",
+          "Merge base of main and feature vs tip of feature (what the feature branch changed)"
+        ],
+        [
+          "git diff HEAD~3 -- src/",
+          "Only files under src/, compared with 3 commits ago"
+        ]
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "--stat: summary of files and line counts changed.",
+        "--name-only / --name-status: just the file list, useful in scripts and CI to detect which parts of a monorepo changed.",
+        "--word-diff: highlights changed words instead of whole lines, ideal for prose and config.",
+        "-w: ignore whitespace changes."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "git log: Exploring History",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ git log --oneline --graph --decorate --all\n* 9c1e2f7 (HEAD -> feature/stock) Add stock endpoint\n| * 4b8d0a1 (origin/main, main) Fix CORS config\n|/\n* 71a3e55 Add inventory model\n* 3f2a1c9 Initial commit"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Option",
+        "Purpose"
+      ],
+      "rows": [
+        [
+          "-n 5",
+          "Show the last 5 commits"
+        ],
+        [
+          "-p",
+          "Include the patch for each commit"
+        ],
+        [
+          "--stat",
+          "Include per-file change counts"
+        ],
+        [
+          "--author=\"Ada\"",
+          "Filter by author"
+        ],
+        [
+          "--since=\"2 weeks ago\" --until=\"yesterday\"",
+          "Filter by date"
+        ],
+        [
+          "--grep=\"fix\"",
+          "Filter by commit message"
+        ],
+        [
+          "-- path/to/file",
+          "Only commits that touched that path"
+        ],
+        [
+          "--follow -- file",
+          "Follow a single file across renames"
+        ],
+        [
+          "--first-parent",
+          "Follow only the main line, hiding merged branch internals"
+        ],
+        [
+          "--pretty=format:'%h %an %ar %s'",
+          "Custom output"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "git show <commit> displays one commit's metadata and diff. git show HEAD:src/api.py prints a file as it existed in a specific commit, without checking anything out."
+    },
+    {
+      "type": "heading",
+      "text": "Two Dots vs Three Dots",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "This is a classic interview question, and the confusing part is that the notation means different things in log and diff."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Expression",
+        "In git log",
+        "In git diff"
+      ],
+      "rows": [
+        [
+          "A..B",
+          "Commits reachable from B but not from A (what B has that A lacks)",
+          "Same as git diff A B: tip-to-tip comparison"
+        ],
+        [
+          "A...B",
+          "Commits reachable from either but not both (symmetric difference)",
+          "Changes on B since the merge base of A and B"
+        ]
+      ]
+    },
+    {
+      "type": "image",
+      "src": "generate: commit graph where main and feature diverge from a common ancestor commit M; main has commits m1, m2; feature has f1, f2; highlight f1, f2 for 'git log main..feature', highlight m1, m2, f1, f2 for 'git log main...feature', and show an arrow from M to f2 for 'git diff main...feature'",
+      "alt": "Two-dot and three-dot notation on a diverged history",
+      "caption": "git log main..feature lists f1 and f2. git diff main...feature shows what feature changed since it branched off."
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "GitHub's Pull Request \"Files changed\" view is a three-dot diff: it shows what your branch changed since the merge base, not how your branch differs from the current tip of main. That is why new commits on main do not appear in your PR's diff."
+    }
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Categories to Keep Out of Git",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Category",
+        "Examples",
+        "Do this instead"
+      ],
+      "rows": [
+        [
+          "Secrets and credentials",
+          ".env, API keys, private keys (id_rsa, *.pem), service account JSON, database passwords",
+          "Commit .env.example with placeholder values; use a secret manager and CI secrets (Module 6)"
+        ],
+        [
+          "Dependencies",
+          "node_modules/, .venv/, vendor/ (depending on ecosystem)",
+          "Commit lock files (package-lock.json, poetry.lock) and install in CI"
+        ],
+        [
+          "Build output",
+          "dist/, build/, compiled binaries, *.class",
+          "Rebuild in CI; publish release artifacts separately"
+        ],
+        [
+          "Large binaries",
+          "Videos, datasets, design files, ML model weights",
+          "Git LFS, object storage, or a dataset registry"
+        ],
+        [
+          "Local and generated data",
+          "Logs, SQLite dev databases, coverage reports, caches",
+          "Ignore them; regenerate locally"
+        ],
+        [
+          "Personal tool files",
+          ".DS_Store, .idea/, *.swp",
+          "Global ignore file"
+        ],
+        [
+          "Personal or customer data",
+          "Production DB dumps, exports containing emails or addresses",
+          "Anonymized fixtures; never real data"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Do commit lock files. They pin exact dependency versions so every developer and every CI run installs the same thing. Ignoring package-lock.json or poetry.lock is a common mistake that causes \"works on my machine\" bugs."
+    },
+    {
+      "type": "heading",
+      "text": "Why Secrets Are the Worst Case",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "History is permanent: removing a secret in a new commit leaves it readable in every previous commit and in every clone.",
+        "Public repositories are scanned continuously by automated bots; leaked cloud keys are often abused within minutes.",
+        "Forks and clones you do not control already have a copy, so rewriting history cannot guarantee removal.",
+        "Private repositories are not safe either: access changes, repositories get made public, laptops get stolen."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "If a Secret Was Committed",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Revoke or rotate the credential immediately. This is the only step that actually neutralizes the leak; treat the secret as compromised.",
+        "Check provider logs for any use of the leaked credential.",
+        "Remove it from history with git filter-repo (Module 4) and force push, coordinating with the team since everyone must re-clone or reset.",
+        "If the repository is on GitHub, contact GitHub Support to purge cached views of the sensitive data if needed.",
+        "Add the file pattern to .gitignore and a scanning tool to prevent recurrence."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Rewriting history without rotating the secret is not a fix. Rotating the secret without rewriting history is an acceptable fix. The order matters: rotate first."
+    },
+    {
+      "type": "heading",
+      "text": "Prevention",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "# .env.example (committed): documents required variables, no real values\nDATABASE_URL=postgresql://user:password@localhost:5432/inventory\nSTRIPE_API_KEY=sk_test_replace_me\nJWT_SECRET=change-me\n\n# .env (ignored): real values, never committed",
+      "language": "bash"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Add .env and key file patterns to .gitignore before writing the first secret.",
+        "Run a secret scanner as a pre-commit hook, for example gitleaks or detect-secrets, so leaks are caught before they enter history.",
+        "Enable GitHub secret scanning and push protection, which blocks pushes that contain known secret formats.",
+        "Review git diff --staged before every commit; it is your last manual checkpoint."
+      ]
+    },
+    {
+      "type": "code",
+      "code": "# .pre-commit-config.yaml (pre-commit framework)\nrepos:\n  - repo: https://github.com/gitleaks/gitleaks\n    rev: v8.18.4\n    hooks:\n      - id: gitleaks",
+      "language": "yaml"
+    },
+    {
+      "type": "link",
+      "href": "https://docs.github.com/en/code-security/secret-scanning/introduction/about-secret-scanning",
+      "text": "GitHub Docs: About secret scanning"
+    }
+  ]
+}

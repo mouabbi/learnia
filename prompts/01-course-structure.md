@@ -15,14 +15,24 @@ Course title: {{courseTitle}}
 Course description/goal: {{courseDescription}}
 
 Task: design the FULL structure for this course, from A to Z:
-- 4-8 modules or more , each covering one coherent theme/skill area ("axis") of the
-  subject, ordered from foundational to advanced.
-- Each module broken into 2-5 chapters or more .
-- Each chapter broken into 2-6 pages or more  (page = one focused lesson/topic, not
-  a whole chapter's worth of content).
+- However many modules the subject genuinely needs — could be 2, could be
+  10. Each module covers one coherent theme/skill area ("axis"), ordered
+  foundational to advanced. Don't pad to a round number, don't force
+  unrelated topics into one module just to have fewer of them.
+- Each module broken into however many chapters IT needs — a narrow module
+  might need just 1 chapter, a broad one might need 5+.
+- Each chapter broken into however many pages IT needs — 1 page or 10,
+  whatever the topic actually requires (page = one focused lesson/topic,
+  not a whole chapter's worth of content). Let the subject decide every
+  one of these numbers, never a target range.
 - For each module, also state its "axis": the one core competency or theme
   it exists to build (used to keep quiz/exam generation aligned with what
   was actually taught).
+
+Writing style: short AND deep — like a sharp interview-prep cheat sheet,
+not a textbook and not a shallow bullet list either. Every sentence should
+carry real information; cut filler and restated obviousness, but don't cut
+substance just to be brief.
 
 Depth bar: this is for someone preparing for real technical interviews and
 real-world use, not a shallow overview. Structure the progression so it
