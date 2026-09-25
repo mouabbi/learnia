@@ -49,7 +49,16 @@ PLATFORM_CONTEXT = (
     "they come here to refresh it quickly, lock in the key points, and be "
     "ready to answer interview questions on it. Never write beginner "
     "hand-holding or long introductions — assume they've seen it before and "
-    "need the precise, condensed version."
+    "need the precise, condensed version.\n\n"
+    "Language: the learners are junior developers and many are NOT native "
+    "English speakers, so write in simple, plain English (about B1 level): "
+    "short sentences, common everyday words, one idea per sentence, active "
+    "voice. No idioms, slang, jokes or fancy vocabulary (say \"use\" not "
+    "\"leverage\", \"start\" not \"spin up\" unless it's the real technical "
+    "term). Keep real technical terms (namespace, cgroup, layer...), but "
+    "the first time a page uses one, explain it in a few simple words. This "
+    "applies to everything you write: page content, quiz questions, options "
+    "and explanations. Simple words, still precise — never less correct."
 )
 
 # Shared "how to write" bar, reused by every content-generation prompt
