@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A two-stage build with a lockfile-first dependency layer, a slim non-root runtime, tini as PID 1, and an exec-form uvicorn command bound to 0.0.0.0."
+    },
+    {
+      "type": "code",
+      "code": "# syntax=docker/dockerfile:1\nFROM python:3.12-slim-bookworm AS builder\nRUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*\nRUN python -m venv /opt/venv\nENV PATH=/opt/venv/bin:$PATH\nCOPY requirements.txt .\nRUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt\n\nFROM python:3.12-slim-bookworm AS runtime\nENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PATH=/opt/venv/bin:$PATH HF_HOME=/models\nRUN apt-get update && apt-get install -y --no-install-recommends tini ca-certificates \\\n && rm -rf /var/lib/apt/lists/* \\\n && groupadd -r -g 10001 app && useradd -r -u 10001 -g app app \\\n && mkdir -p /models && chown app:app /models\nCOPY --from=builder /opt/venv /opt/venv\nWORKDIR /app\nCOPY app ./app\nARG GIT_SHA=unknown\nLABEL org.opencontainers.image.revision=$GIT_SHA\nUSER 10001:10001\nEXPOSE 8000\nHEALTHCHECK --interval=15s --timeout=3s --start-period=60s \\\n  CMD [\"python\",\"-c\",\"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=2).status==200 else 1)\"]\nENTRYPOINT [\"tini\", \"--\"]\nCMD [\"uvicorn\",\"app.main:app\",\"--host\",\"0.0.0.0\",\"--port\",\"8000\",\"--proxy-headers\",\"--timeout-graceful-shutdown\",\"20\"]",
+      "language": "dockerfile"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Decision",
+        "Reason"
+      ],
+      "rows": [
+        [
+          "Two stages",
+          "No compilers in runtime"
+        ],
+        [
+          "Lockfile before code",
+          "Code edits reuse the dependency layer"
+        ],
+        [
+          "/models chowned before USER",
+          "Fresh named volume inherits UID 10001"
+        ],
+        [
+          "Root-owned code",
+          "App can't modify itself"
+        ],
+        [
+          "Late GIT_SHA",
+          "Per-build value invalidates only the label"
+        ],
+        [
+          "tini + exec-form CMD",
+          "SIGTERM reaches uvicorn; zombies reaped"
+        ],
+        [
+          "Python healthcheck",
+          "slim has no curl"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Building psycopg from source? Add `libpq5` to the runtime apt line."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Walk me through your production Dockerfile.\" A: \"Multi-stage: build a venv in a builder with a pip cache mount, copy it into a slim runtime, run as a numeric non-root user with pre-owned writable dirs, tini as PID 1, exec-form uvicorn on 0.0.0.0, a cheap healthcheck, and per-build metadata last.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Every line has a cache, security or signal reason.",
+        "Pre-own volume mount points.",
+        "tini + exec form for graceful shutdown.",
+        "Bind 0.0.0.0 inside the container."
+      ]
+    }
+  ]
+}

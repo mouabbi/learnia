@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Each instruction reuses a cached layer only if the parent layer and the instruction's cache key match; the first miss rebuilds that step and everything after it."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Instruction",
+        "Cache key"
+      ],
+      "rows": [
+        [
+          "RUN",
+          "Command text + parent + relevant ARG/ENV + mounts"
+        ],
+        [
+          "COPY/ADD",
+          "Checksums of copied content and metadata (not mtime)"
+        ],
+        [
+          "ENV, ARG, WORKDIR, USER",
+          "Instruction text/values"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "# BAD: any code change reinstalls dependencies\nCOPY . .\nRUN pip install -r requirements.txt\n# GOOD\nCOPY requirements.txt .\nRUN pip install -r requirements.txt\nCOPY . .",
+      "language": "dockerfile"
+    },
+    {
+      "type": "heading",
+      "text": "Ordering rules",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Base → system packages → dependency manifest → install → source → per-build metadata.",
+        "Per-build ARGs (GIT_SHA) as late as possible.",
+        "Copy only manifests before installing (`pyproject.toml uv.lock`)."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "CI caching",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker buildx build --cache-from type=registry,ref=ghcr.io/acme/api:buildcache \\\n    --cache-to type=registry,ref=ghcr.io/acme/api:buildcache,mode=max -t ghcr.io/acme/api:$SHA --push ."
+    },
+    {
+      "type": "paragraph",
+      "text": "`mode=max` also exports intermediate stages; `type=gha` exists for GitHub Actions. BuildKit skips stages the target doesn't need and builds independent stages in parallel."
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "RUN is cached by text, not by the outside world: `pip install` or `apt-get upgrade` stay cached while upstream moves. Use lockfiles, or bust deliberately (`--no-cache`, `--no-cache-filter`)."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you make Python image builds fast?\" A: \"Order layers by change frequency: copy only the lockfile, install dependencies, then copy source, so code edits reuse the dependency layer. Add a BuildKit cache mount for pip and export cache in CI with mode=max.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "First cache miss rebuilds everything below.",
+        "Dependencies before source.",
+        "Late per-build ARGs.",
+        "Ephemeral CI needs exported cache."
+      ]
+    }
+  ]
+}

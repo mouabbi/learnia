@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "`docker run` = pull if missing + create + start (+ attach unless -d). Options before the image name configure the container; everything after it replaces CMD."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run -d --name api --network rag_net -p 127.0.0.1:8000:8000 \\\n    --env-file .env -v hf_cache:/models --memory 2g --cpus 1.5 \\\n    --restart unless-stopped --init --read-only --tmpfs /tmp --user 10001:10001 \\\n    ghcr.io/acme/rag-api:1.4.2"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Flag",
+        "Gotcha"
+      ],
+      "rows": [
+        [
+          "--name",
+          "Must be unique; also a DNS name on user-defined networks"
+        ],
+        [
+          "-p host:container",
+          "Binds 0.0.0.0 unless you prefix an IP"
+        ],
+        [
+          "-e / --env-file",
+          "Fixed at creation; changes need a new container"
+        ],
+        [
+          "-v",
+          "Silently creates missing host paths as root-owned dirs"
+        ],
+        [
+          "--network",
+          "Default bridge has no container DNS"
+        ],
+        [
+          "--restart",
+          "Conflicts with --rm"
+        ],
+        [
+          "--memory / --cpus",
+          "Memory → OOM kill; CPU → throttling"
+        ],
+        [
+          "--entrypoint",
+          "Only the executable; args go after the image"
+        ],
+        [
+          "--init",
+          "tini as PID 1 (signals + zombie reaping)"
+        ],
+        [
+          "--read-only",
+          "Apps writing to cwd/$HOME break; add --tmpfs"
+        ],
+        [
+          "--pull always",
+          "Default is `missing`: stale local tags are used silently"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "`docker run myimage --rm` passes `--rm` to the app, not to Docker. Order is semantic."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What does docker run actually do?\" A: \"It pulls the image if it's missing, creates a container (writable layer, config, mounts, network endpoint), starts it, and attaches to its output unless -d is set. Options before the image configure the container; arguments after it replace CMD.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "run = pull + create + start (+ attach).",
+        "Docker flags go before the image name.",
+        "Env, mounts and ports are fixed at creation.",
+        "Default pull policy reuses stale local tags."
+      ]
+    }
+  ]
+}

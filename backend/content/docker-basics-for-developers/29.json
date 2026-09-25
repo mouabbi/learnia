@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The build context is the file set the builder can read (usually the `.` in `docker build .`); anything not ignored can be COPY'd into layers and becomes part of the cache key."
+    },
+    {
+      "type": "heading",
+      "text": "Without .dockerignore",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`.git` changes every commit and busts `COPY . .`.",
+        "Host `.venv`/`node_modules` (maybe macOS builds) overwrite the image's dependencies.",
+        "`.env` and credentials get baked into a pushable image.",
+        "Data, models, notebooks inflate build time and size."
+      ]
+    },
+    {
+      "type": "code",
+      "code": ".git\n**/__pycache__\n.venv\n.env\n.env.*\n!.env.example\ndata/\nmodels/\nnotebooks/\ntests/\nDockerfile*\ncompose*.yaml",
+      "language": "text"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Patterns are relative to the context root; `**` matches any depth; `!` re-includes (last match wins).",
+        "Per-Dockerfile ignore files: `api.Dockerfile.dockerignore`."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Context vs Dockerfile location",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker build -f docker/api.Dockerfile -t rag-api .\n$ docker build --build-context shared=../shared .   # then COPY --from=shared"
+    },
+    {
+      "type": "paragraph",
+      "text": "COPY paths are relative to the context, never the Dockerfile. `COPY ../x` fails."
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Watch the \"transferring context\" size. Hundreds of MB for a small API means the ignore file is wrong. With a remote DOCKER_HOST, the context also crosses the network."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why does every commit trigger a full rebuild, and how do you stop secrets entering images?\" A: \"The context includes .git (or other churn) so COPY . . misses the cache; a strict .dockerignore excluding .git, .env, venvs and data fixes both the cache busting and the secret leak.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Context = what COPY can see.",
+        "Ignore .git, .env, venvs, data.",
+        "COPY paths are context-relative.",
+        "Named build contexts reach outside dirs safely."
+      ]
+    }
+  ]
+}

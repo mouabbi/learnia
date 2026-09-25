@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "\"Works on my machine\" happens when the code is the same but the environment isn't: different runtime versions, system libraries, OS packages, configuration or hardware architecture between developer, CI and production."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Root cause",
+        "Example"
+      ],
+      "rows": [
+        [
+          "Runtime version drift",
+          "Python 3.11 locally, 3.9 on the server"
+        ],
+        [
+          "System library differences",
+          "glibc, OpenSSL, libpq versions differ; native wheels break"
+        ],
+        [
+          "Conflicting dependencies on one host",
+          "App A needs lib v1, app B needs v2 (dependency hell)"
+        ],
+        [
+          "Undeclared dependencies",
+          "A tool installed by hand on a dev laptop, missing in prod"
+        ],
+        [
+          "Config/env differences",
+          "Env vars, file paths, locale, time zone"
+        ],
+        [
+          "OS/filesystem differences",
+          "macOS case-insensitive FS vs Linux; CRLF vs LF"
+        ],
+        [
+          "Architecture",
+          "arm64 laptop, amd64 server"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Pre-container mitigations and their limits",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Language-level isolation (virtualenv, nvm, rbenv): isolates packages, not system libraries.",
+        "Lockfiles: pin app dependencies, not the OS.",
+        "Documentation/wikis: drift immediately.",
+        "Static binaries: work for Go-style apps, not Python/ML stacks with native extensions."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "What containers change",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "The image freezes the whole userland (runtime, system libs, packages, app) into one immutable artifact. It still shares the host kernel, and config must still be injected per environment."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What does 'works on my machine' actually mean technically, and how do containers fix it?\" A: \"The code is identical but the environment differs: runtime versions, system libraries, undeclared tools, config or CPU architecture. Containers package the full userland into an immutable image, so dev, CI and prod run the same bytes; only config and the kernel come from outside.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "It's an environment problem, not a code problem.",
+        "System libraries and undeclared deps are the usual culprits.",
+        "virtualenv/lockfiles don't cover the OS layer.",
+        "Images freeze userland; kernel and config stay external."
+      ]
+    }
+  ]
+}

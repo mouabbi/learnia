@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Compose creates a user-defined bridge `<project>_default`, attaches every service, and embedded DNS resolves each service name, so services talk via `service:containerPort` with no `ports:` needed."
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "api → `db:5432`; `ports:` is only for host access.",
+        "`--scale worker=3` → one name, three IPs (round-robin); container_name blocks scaling."
+      ]
+    },
+    {
+      "type": "code",
+      "code": "services:\n  proxy:  { image: caddy:2, ports: [\"80:80\"], networks: [frontend] }\n  api:    { networks: [frontend, backend] }\n  db:     { networks: [backend] }\nnetworks:\n  frontend: {}\n  backend: { internal: true }     # no outbound internet",
+      "language": "yaml"
+    },
+    {
+      "type": "paragraph",
+      "text": "proxy can't reach db; db has no internet. Don't mark a network internal if a service on it needs external APIs."
+    },
+    {
+      "type": "heading",
+      "text": "Cross-project access",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "networks:\n  shared: { external: true, name: shared }    # docker network create shared",
+      "language": "yaml"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Listing `networks:` on a service removes it from `default` unless you include `default` too. A classic \"name not resolved\"."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do Compose services find each other?\" A: \"Compose attaches them to a project network with embedded DNS, so each service name resolves to its container(s). Clients use the service name and the container port; published ports are only for the host.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Service name = hostname.",
+        "Container port, not host port.",
+        "Segment with multiple networks; internal: true for DBs.",
+        "Explicit networks: drop you from default."
+      ]
+    }
+  ]
+}

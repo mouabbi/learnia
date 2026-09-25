@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Limits are cgroup settings: exceeding memory gets a process OOM-killed (usually exit 137), exceeding CPU only throttles it."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Flag",
+        "When exceeded"
+      ],
+      "rows": [
+        [
+          "--memory 2g",
+          "OOM killer → exit 137, OOMKilled=true"
+        ],
+        [
+          "--memory-reservation",
+          "Soft target under host pressure; no kill"
+        ],
+        [
+          "--memory-swap = --memory",
+          "No swap"
+        ],
+        [
+          "--cpus 1.5",
+          "CFS quota → throttled, never killed"
+        ],
+        [
+          "--cpu-shares",
+          "Relative weight, only under contention"
+        ],
+        [
+          "--pids-limit",
+          "fork fails with EAGAIN"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker inspect -f 'exit={{.State.ExitCode}} oom={{.State.OOMKilled}}' api\n$ docker stats --no-stream api"
+    },
+    {
+      "type": "heading",
+      "text": "137 is not always OOM",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "137 = SIGKILL: OOM killer, `docker kill`, or an expired stop grace period. Confirm with `.State.OOMKilled`, host `dmesg`/`journalctl -k`, or an `oom` event. On Docker Desktop, the VM's own memory cap can also be the limit."
+    },
+    {
+      "type": "heading",
+      "text": "RAG/Python realities",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Each worker loads its own model: 4 workers × 1.2 GB ≈ 5 GB before any request.",
+        "`os.cpu_count()` sees host CPUs; set WEB_CONCURRENCY, OMP_NUM_THREADS, MKL_NUM_THREADS.",
+        "Throttling shows up as latency spikes; check `nr_throttled` in cgroup `cpu.stat`.",
+        "tmpfs and page cache count toward memory."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"A container exits with 137. What do you check?\" A: \"137 means SIGKILL. I check .State.OOMKilled, the host kernel log and docker events for an oom event; if it wasn't OOM, it was docker kill or an expired stop grace period. Then I size the limit from measured peak usage.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Memory → kill; CPU → throttle.",
+        "137 = SIGKILL, not necessarily OOM.",
+        "Workers multiply model memory.",
+        "Size limits from measured peaks plus headroom."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Size matters for pull time, cold starts and patch surface, but correctness comes first: every removal must keep the app's runtime dependencies intact."
+    },
+    {
+      "type": "heading",
+      "text": "Highest-impact techniques",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Don't install what you don't need: CPU-only torch (`--index-url https://download.pytorch.org/whl/cpu`) drops gigabytes of CUDA.",
+        "Multi-stage builds.",
+        "slim base + `--no-install-recommends`.",
+        "Clean caches in the same layer, or use cache mounts.",
+        "Strict .dockerignore."
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Stripped too far",
+        "Symptom"
+      ],
+      "rows": [
+        [
+          "ca-certificates",
+          "SSL: CERTIFICATE_VERIFY_FAILED"
+        ],
+        [
+          "libpq5",
+          "ImportError: libpq.so.5"
+        ],
+        [
+          "libgomp1",
+          "ML libs fail to import"
+        ],
+        [
+          "tzdata/locales",
+          "Wrong times, UnicodeEncodeError"
+        ],
+        [
+          "shell (distroless)",
+          "Entrypoint scripts and shell CMD fail"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Model weights",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Bake in",
+        "Volume cache"
+      ],
+      "rows": [
+        [
+          "Reproducible, offline, no cold download",
+          "Small image, fast pushes"
+        ],
+        [
+          "Multi-GB image",
+          "Slow first start, needs network"
+        ],
+        [
+          "Prod / air-gapped",
+          "Local dev"
+        ]
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "If baked in, put that layer before `COPY app` so code changes don't re-push weights."
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Verify in CI with `docker run --rm img python -c \"import app.main\"`: it catches missing shared libraries before deploy."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Your FastAPI image is 4 GB. What do you do?\" A: \"Check docker history: usually CUDA torch on a CPU service, a full base, build tools and caches. Switch to CPU wheels, a slim multi-stage build, same-layer cleanup and a strict .dockerignore, then smoke-test imports.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Biggest win: don't install unneeded packages.",
+        "Multi-stage + slim + same-layer cleanup.",
+        "Keep runtime libs and CA certificates.",
+        "Weight-baking is a deploy trade-off."
+      ]
+    }
+  ]
+}

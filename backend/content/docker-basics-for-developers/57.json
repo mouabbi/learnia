@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Compose v2 (`docker compose`) declares services plus the networks, volumes, secrets and configs they use; every resource is prefixed by the project name."
+    },
+    {
+      "type": "code",
+      "code": "name: rag\nservices:\n  api:\n    build: .\n    ports: [\"127.0.0.1:8000:8000\"]\n    depends_on:\n      db: { condition: service_healthy }\n  db:\n    image: pgvector/pgvector:pg17\n    volumes: [pgdata:/var/lib/postgresql/data]\nvolumes:\n  pgdata: {}",
+      "language": "yaml"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Top level: `services`, `networks`, `volumes`, `secrets`, `configs`.",
+        "`version:` is obsolete (ignored with a warning).",
+        "`compose.yaml` is the preferred filename; v1 `docker-compose` (Python) is end-of-life."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Project name",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Precedence: `-p` > `COMPOSE_PROJECT_NAME` > top-level `name:` > directory name."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Resource",
+        "Example"
+      ],
+      "rows": [
+        [
+          "Container",
+          "rag-api-1"
+        ],
+        [
+          "Network",
+          "rag_default"
+        ],
+        [
+          "Volume",
+          "rag_pgdata"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Renaming the folder (without `name:`) creates new, empty volumes; the old data sits under the old prefix. Two checkouts in same-named folders share containers and volumes."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why did my database look empty after I moved the project folder?\" A: \"The project name defaulted to the directory name, and volumes are prefixed with it, so Compose created a new rag2_pgdata. The data is still in the old volume. Pin name: in compose.yaml.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Resources are prefixed by the project name.",
+        "Set name: explicitly.",
+        "Drop version:.",
+        "Use docker compose (v2)."
+      ]
+    }
+  ]
+}

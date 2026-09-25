@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "These commands inspect and manipulate a running (or stopped) container without rebuilding it; any change they make lives only in that container."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Command",
+        "Does",
+        "Gotcha"
+      ],
+      "rows": [
+        [
+          "exec",
+          "New process in the running container's namespaces and cgroup",
+          "Gets configured env, not vars exported by the entrypoint; running containers only"
+        ],
+        [
+          "logs",
+          "PID 1's stdout/stderr via the logging driver",
+          "Empty if the app logs to files; works on exited containers"
+        ],
+        [
+          "cp",
+          "Copy files in or out",
+          "Works on stopped containers; changes vanish on recreate"
+        ],
+        [
+          "top",
+          "Container processes with host PIDs",
+          "No tools needed in the image"
+        ],
+        [
+          "stats",
+          "Live CPU, memory, net, block I/O from cgroups",
+          "Best early warning for OOM"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker exec -it api bash\n$ docker exec -u root api apt list --installed\n$ docker logs -f --tail 100 --since 10m -t api\n$ docker cp api:/app/debug.json ./"
+    },
+    {
+      "type": "heading",
+      "text": "Distroless or scratch images",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "No shell to exec into. Borrow tools from a debug container that shares namespaces:"
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run --rm -it --pid container:api --network container:api nicolaka/netshoot"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Fixes applied with exec or cp live only in that container's writable layer and disappear on recreate. Put them in the Dockerfile or Compose file."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you debug a container with no shell?\" A: \"Run a debug image such as netshoot that joins its PID and network namespaces with --pid container:<name> --network container:<name>, or use docker debug where available, and read docker logs and inspect from outside.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "exec starts a new process; attach doesn't.",
+        "logs only sees stdout/stderr.",
+        "stats spots memory climbs before OOM.",
+        "exec/cp changes are ephemeral."
+      ]
+    }
+  ]
+}

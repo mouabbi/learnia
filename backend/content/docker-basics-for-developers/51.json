@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Each network error identifies a layer: name errors are DNS, \"refused\" means the host was reached but nothing listens, a timeout means packets were dropped, and a reset means something accepted and then closed."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Error",
+        "Meaning",
+        "Usual Docker causes"
+      ],
+      "rows": [
+        [
+          "Name not known / bad address",
+          "DNS failed",
+          "Not on a shared user-defined network; default bridge; typo; target stopped; other Compose project"
+        ],
+        [
+          "Connection refused",
+          "Nothing listening (RST)",
+          "Still starting; bound to 127.0.0.1; host port used instead of container port"
+        ],
+        [
+          "Timeout",
+          "Packets dropped",
+          "Firewall; stale cached IP; hung service; cross-network isolation; MTU over VPN"
+        ],
+        [
+          "Reset / empty reply",
+          "Accepted then closed",
+          "Published port but app on loopback; protocol mismatch (HTTP vs HTTPS, gRPC)"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Method (from the caller's namespace)",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Resolve: `getent hosts db`",
+        "Connect: `nc -vz db 5432` (or Python socket)",
+        "Speak the protocol: `pg_isready -h db`, `curl -v http://qdrant:6333/readyz`",
+        "Inspect the listener in the target: bound to 0.0.0.0 and the right port?"
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "\"Refused for the first 10 seconds, then fine\" is readiness, not networking. Fix it with healthchecks and retries."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you debug 'can't connect to the database' between containers?\" A: \"Run the tests from inside the caller: resolve the name, open TCP to the container port, then speak the protocol. The failing step tells you whether it's DNS/network membership, the listener or readiness, or filtering.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Name error = DNS/network membership.",
+        "Refused = reachable but nothing listening.",
+        "Timeout = dropped packets.",
+        "Always test from the caller's namespace."
+      ]
+    }
+  ]
+}

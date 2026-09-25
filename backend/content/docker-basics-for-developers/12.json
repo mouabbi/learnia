@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "`docker history` maps size to instructions, `docker image inspect` shows the runtime config, and `dive` exposes wasted space inside layers."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker history --no-trunc --format '{{.Size}}\\t{{.CreatedBy}}' rag-api:dev\n2.31GB  RUN pip install -r requirements.txt     # usually CUDA torch on a CPU service\n$ docker image inspect rag-api:dev --format '{{json .Config}}' | jq '{User,Entrypoint,Cmd,Env,ExposedPorts}'\n$ dive rag-api:dev"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Tool",
+        "Answers"
+      ],
+      "rows": [
+        [
+          "docker history",
+          "Which instruction added how many bytes"
+        ],
+        [
+          "docker image inspect",
+          "User, Entrypoint/Cmd, Env, WorkingDir, Volumes, Architecture"
+        ],
+        [
+          "dive",
+          "Per-layer file tree, files added then deleted, efficiency score (CI gate possible)"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "What to check on an unfamiliar image",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Runs as root or a non-root UID?",
+        "Entrypoint and default command.",
+        "Declared VOLUMEs (they create anonymous volumes).",
+        "Architecture matches your hosts."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "History and config are public to anyone who pulls: every ENV value and any build ARG used in RUN is visible. Use BuildKit secret mounts for build-time secrets."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"An image is 4 GB. How do you find out why?\" A: \"Sort docker history by size to find the heavy instruction, then open those layers in dive to spot caches, test data, .git, duplicated dependencies or CUDA wheels, and fix the Dockerfile at that step.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "history → where the bytes come from.",
+        "inspect → what will actually run and as whom.",
+        "dive → wasted space inside layers.",
+        "Image metadata is public; never put secrets there."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A reference is `[registry[:port]/][namespace/]repo[:tag|@digest]`; the first component is a registry host only if it contains `.` or `:` or is `localhost`, otherwise it's a Docker Hub namespace."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "You type",
+        "Resolves to"
+      ],
+      "rows": [
+        [
+          "nginx",
+          "docker.io/library/nginx:latest"
+        ],
+        [
+          "acme/app",
+          "docker.io/acme/app:latest"
+        ],
+        [
+          "ghcr.io/acme/app:1.4.2",
+          "registry ghcr.io"
+        ],
+        [
+          "localhost:5000/app",
+          "local registry"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker tag rag-api:dev ghcr.io/acme/rag-api:1.4.2    # new name, same image ID\n$ echo \"$TOKEN\" | docker login ghcr.io -u acme --password-stdin\n$ docker push ghcr.io/acme/rag-api:1.4.2               # uploads only missing layers"
+    },
+    {
+      "type": "heading",
+      "text": "Gotchas",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Repository names must be lowercase; tags are ≤128 chars of [A-Za-z0-9_.-] and can't start with `.` or `-`.",
+        "`docker rmi` of one tag removes only that name until the last reference goes.",
+        "Credentials sit base64-encoded in ~/.docker/config.json unless a credential helper is set; base64 isn't encryption.",
+        "Docker Hub rate-limits pulls (lower for anonymous); CI fleets need auth, a pull-through cache, or mirrored bases."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What's your tagging strategy?\" A: \"Every build pushes an immutable git-SHA tag; releases add a semver tag and optionally moving tags like 1.4 or latest. Deployments reference the SHA tag or digest, never latest.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "No dot/colon/localhost in the first part → Docker Hub.",
+        "docker tag copies nothing.",
+        "Protect config.json; use credential helpers.",
+        "Authenticate or mirror to avoid Hub rate limits."
+      ]
+    }
+  ]
+}

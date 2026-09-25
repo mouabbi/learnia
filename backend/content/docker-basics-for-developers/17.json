@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Inside its PID namespace your app is PID 1, and the kernel gives PID 1 two duties most apps don't handle: signals with default disposition are ignored unless a handler is installed, and orphaned children must be reaped."
+    },
+    {
+      "type": "heading",
+      "text": "Consequence 1: SIGTERM is ignored",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "`docker stop` sends SIGTERM; a PID 1 without a handler ignores it; after 10 s Docker sends SIGKILL. Result: slow stops, exit 137, no graceful draining."
+    },
+    {
+      "type": "heading",
+      "text": "Consequence 2: zombies",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Orphans are re-parented to PID 1. If PID 1 never calls `wait()`, exited children stay as zombies until the pids limit blocks new forks (common with subprocess-heavy workers, headless Chrome, ffmpeg)."
+    },
+    {
+      "type": "heading",
+      "text": "The shell-form trap",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "CMD uvicorn app.main:app --host 0.0.0.0          # PID 1 = /bin/sh; SIGTERM never reaches uvicorn\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\"]   # exec form: uvicorn is PID 1",
+      "language": "dockerfile"
+    },
+    {
+      "type": "code",
+      "code": "#!/bin/sh\nset -e\npython -m app.check_config\nexec \"$@\"        # replace the shell so the app becomes PID 1",
+      "language": "sh"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "uvicorn, gunicorn, nginx and Postgres install SIGTERM handlers and behave correctly as PID 1.",
+        "Your own Python scripts don't: Python only maps SIGINT to KeyboardInterrupt."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What's the PID 1 problem?\" A: \"PID 1 ignores signals it has no handler for and must reap zombies. Shell-form CMD or an entrypoint without exec makes sh PID 1, which swallows SIGTERM. Fix it with exec form, `exec \"$@\"`, and an init such as tini when children are spawned.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "PID 1 ignores default-disposition signals.",
+        "PID 1 must reap orphaned children.",
+        "Use exec form and `exec \"$@\"`.",
+        "Add tini when the app spawns subprocesses."
+      ]
+    }
+  ]
+}

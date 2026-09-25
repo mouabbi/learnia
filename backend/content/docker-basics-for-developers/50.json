@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "On Linux, published-port traffic is DNAT'd in PREROUTING and forwarded through the FORWARD chain, never touching INPUT, where UFW and most host firewall rules live, so `ufw deny` doesn't protect published container ports."
+    },
+    {
+      "type": "terminal",
+      "text": "$ sudo ufw deny 5432\n$ docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=weak postgres:17\n# port 5432 is still open to the internet"
+    },
+    {
+      "type": "image",
+      "src": "generate: Packet flow: incoming packet → PREROUTING (Docker DNAT) → FORWARD (DOCKER-USER → DOCKER) → container; separate path → INPUT (ufw) → host processes; highlight that published ports skip INPUT",
+      "alt": "Why ufw rules don't apply to published ports.",
+      "caption": "Why ufw rules don't apply to published ports."
+    },
+    {
+      "type": "heading",
+      "text": "Fixes",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Don't publish internal services; containers talk over Docker networks.",
+        "Bind loopback: `-p 127.0.0.1:5432:5432` (use an SSH tunnel for remote tools).",
+        "Rules in `DOCKER-USER`, which Docker creates, leaves alone, and evaluates first.",
+        "An external firewall or cloud security group.",
+        "ufw-docker to integrate UFW with DOCKER-USER."
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ sudo iptables -I DOCKER-USER -i eth0 ! -s 203.0.113.0/24 -j DROP"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Don't set `\"iptables\": false` in daemon.json. It breaks NAT, publishing and network isolation."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"You blocked 5432 with ufw but the Postgres container is reachable from the internet. Why?\" A: \"Docker's DNAT sends published traffic through the FORWARD chain, bypassing ufw's INPUT rules, and -p binds 0.0.0.0. Don't publish it, or bind 127.0.0.1, and enforce filtering in DOCKER-USER or an external firewall.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Published ports skip INPUT/ufw.",
+        "Unpublished or loopback-bound is safest.",
+        "Filter in DOCKER-USER or upstream.",
+        "Never disable Docker's iptables management."
+      ]
+    }
+  ]
+}

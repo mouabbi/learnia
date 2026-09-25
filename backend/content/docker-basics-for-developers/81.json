@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Most RAG stack failures map to a known cause: wrong addressing, one-time initialization, schema/model drift, memory, or stale images and volumes."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Symptom",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        [
+          "refused to localhost:5432",
+          "Container calls itself",
+          "DATABASE_HOST=db; recreate"
+        ],
+        [
+          "could not translate host \"db\"",
+          "Not on a shared network / db down",
+          "network inspect; compose ps"
+        ],
+        [
+          "password authentication failed",
+          "Volume initialized with an old password; newline in secret",
+          "ALTER USER; printf secrets"
+        ],
+        [
+          "type \"vector\" does not exist",
+          "Extension not in this DB",
+          "Idempotent migration"
+        ],
+        [
+          "expected 384 dims, not 1536",
+          "Model changed without re-index",
+          "New column/collection + re-embed; fail fast"
+        ],
+        [
+          "migrate: Can't locate revision",
+          "DB stamped by a revision not in this image",
+          "Rebuild the correct branch; alembic history"
+        ],
+        [
+          "api exit 137 during ingest",
+          "OOM: model × workers + big batches",
+          "Smaller batches, 1 worker, measured limit"
+        ],
+        [
+          "PermissionError on /models",
+          "Root-owned or pre-existing volume",
+          "chown in image; recreate volume"
+        ],
+        [
+          "First query ~40 s",
+          "Lazy model load/download",
+          "Warm up in lifespan; cache volume"
+        ],
+        [
+          "502 after api recreate",
+          "nginx cached the old IP",
+          "resolver 127.0.0.11 + variable upstream"
+        ],
+        [
+          "Answers worse after rebuild",
+          "Unpinned model revision or chunking drift",
+          "Pin; store model version with vectors"
+        ],
+        [
+          "Code change not visible",
+          "No rebuild/recreate; anonymous volume",
+          "up -d --build -V"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Method",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "`docker compose ps`: which service, which exit code.",
+        "`docker compose logs <svc>`: the first error, not the last.",
+        "From the caller: DNS → TCP → protocol.",
+        "State: volume age, `alembic current`, collection dimension and distance.",
+        "Fix, recreate, rerun the smoke test."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"The API can't authenticate to Postgres after you changed the password. Why?\" A: \"POSTGRES_PASSWORD only applies when the data directory is initialized; the existing volume keeps the old password. Change it with ALTER USER (or reset the volume in dev), and check the secret file for a trailing newline.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Addressing and one-time init cause most failures.",
+        "Model/dimension drift is a schema problem.",
+        "Memory scales with workers and batches.",
+        "Confirm image, volumes and migrations state."
+      ]
+    }
+  ]
+}

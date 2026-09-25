@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Restart policies restart a container when its PID 1 exits; they never react to health status."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Policy",
+        "Restarts when",
+        "After daemon/host restart",
+        "After manual stop"
+      ],
+      "rows": [
+        [
+          "no",
+          "Never",
+          "Stays stopped",
+          "Stays stopped"
+        ],
+        [
+          "on-failure[:N]",
+          "Exit ≠ 0 (max N)",
+          "Only if it was failing",
+          "Stays stopped"
+        ],
+        [
+          "always",
+          "Any exit, including 0",
+          "Starts",
+          "Starts again when the daemon restarts"
+        ],
+        [
+          "unless-stopped",
+          "Any exit",
+          "Starts unless manually stopped",
+          "Stays stopped"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Mechanics",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Backoff starts at 100 ms and doubles per consecutive failure; it resets after ~10 s of uptime.",
+        "Applies only after one successful start: create-time failures (bad mount, port allocated) aren't retried.",
+        "A restart reuses the same container, writable layer and env.",
+        "`--restart` conflicts with `--rm`; change it live with `docker update --restart`."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Choosing",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Long-running services on one host: `unless-stopped`.",
+        "Workers/jobs that may exit 0: `on-failure`.",
+        "Migrations and one-shots: `no` (with `always`, a migration reruns forever)."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "An unhealthy HEALTHCHECK doesn't restart anything in Docker or Compose. A hung-but-alive process stays up; Swarm and Kubernetes liveness probes are what act on health."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"always vs unless-stopped?\" A: \"Both restart on any exit and after daemon restarts, but unless-stopped remembers a manual docker stop and stays down, while always starts the container again when the daemon restarts.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Policies react to exits, not health.",
+        "unless-stopped for services; no for one-shots.",
+        "Restarts reuse the same container.",
+        "Crash loops hide causes: read logs and RestartCount."
+      ]
+    }
+  ]
+}

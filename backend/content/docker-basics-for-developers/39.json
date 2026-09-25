@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Named volumes are Docker-managed storage for app data, bind mounts expose a host path you control, and tmpfs is RAM-only scratch space."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "Named volume",
+        "Bind mount",
+        "tmpfs"
+      ],
+      "rows": [
+        [
+          "Location",
+          "/var/lib/docker/volumes/<name>/_data",
+          "Any host path",
+          "RAM"
+        ],
+        [
+          "Lifetime",
+          "Until `docker volume rm`",
+          "Host files",
+          "Container stop"
+        ],
+        [
+          "Portable",
+          "Yes (a name)",
+          "No",
+          "n/a"
+        ],
+        [
+          "Desktop speed",
+          "Fast (inside VM)",
+          "Slow (crosses VM)",
+          "Fastest"
+        ],
+        [
+          "Initial content",
+          "Empty volume pre-filled from image path",
+          "Host content hides image path",
+          "Empty"
+        ],
+        [
+          "Ownership",
+          "Copied from image dir on first fill",
+          "Host UIDs",
+          "Mount options"
+        ],
+        [
+          "Use",
+          "Databases, caches, uploads",
+          "Dev source, config files",
+          "Scratch, secrets in memory"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run -v pgdata:/var/lib/postgresql/data postgres:17\n$ docker run -v \"$PWD/app:/app/app:ro\" rag-api\n$ docker run --tmpfs /tmp:rw,size=64m rag-api"
+    },
+    {
+      "type": "heading",
+      "text": "Pre-population rule",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Only an empty named volume is filled from the image's files at that path, including ownership. Afterwards the volume's content wins, even if a newer image ships different files. Bind mounts never pre-populate."
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "tmpfs counts against the container's memory limit; big tmpfs downloads can trigger OOM."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Volume vs bind mount?\" A: \"A named volume is managed by Docker, portable, fast on Desktop, and pre-populated from the image on first use: use it for app data. A bind mount is a host path, great for dev source and config, but host-dependent and subject to UID and performance issues.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Volumes for app-owned data; binds for files you edit.",
+        "Pre-population only when the volume is empty.",
+        "Binds hide image content.",
+        "tmpfs uses container memory."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Configuration drift is the gradual divergence of servers that should be identical, caused by manual, unrecorded changes; a snowflake server is one whose exact state can no longer be reproduced."
+    },
+    {
+      "type": "heading",
+      "text": "How drift happens",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Hotfixes applied by SSH during incidents and never written down.",
+        "Package upgrades run on some hosts but not others.",
+        "Different install dates → different package versions.",
+        "Config files edited in place."
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Mutable servers (pets)",
+        "Immutable infrastructure (cattle)"
+      ],
+      "rows": [
+        [
+          "Updated in place",
+          "Replaced with a new build"
+        ],
+        [
+          "State accumulates over time",
+          "State lives outside (DBs, volumes, object storage)"
+        ],
+        [
+          "Hard to reproduce or scale",
+          "Rebuilt identically from a definition"
+        ],
+        [
+          "Rollback = manual undo",
+          "Rollback = redeploy the previous artifact"
+        ],
+        [
+          "Snowflakes are common",
+          "Drift is designed out"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Why it's dangerous",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "A failed snowflake can't be rebuilt reliably, so outages last longer.",
+        "Bugs appear on one node only and are impossible to reproduce.",
+        "Scaling out means copying an unknown configuration.",
+        "Audits and security patching become guesswork."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "The fix that containers enable",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Build an immutable image, deploy it, and replace it rather than patch it. `docker exec` fixes are drift in miniature: they vanish on recreate, which is the point."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What's the difference between pets and cattle, and why does it matter?\" A: \"Pets are mutable servers maintained by hand, so they drift into unreproducible snowflakes. Cattle are immutable, built from a definition, and replaced rather than repaired. Containers make the cattle model cheap: rebuild the image, redeploy, and roll back by redeploying the previous tag.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Drift = unrecorded manual change.",
+        "Snowflakes can't be reproduced.",
+        "Immutable artifacts are replaced, not patched.",
+        "Keep state outside the replaceable unit."
+      ]
+    }
+  ]
+}

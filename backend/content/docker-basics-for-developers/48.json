@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "`-p HOST:CONTAINER` creates a host-side forwarding rule, binding all interfaces unless you give an IP; EXPOSE is metadata only; container-to-container traffic never needs publishing."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Syntax",
+        "Result"
+      ],
+      "rows": [
+        [
+          "-p 8080:8000",
+          "0.0.0.0:8080 → container 8000 (IPv4 + IPv6)"
+        ],
+        [
+          "-p 127.0.0.1:8080:8000",
+          "Host-only access"
+        ],
+        [
+          "-p 8000",
+          "Random host port"
+        ],
+        [
+          "-P",
+          "All EXPOSEd ports to random host ports"
+        ],
+        [
+          "-p 5353:53/udp",
+          "UDP"
+        ],
+        [
+          "EXPOSE 8000",
+          "Publishes nothing"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "services:\n  db:\n    ports: [\"127.0.0.1:5433:5432\"]      # host port 5433\n  api:\n    environment:\n      DATABASE_URL: postgresql://app@db:5432/rag   # container port, not 5433",
+      "language": "yaml"
+    },
+    {
+      "type": "heading",
+      "text": "Pitfalls",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`-p 5432:5432` on a cloud VM exposes Postgres to the internet.",
+        "Using the host port between containers (`db:5433`) → connection refused.",
+        "\"port is already allocated\": another container (maybe another Compose project) or a host process holds it; check `docker ps`, `ss -ltnp`."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"EXPOSE vs -p?\" A: \"EXPOSE only documents the port (and feeds -P); -p creates the host mapping, on 0.0.0.0 by default. Containers on the same network reach each other on the container port without any publishing, so databases shouldn't be published at all or only on 127.0.0.1.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "-p binds 0.0.0.0 unless you add an IP.",
+        "EXPOSE publishes nothing.",
+        "Service-to-service uses the container port.",
+        "Bind dev databases to 127.0.0.1."
+      ]
+    }
+  ]
+}

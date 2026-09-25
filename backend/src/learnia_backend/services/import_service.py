@@ -18,7 +18,6 @@ from learnia_backend.exceptions import NotFoundError, ValidationAppError
 from learnia_backend.models.chapter import Chapter
 from learnia_backend.models.course import Course
 from learnia_backend.models.module import Module
-from learnia_backend.models.page import Page
 from learnia_backend.repositories.question_repository import QuestionRepository
 from learnia_backend.repositories.structure_repository import StructureRepository
 from learnia_backend.schemas.content import PageContent
@@ -31,6 +30,7 @@ from learnia_backend.schemas.prompt_builder import (
 )
 from learnia_backend.schemas.questions import QuestionWriteRequest
 from learnia_backend.services.content_service import ContentService
+from learnia_backend.services.content_targets import content_targets
 
 _QUESTION_LIST_ADAPTER: TypeAdapter = TypeAdapter(list[QuestionWriteRequest])
 
@@ -51,6 +51,39 @@ def _humanize_errors(exc: ValidationError) -> list[ImportFieldError]:
         field = ".".join(str(loc) for loc in err["loc"]) or "(root)"
         out.append(ImportFieldError(field=field, message=err["msg"]))
     return out
+
+
+def _single_answer_errors(
+    questions: list[QuestionWriteRequest], prefix: str
+) -> list[ImportFieldError]:
+    """Imported questions must be single-answer: the learner quiz/exam UI is
+    single-select and grades against ONE correctOptionId (course_repository
+    keeps only the first), so a second correct id would be silently ignored
+    and the question graded wrong. Also catches a correct id that matches
+    no option — an unanswerable question."""
+    errors = []
+    for i, question in enumerate(questions):
+        field = f"{prefix}[{i}].correctOptionIds"
+        ids = question.correct_option_ids
+        if len(ids) != 1:
+            errors.append(
+                ImportFieldError(
+                    field=field,
+                    message=f"Must contain exactly one correct option id (got {len(ids)}) — "
+                    f"questions are single-answer",
+                )
+            )
+            continue
+        option_ids = {o.id for o in question.options if o.id is not None}
+        if option_ids and ids[0] not in option_ids:
+            errors.append(
+                ImportFieldError(
+                    field=field,
+                    message=f"\"{ids[0]}\" doesn't match any option id "
+                    f"({', '.join(sorted(option_ids))})",
+                )
+            )
+    return errors
 
 
 def _parse_json(raw: str) -> object:
@@ -86,6 +119,9 @@ class ImportService:
                 parsed = _QUESTION_LIST_ADAPTER.validate_python(data)
             except ValidationError as exc:
                 return ImportValidateResult(valid=False, errors=_humanize_errors(exc))
+            answer_errors = _single_answer_errors(parsed, "")
+            if answer_errors:
+                return ImportValidateResult(valid=False, errors=answer_errors)
             return ImportValidateResult(
                 valid=True, parsed=[q.model_dump(by_alias=True) for q in parsed]
             )
@@ -188,6 +224,10 @@ class ImportService:
                             field = f"moduleQcm.{mid}.{field}" if field else f"moduleQcm.{mid}"
                             errors.append(ImportFieldError(field=field, message=err["msg"]))
                         continue
+                    answer_errors = _single_answer_errors(items, f"moduleQcm.{mid}.")
+                    if answer_errors:
+                        errors.extend(answer_errors)
+                        continue
                     parsed_module_qcm[mid] = [q.model_dump(by_alias=True) for q in items]
                 parsed["moduleQcm"] = parsed_module_qcm
 
@@ -209,7 +249,11 @@ class ImportService:
                         field = f"finalExam.{field}" if field else "finalExam"
                         errors.append(ImportFieldError(field=field, message=err["msg"]))
                 else:
-                    parsed["finalExam"] = [q.model_dump(by_alias=True) for q in items]
+                    answer_errors = _single_answer_errors(items, "finalExam.")
+                    if answer_errors:
+                        errors.extend(answer_errors)
+                    else:
+                        parsed["finalExam"] = [q.model_dump(by_alias=True) for q in items]
 
         if errors:
             return ImportValidateResult(valid=False, errors=errors)
@@ -256,35 +300,63 @@ class ImportService:
             # retitling an existing one.
             return self._create_module(course_id, result.parsed)
 
+        # Existing module ("Structure" AI button on a module): APPEND the
+        # returned chapters/pages after what's already there — no existing
+        # chapter/page is renamed or touched, so this is safe on a finished
+        # module. The title is applied too (the prompt asks the AI to echo
+        # the current one unchanged).
         module = self.db.get(Module, module_id)
-        if module is None:
+        if module is None or module.course_id != course_id:
             raise NotFoundError(f"Module not found: {module_id}")
         module.title = result.parsed["title"]
         self.db.commit()
-        return {"id": str(module.id), "title": module.title}
+        chapters = [
+            self._create_chapter(module.id, chapter_data)
+            for chapter_data in result.parsed.get("chapters", [])
+        ]
+        return {"id": str(module.id), "title": module.title, "chapters": chapters}
 
     def _create_module(self, course_id: int, parsed: dict) -> dict:
-        structure = StructureRepository(self.db)
-        content_service = ContentService(self.db)
-
-        module = structure.create_module(course_id, parsed["title"])
+        module = StructureRepository(self.db).create_module(course_id, parsed["title"])
         for chapter_data in parsed.get("chapters", []):
-            chapter = structure.create_chapter(module.id, chapter_data["title"])
-            for page_data in chapter_data.get("pages", []):
-                page = structure.create_page(chapter.id, page_data["title"])
-                if page_data.get("blocks"):
-                    content_service.write(page, PageContent(blocks=page_data["blocks"]))
+            self._create_chapter(module.id, chapter_data)
         return {"id": str(module.id), "title": module.title}
 
-    def commit_chapter(self, chapter_id: int, raw_json: str) -> dict:
+    def _create_chapter(self, module_id: int, parsed: dict) -> dict:
+        structure = StructureRepository(self.db)
+        content_service = ContentService(self.db)
+        chapter = structure.create_chapter(module_id, parsed["title"])
+        for page_data in parsed.get("pages", []):
+            page = structure.create_page(chapter.id, page_data["title"])
+            if page_data.get("blocks"):
+                content_service.write(page, PageContent(blocks=page_data["blocks"]))
+        page_count = len(parsed.get("pages", []))
+        return {"id": str(chapter.id), "title": chapter.title, "pageCount": page_count}
+
+    def commit_chapter(
+        self, chapter_id: int | None, raw_json: str, *, module_id: int | None = None
+    ) -> dict:
+        """chapter_id -> retitle that chapter (and append any returned pages);
+        no chapter_id but module_id -> "Add chapter with AI" on a module:
+        create the chapter with its pages at the end of that module."""
         result = self.validate("chapter", raw_json)
         if not result.valid:
             raise ValidationAppError("Cannot commit invalid JSON — validate it first")
+        if chapter_id is None:
+            if module_id is None:
+                raise ValidationAppError("chapterId or moduleId is required for scope=chapter")
+            if self.db.get(Module, module_id) is None:
+                raise NotFoundError(f"Module not found: {module_id}")
+            return self._create_chapter(module_id, result.parsed)
+
         chapter = self.db.get(Chapter, chapter_id)
         if chapter is None:
             raise NotFoundError(f"Chapter not found: {chapter_id}")
         chapter.title = result.parsed["title"]
         self.db.commit()
+        structure = StructureRepository(self.db)
+        for page_data in result.parsed.get("pages", []):
+            structure.create_page(chapter.id, page_data["title"])
         return {"id": str(chapter.id), "title": chapter.title}
 
     def commit_page(self, page_id: int, raw_json: str, *, replace: bool) -> dict:
@@ -316,28 +388,32 @@ class ImportService:
         if not result.valid:
             raise ValidationAppError("Cannot commit invalid JSON — validate it first")
 
-        structure = StructureRepository(self.db)
-        pages = structure.pages_in_module_order(module_id)
+        # Same target rule as the prompt (services/content_targets.py): a
+        # partly-written module only gets its EMPTY pages filled, so adding
+        # a chapter to a finished module never touches the written pages.
+        targets = content_targets(self.db, module_id)
+        pages = targets.targets
         parsed_pages = result.parsed.get("pages", [])
 
         if len(parsed_pages) != len(pages):
+            which = (
+                "empty page(s) still to write" if targets.only_empty else "page(s) in this module"
+            )
             raise ValidationAppError(
-                f"Expected content for exactly {len(pages)} page(s) — this module's "
-                f"current structure — but got {len(parsed_pages)}. Regenerate the "
-                f"prompt if the structure changed since you copied it, or fix the "
-                f"pasted JSON to match."
+                f"Expected content for exactly {len(pages)} {which} — but got "
+                f"{len(parsed_pages)}. Regenerate the prompt if the structure or "
+                f"content changed since you copied it, or fix the JSON to match."
             )
 
         content_service = ContentService(self.db)
-        already_written = [p.title for p in pages if content_service.read(p).blocks]
-        if already_written and not replace:
+        if targets.all_written and not replace:
             raise ValidationAppError(
-                f"{len(already_written)} page(s) in this module already have content "
-                f"({', '.join(already_written)}) — pass replace:true to overwrite"
+                f"All {len(pages)} page(s) in this module already have content "
+                f"— pass replace:true to overwrite"
             )
 
         written = []
-        for page, page_data in zip(pages, parsed_pages):
+        for page, page_data in zip(pages, parsed_pages, strict=True):
             content = content_service.write(page, PageContent(blocks=page_data.get("blocks", [])))
             written.append({"id": str(page.id), "title": page.title, "blockCount": len(content.blocks)})
         return {"pages": written}
@@ -446,8 +522,6 @@ class ImportService:
         if not result.valid:
             raise ValidationAppError("Cannot commit invalid JSON — validate it first")
 
-        structure = StructureRepository(self.db)
-        content_service = ContentService(self.db)
         question_repo = QuestionRepository(self.db)
 
         conflicts: list[str] = []
@@ -460,8 +534,9 @@ class ImportService:
 
         if not replace:
             for mid in module_content_ids:
-                pages = structure.pages_in_module_order(int(mid))
-                if any(content_service.read(p).blocks for p in pages):
+                # Partly-written modules only fill their empty pages — only
+                # a fully-written module is an overwrite.
+                if content_targets(self.db, int(mid)).all_written:
                     conflicts.append(f"module content for \"{module_titles[mid]}\" (id {mid})")
             for mid in module_qcm_ids:
                 if question_repo.list_for_module(int(mid)):

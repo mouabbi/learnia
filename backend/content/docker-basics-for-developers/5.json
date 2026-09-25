@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The Open Container Initiative standardizes the image format, the runtime bundle, and the registry API, so images built by any tool run on any compliant runtime."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Spec",
+        "Defines",
+        "Practical effect"
+      ],
+      "rows": [
+        [
+          "Image spec",
+          "Manifest, config, layers, image index",
+          "Docker-built images run on Podman, containerd, CRI-O"
+        ],
+        [
+          "Runtime spec",
+          "config.json + rootfs bundle",
+          "runc, crun, gVisor, Kata are swappable"
+        ],
+        [
+          "Distribution spec",
+          "Registry push/pull HTTP API",
+          "Docker Hub, GHCR, ECR, Harbor interoperate"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Anatomy of an image",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Manifest: points to one config blob and an ordered list of layer blobs, all by sha256 digest.",
+        "Config: runtime defaults (Env, Entrypoint, Cmd, User, WorkingDir, ExposedPorts) and layer diff IDs.",
+        "Layers: tarballs of filesystem changes; deletions are \"whiteout\" files.",
+        "Image index (manifest list): one manifest per platform, enabling multi-arch tags.",
+        "Content addressing makes blobs verifiable and deduplicated across images and registries."
+      ]
+    },
+    {
+      "type": "code",
+      "code": "{ \"mediaType\": \"application/vnd.oci.image.manifest.v1+json\",\n  \"config\": { \"digest\": \"sha256:9b1f...\" },\n  \"layers\": [ { \"digest\": \"sha256:a2c1...\", \"size\": 29124131 } ] }",
+      "language": "json"
+    },
+    {
+      "type": "paragraph",
+      "text": "Registries also store OCI artifacts next to images: signatures, SBOMs, attestations, Helm charts."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why does an image built with Docker run on Kubernetes without Docker?\" A: \"Because it's an OCI image: a standard manifest, config and layers. Any OCI-compliant runtime such as containerd or CRI-O can pull and run it.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Three specs: image, runtime, distribution.",
+        "Image = manifest + config + layers, all content-addressed.",
+        "Multi-arch works via an image index.",
+        "OCI means no tool lock-in for building or running."
+      ]
+    }
+  ]
+}

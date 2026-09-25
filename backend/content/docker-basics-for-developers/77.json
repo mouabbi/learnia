@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The api service reaches dependencies by service name and container port, receives non-secret config via `environment:`, gets passwords as secret files, and uses the project .env only for interpolation defaults."
+    },
+    {
+      "type": "code",
+      "code": "api:\n  build: .\n  image: ghcr.io/acme/rag-api:${TAG:-dev}\n  init: true\n  environment:\n    DATABASE_HOST: db\n    DATABASE_PORT: \"5432\"\n    QDRANT_URL: http://qdrant:6333\n    EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}\n    EMBEDDING_DIM: ${EMBEDDING_DIM:-384}\n    WEB_CONCURRENCY: \"1\"\n    HF_HOME: /models\n  secrets: [db_password, openai_api_key]\n  volumes: [hf_cache:/models]\n  ports: [\"127.0.0.1:8000:8000\"]\n  depends_on:\n    db: { condition: service_healthy }\n    migrate: { condition: service_completed_successfully }",
+      "language": "yaml"
+    },
+    {
+      "type": "code",
+      "code": "class Settings(BaseSettings):\n    model_config = SettingsConfigDict(secrets_dir=\"/run/secrets\", extra=\"ignore\")\n    database_host: str = \"localhost\"     # outside Docker\n    db_password: SecretStr               # /run/secrets/db_password\n    def url(self) -> URL:\n        return URL.create(\"postgresql+psycopg\", username=\"app\",\n                          password=self.db_password.get_secret_value().strip(),\n                          host=self.database_host, port=5432, database=\"rag\")",
+      "language": "python"
+    },
+    {
+      "type": "paragraph",
+      "text": "`URL.create` escapes special characters; an f-string breaks on `@`, `/`, `:` in passwords."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Value",
+        "Source"
+      ],
+      "rows": [
+        [
+          "Hostnames, model, dims",
+          "environment:"
+        ],
+        [
+          "Passwords, API keys",
+          "secrets (files)"
+        ],
+        [
+          "Tag, defaults",
+          "project .env (interpolation)"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How does the API find Postgres, and where does the password come from?\" A: \"By service name and container port, db:5432, on the Compose network, never localhost. The password is a Compose secret file read via pydantic-settings secrets_dir into SecretStr, and the URL is built with URL.create so special characters are escaped.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "db:5432, not localhost.",
+        "Secrets as files, config as env.",
+        ".env feeds interpolation only.",
+        "Build DB URLs safely."
+      ]
+    }
+  ]
+}

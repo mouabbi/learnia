@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "On Linux, Docker Engine runs containers directly on the host kernel. On macOS/Windows, Docker Desktop (and OrbStack, Colima, Rancher Desktop) runs a Linux VM and your containers live inside it; most \"behaves differently on my Mac\" issues come from that VM."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Topic",
+        "Linux Engine",
+        "Desktop (macOS/Windows)"
+      ],
+      "rows": [
+        [
+          "Bind mount speed",
+          "Native",
+          "Crosses VM boundary; slow for many small files"
+        ],
+        [
+          "UID mismatches on bind mounts",
+          "Real, cause permission errors",
+          "Mostly hidden"
+        ],
+        [
+          "host.docker.internal",
+          "Needs `--add-host=host.docker.internal:host-gateway`",
+          "Built in"
+        ],
+        [
+          "Resource ceiling",
+          "Host",
+          "VM's CPU/RAM/disk settings"
+        ],
+        [
+          "Architecture",
+          "Host arch",
+          "Apple Silicon = arm64; amd64 via emulation"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Pitfalls",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Slow dev loop: bind-mounting .venv or node_modules. Keep dependencies in the image or a named volume; mount only source.",
+        "\"Random\" OOMs: the VM's memory cap, not your `--memory`.",
+        "arm64 images built on M-series Macs fail on amd64 servers with `exec format error`; build with `--platform linux/amd64` or multi-arch.",
+        "Windows: keep code in the WSL2 filesystem; NTFS mounts are slow and drop file-change events.",
+        "A setup that works on Desktop can fail on Linux CI because of real UID permissions.",
+        "Licensing: Desktop requires a paid subscription for larger organizations; Engine on Linux doesn't."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why does my container work on my Mac but fail on the Linux server?\" A: \"Check what the Desktop VM hid: architecture (arm64 vs amd64), bind-mount UID permissions, host.docker.internal availability, and resource limits set by the VM rather than the container.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Desktop = containers inside a Linux VM.",
+        "Bind mounts are the main Desktop performance trap.",
+        "Apple Silicon builds arm64 by default.",
+        "Desktop masks UID issues that appear on Linux."
+      ]
+    }
+  ]
+}

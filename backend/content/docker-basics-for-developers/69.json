@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Three failure families produce misleading messages: wrong-architecture binaries, Windows line endings in scripts, and executables that are missing or not executable."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Symptom",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        [
+          "`exec format error`",
+          "arm64 image on amd64 (or reverse); script without shebang",
+          "`buildx --platform linux/amd64`; add `#!/bin/sh`"
+        ],
+        [
+          "`exec /entrypoint.sh: no such file or directory` (file exists)",
+          "CRLF: shebang is `#!/bin/sh\\r`",
+          "`.gitattributes`: `*.sh text eol=lf`; dos2unix"
+        ],
+        [
+          "\"not found\" for an existing binary",
+          "glibc binary in Alpine/scratch (missing loader)",
+          "Match libc; check with `file`/`ldd`"
+        ],
+        [
+          "Exit 127 / not in $PATH",
+          "venv not on PATH; installed in builder only",
+          "`ENV PATH=/opt/venv/bin:$PATH`; copy the venv"
+        ],
+        [
+          "Exit 126 permission denied",
+          "Lost +x bit",
+          "`COPY --chmod=755`"
+        ],
+        [
+          "CMD-SHELL / entrypoint fails on distroless",
+          "No shell",
+          "Exec form only"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker image inspect -f '{{.Architecture}}' ghcr.io/acme/rag-api:1.4.2 ; uname -m\narm64\nx86_64\n$ docker run --rm --entrypoint cat rag-api -A /entrypoint.sh | head -1\n#!/bin/sh^M$"
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"exec format error on the server, works on your Mac. Why?\" A: \"The image was built for linux/arm64 on Apple Silicon and the server is amd64. Build in CI with --platform linux/amd64 or multi-arch, and confirm with docker image inspect.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "exec format error → architecture (or missing shebang).",
+        "\"No such file\" for a present script → CRLF.",
+        "Fix line endings in git, not at runtime.",
+        "Check PATH and +x for 127/126."
+      ]
+    }
+  ]
+}

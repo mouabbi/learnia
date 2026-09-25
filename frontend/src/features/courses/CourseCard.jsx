@@ -1,6 +1,7 @@
 import { Clock, BookOpen, CheckCircle2, Sparkles } from 'lucide-react'
 import { Skeleton } from '../../components/Skeleton'
 import { COURSE_ICON_COMPONENTS } from './courseIcons'
+import { formatMinutes } from '../../utils/duration'
 
 // A gradient "thumbnail" per course icon, so the icon reads as a cover
 // image rather than a small inline glyph. Cycled by a stable hash of the
@@ -67,7 +68,7 @@ export function CourseCard({ course, progressPct, hasUnseenUpdate }) {
         )}
         <p>{course.description}</p>
         <span className="course-card-meta">
-          <Clock size={14} /> {course.estimatedMinutes} min
+          <Clock size={14} /> {formatMinutes(course.estimatedMinutes)}
         </span>
         {started && (
           <div className="course-card-progress" aria-label={`${progressPct}% complete`}>

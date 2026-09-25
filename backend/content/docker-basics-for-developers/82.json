@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "CI builds once for the server's architecture and pushes an immutable tag; the server pulls that exact image and runs a prod Compose overlay with no builds, no published internal ports, restart policies, limits and log rotation."
+    },
+    {
+      "type": "terminal",
+      "text": "$ export TAG=$(git rev-parse --short HEAD)\n$ docker buildx build --platform linux/amd64 -t ghcr.io/acme/rag-api:$TAG --push \\\n    --cache-from type=registry,ref=ghcr.io/acme/rag-api:buildcache \\\n    --cache-to type=registry,ref=ghcr.io/acme/rag-api:buildcache,mode=max ."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Concern",
+        "Dev",
+        "Prod"
+      ],
+      "rows": [
+        [
+          "Code",
+          "Bind mount + --reload",
+          "Baked; `image: ...:${TAG}`"
+        ],
+        [
+          "Ports",
+          "127.0.0.1 for api/db/qdrant",
+          "Only the reverse proxy (80/443)"
+        ],
+        [
+          "Restart",
+          "none",
+          "unless-stopped"
+        ],
+        [
+          "Resources",
+          "unlimited",
+          "deploy.resources.limits"
+        ],
+        [
+          "Logging",
+          "default",
+          "local + rotation"
+        ],
+        [
+          "TLS/proxy",
+          "none",
+          "Caddy/Traefik/nginx; correct forwarded-allow-ips"
+        ],
+        [
+          "Backups",
+          "optional",
+          "Scheduled pg_dump + snapshots, off-host, tested"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "# compose.prod.yaml\nservices:\n  api:\n    image: ghcr.io/acme/rag-api:${TAG:?TAG required}\n    build: !reset null\n    ports: !reset []\n    restart: unless-stopped\n    deploy: { resources: { limits: { memory: 3g, cpus: \"2\" } } }\n    logging: { driver: local, options: { max-size: \"20m\", max-file: \"5\" } }\n  db: { ports: !reset [], restart: unless-stopped }",
+      "language": "yaml"
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose -f compose.yaml -f compose.prod.yaml pull && docker compose -f compose.yaml -f compose.prod.yaml up -d --wait"
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Compose on one VM is valid production for many internal services, with limits: brief gaps on recreate (no rolling updates), no multi-node failover, manual scaling."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you ship this stack to a server?\" A: \"CI builds for the target architecture, pushes a git-SHA tag, and the server pulls that exact image with a prod overlay: no build section, only the proxy published, restart policies, resource limits, log rotation, secrets from a store, and tested off-host backups.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Build once in CI, for the server's arch.",
+        "Deploy immutable tags.",
+        "Prod overlay: !reset dev ports.",
+        "Know single-VM Compose limits."
+      ]
+    }
+  ]
+}

@@ -60,6 +60,7 @@ export function AppLayout() {
           <Menu aria-hidden="true" size={20} />
         </button>
         <Link to="/" className="topbar-title">
+          <img src="/favicon.svg" alt="" className="topbar-logo" width="26" height="26" />
           Learnia
         </Link>
 

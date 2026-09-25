@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Namespaces control what a process can see; cgroups control how much it can use. Docker orchestrates both, plus capabilities, seccomp and AppArmor/SELinux."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Namespace",
+        "Isolates",
+        "Effect"
+      ],
+      "rows": [
+        [
+          "pid",
+          "Process IDs",
+          "App is PID 1, can't see host processes"
+        ],
+        [
+          "net",
+          "Interfaces, routes, ports",
+          "Own eth0 and loopback; two containers can both bind :8000"
+        ],
+        [
+          "mnt",
+          "Mount table",
+          "Own root filesystem"
+        ],
+        [
+          "uts",
+          "Hostname",
+          "Hostname = container ID by default"
+        ],
+        [
+          "ipc",
+          "IPC objects",
+          "No shared memory with host"
+        ],
+        [
+          "user",
+          "UID/GID mapping",
+          "Root inside can map to an unprivileged host UID"
+        ],
+        [
+          "cgroup",
+          "cgroup tree view",
+          "Container sees its cgroup as root"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "cgroups: what happens at the limit",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Memory over limit: kernel OOM killer kills a process, usually exit 137.",
+        "CPU over quota: throttled (slower), never killed.",
+        "pids limit: fork fails with EAGAIN."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "Namespaces can be shared on purpose: `--network container:web` joins another container's net namespace. Kubernetes pods share one net namespace, which is why pod containers talk on localhost."
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Runtimes often read host values: `os.cpu_count()` returns 64 inside a `--cpus=2` container, and `free` shows host RAM. Auto-sized worker pools then over-spawn and hit OOM. Set WEB_CONCURRENCY, OMP_NUM_THREADS explicitly."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What happens when a container exceeds its CPU vs memory limit?\" A: \"CPU is throttled by the CFS quota and just runs slower; memory triggers the cgroup OOM killer, which SIGKILLs a process (exit 137, OOMKilled=true).\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Namespaces = visibility; cgroups = consumption.",
+        "Memory limit kills, CPU limit throttles.",
+        "Shared net namespace explains pod-local localhost.",
+        "Don't trust host-wide values like os.cpu_count() inside containers."
+      ]
+    }
+  ]
+}

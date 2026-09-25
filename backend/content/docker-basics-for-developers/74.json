@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Default to pgvector: one database, transactional consistency, SQL filtering. Add a dedicated vector DB like Qdrant only for scale, filtered-search latency or quantization needs."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "pgvector",
+        "Qdrant"
+      ],
+      "rows": [
+        [
+          "Ops",
+          "Existing Postgres",
+          "Extra service to run/back up"
+        ],
+        [
+          "Consistency",
+          "Vectors + metadata in one transaction",
+          "Dual writes, idempotent upserts, reconciliation"
+        ],
+        [
+          "Filtering",
+          "Full SQL, joins, RLS",
+          "Fast payload-filtered HNSW"
+        ],
+        [
+          "Indexes",
+          "HNSW, IVFFlat",
+          "HNSW + scalar/product/binary quantization, on-disk"
+        ],
+        [
+          "Dim limits (indexed)",
+          "vector ≤2,000; halfvec ≤4,000",
+          "High dims supported"
+        ],
+        [
+          "Scale",
+          "Up to millions on one box",
+          "Tens of millions+, sharding/replication"
+        ],
+        [
+          "Hybrid",
+          "SQL full-text + vectors",
+          "Native sparse/hybrid"
+        ],
+        [
+          "Backup",
+          "pg_dump",
+          "Snapshot API"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Gotchas for both",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "The dimension is fixed (`vector(384)`, `size: 384`): a new model means a new column/collection and full re-embed.",
+        "Distance must match the model (usually cosine): `vector_cosine_ops` + `<=>`, or `Distance.COSINE`.",
+        "ANN trades recall for speed: regressions show up as worse answers, not errors."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"pgvector or a dedicated vector DB?\" A: \"pgvector by default: one system, transactional consistency and SQL filters. Move to Qdrant or similar when scale, filtered-search latency or quantization justifies another stateful service and the dual-write consistency work.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Fewer moving parts wins by default.",
+        "Dedicated DBs cost dual writes.",
+        "Dimension and metric are schema.",
+        "Recall regressions are silent."
+      ]
+    }
+  ]
+}

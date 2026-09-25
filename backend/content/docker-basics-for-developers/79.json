@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Cache model weights in a named volume at a pre-owned HF_HOME (or bake them in for prod), pin the model revision, warm up at startup, and deliver API keys as secret files."
+    },
+    {
+      "type": "heading",
+      "text": "Model cache",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "No volume → re-download on every recreate.",
+        "Non-root with no writable home → PermissionError.",
+        "Fix: `ENV HF_HOME=/models`, create and chown /models to UID 10001 before USER, mount `hf_cache:/models` (a fresh volume inherits the ownership)."
+      ]
+    },
+    {
+      "type": "code",
+      "code": "model = SentenceTransformer(settings.embedding_model, revision=settings.embedding_revision, device=\"cpu\")\nassert model.get_sentence_embedding_dimension() == settings.embedding_dim",
+      "language": "python"
+    },
+    {
+      "type": "paragraph",
+      "text": "Pin a commit hash, not \"main\": changed weights embed queries differently from indexed vectors, and retrieval silently degrades."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "Volume cache",
+        "Baked into image"
+      ],
+      "rows": [
+        [
+          "Image size",
+          "Small",
+          "Large"
+        ],
+        [
+          "First start",
+          "Downloads",
+          "Instant, offline (`HF_HUB_OFFLINE=1`)"
+        ],
+        [
+          "Reproducibility",
+          "Needs a pinned revision",
+          "Built in"
+        ],
+        [
+          "Fit",
+          "Dev",
+          "Prod / air-gapped"
+        ]
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Warm up (load + one dummy embed) in lifespan; set a healthcheck start_period to cover it."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "API keys",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Compose secret → /run/secrets/openai_api_key → SecretStr.",
+        "Never in Dockerfile, compose.yaml or images; .env and secrets/ in .gitignore and .dockerignore.",
+        "Don't log headers or settings; per-environment keys with spending limits."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you handle model weights and LLM API keys in containers?\" A: \"Weights: pinned revision, a named-volume cache at a pre-owned HF_HOME in dev or baked in for prod, warmed up before reporting healthy. Keys: runtime secret files read into SecretStr, never baked into images or logged, scoped per environment.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Pre-own the cache dir; use a named volume.",
+        "Pin model revisions.",
+        "Warm up before healthy.",
+        "Keys as secret files, never in images."
+      ]
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { X, Copy, Check, Loader2, AlertTriangle, Braces } from 'lucide-react'
 import { cmsApi } from './cmsApi'
+import { copyText } from '../../utils/clipboard'
 import { BlockRenderer } from './BlockRenderer'
 import { JsonCodeEditor } from './JsonCodeEditor'
 
@@ -57,14 +58,9 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
   if (!open) return null
 
   const copyPrompt = async () => {
-    try {
-      await navigator.clipboard.writeText(prompt)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // Clipboard API can fail (permissions, non-secure context) — the
-      // textarea is still selectable/copyable manually, so this is silent.
-    }
+    const ok = await copyText(prompt)
+    setCopied(ok ? 'ok' : 'failed')
+    setTimeout(() => setCopied(false), ok ? 1500 : 3000)
   }
 
   // Re-indents whatever was pasted (LLMs often return single-line or
@@ -137,7 +133,7 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
           onClick={(e) => e.stopPropagation()}
         >
           <div className="cms-modal-header">
-            <h3>Generate with AI — {scope}</h3>
+            <h3>Generate with AI — {SCOPE_LABELS[scope] ?? scope}</h3>
             <button type="button" className="cms-btn-icon" onClick={onClose} aria-label="Close">
               <X size={18} />
             </button>
@@ -180,8 +176,12 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
                     <textarea className="cms-prompt-textarea" rows={14} readOnly value={prompt} />
                     <div className="cms-modal-actions">
                       <button type="button" className="cms-btn-secondary" onClick={copyPrompt}>
-                        {copied ? <Check size={16} /> : <Copy size={16} />}
-                        {copied ? 'Copied' : 'Copy to clipboard'}
+                        {copied === 'ok' ? <Check size={16} /> : <Copy size={16} />}
+                        {copied === 'ok'
+                          ? 'Copied'
+                          : copied === 'failed'
+                            ? 'Copy failed — select the text and press Ctrl+C'
+                            : 'Copy to clipboard'}
                       </button>
                       <button type="button" className="cms-btn-primary" onClick={() => setStep(2)}>
                         Next: paste JSON
@@ -292,6 +292,8 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
                           </li>
                         ))}
                       </ul>
+                    ) : scope === 'module' || scope === 'chapter' || scope === 'course' ? (
+                      <StructurePreview scope={scope} parsed={parsedPreview} />
                     ) : Array.isArray(parsedPreview) ? (
                       <ul className="cms-question-preview-list">
                         {parsedPreview.map((q, i) => (
@@ -327,5 +329,63 @@ export function AiImportModal({ open, onClose, courseId, scope, targetIds = {}, 
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  )
+}
+
+const SCOPE_LABELS = {
+  course: 'course structure',
+  module: 'module structure',
+  chapter: 'new chapter',
+  page: 'page content',
+  'module-content': 'module content',
+  'module-qcm': 'module quiz',
+  'final-exam': 'final exam',
+}
+
+// Chapter/page outline of a structure import (course, module or chapter
+// scope) — what will be created, instead of a raw JSON dump.
+function StructurePreview({ scope, parsed }) {
+  const chapterList = (chapters) => (
+    <ul className="cms-structure-preview">
+      {(chapters || []).map((c, ci) => (
+        <li key={ci}>
+          <strong>{c.title}</strong>
+          {(c.pages || []).length > 0 && (
+            <ul>
+              {c.pages.map((p, pi) => (
+                <li key={pi}>{p.title}</li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+  if (scope === 'chapter') return chapterList([parsed])
+  if (scope === 'module') {
+    return (
+      <>
+        <p className="cms-hint">
+          <strong>{parsed?.title}</strong> — {(parsed?.chapters || []).length} chapter(s) to add
+        </p>
+        {chapterList(parsed?.chapters)}
+      </>
+    )
+  }
+  return (
+    <>
+      <p className="cms-hint">
+        <strong>{parsed?.title}</strong>
+        {(parsed?.modules || []).length > 0 ? ` — ${parsed.modules.length} module(s)` : ''}
+      </p>
+      <ul className="cms-structure-preview">
+        {(parsed?.modules || []).map((m, mi) => (
+          <li key={mi}>
+            <strong>{m.title}</strong>
+            {chapterList(m.chapters)}
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }

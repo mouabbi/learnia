@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A container is an ordinary host process with a restricted view of the system (namespaces) and capped resources (cgroups), sharing the host kernel. A VM runs its own guest kernel on virtual hardware provided by a hypervisor."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Aspect",
+        "Container",
+        "Virtual machine"
+      ],
+      "rows": [
+        [
+          "Kernel",
+          "Shared with host",
+          "Own guest kernel"
+        ],
+        [
+          "Isolation boundary",
+          "Kernel syscall interface",
+          "Hypervisor"
+        ],
+        [
+          "Startup",
+          "Milliseconds (fork/exec)",
+          "Seconds to minutes (OS boot)"
+        ],
+        [
+          "Size",
+          "MBs (userland only)",
+          "GBs (full OS)"
+        ],
+        [
+          "Guest OS",
+          "Linux containers need a Linux kernel",
+          "Any OS"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run -d --name web nginx:1.27\n$ ps -ef | grep \"nginx: master\"      # visible on the host with a host PID; PID 1 inside"
+    },
+    {
+      "type": "heading",
+      "text": "Gotchas",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Kernel features (cgroup v2, io_uring, eBPF) come from the host, not the image. \"FROM ubuntu:24.04\" doesn't bring Ubuntu's kernel.",
+        "Weaker boundary: a kernel exploit is a potential escape for every container on the host. Multi-tenant platforms add gVisor, Kata Containers or Firecracker.",
+        "GPUs: the driver lives on the host; the image carries only the CUDA userland (NVIDIA Container Toolkit bridges them)."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Container vs VM?\" A: \"A container is a process isolated by namespaces and limited by cgroups on the shared host kernel; a VM virtualizes hardware and boots its own kernel. Containers win on startup and density, VMs on isolation.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Container = process + namespaces + cgroups on the host kernel.",
+        "No guest kernel: kernel behavior and bugs come from the host.",
+        "Shared kernel means a weaker security boundary than a VM.",
+        "Linux containers on macOS/Windows require a Linux VM."
+      ]
+    }
+  ]
+}

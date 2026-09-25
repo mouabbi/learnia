@@ -48,6 +48,9 @@ class ModuleMetadataJSON(BaseModel):
 
 class ChapterMetadataJSON(BaseModel):
     title: str
+    # Optional: "Add chapter with AI" on a module creates the chapter WITH
+    # its page titles in one commit (see ImportService.commit_chapter).
+    pages: list[ModulePageJSON] = []
 
 
 class CourseMetadataJSON(BaseModel):

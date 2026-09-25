@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Inside a container, 127.0.0.1 is the container's private loopback, so the server must listen on 0.0.0.0 to receive published traffic; `-p` still controls what's exposed on the host."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run -p 8000:8000 rag-api uvicorn app.main:app      # default host 127.0.0.1\n$ curl localhost:8000\ncurl: (56) Recv failure: Connection reset by peer"
+    },
+    {
+      "type": "paragraph",
+      "text": "The symptom is \"reset\" or \"empty reply\", not \"refused\": docker-proxy accepts on the host, then can't connect to the container's eth0."
+    },
+    {
+      "type": "heading",
+      "text": "Workers",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Option",
+        "When"
+      ],
+      "rows": [
+        [
+          "One process per container, scale containers",
+          "Orchestrators; simplest"
+        ],
+        [
+          "`--workers N` / gunicorn + UvicornWorker",
+          "Single VM"
+        ]
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Size from the CPU quota, not `os.cpu_count()` (host CPUs); set it explicitly.",
+        "Memory multiplies: each worker loads its own model.",
+        "CPU-bound embedding in `async def` blocks the loop: use `def`, run_in_threadpool, or a separate service."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Proxy headers",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "uvicorn app.main:app --host 0.0.0.0 --proxy-headers --forwarded-allow-ips=\"172.18.0.0/16\""
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Default trusted IP is 127.0.0.1, never the proxy in Docker, so headers are ignored → http:// redirects, proxy IP in logs, per-IP rate limits collapse.",
+        "`\"*\"` is only safe if the port is reachable solely via the proxy.",
+        "Path prefix? Set `root_path`."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"The app works inside the container but curl from the host gets connection reset. Why?\" A: \"It's listening on 127.0.0.1, the container's own loopback. Published traffic arrives on eth0, so bind to 0.0.0.0; the -p mapping decides host exposure.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Bind 0.0.0.0 in containers.",
+        "Size workers from limits; memory scales with workers.",
+        "Trust forwarded headers only from the proxy's IPs.",
+        "Don't block the event loop with CPU work."
+      ]
+    }
+  ]
+}

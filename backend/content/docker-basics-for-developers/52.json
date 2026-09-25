@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Debug networking from inside the caller's network namespace: check network membership, then use a tool container that shares the namespace, or nsenter, when the image has no tools."
+    },
+    {
+      "type": "heading",
+      "text": "1. Topology",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker network inspect rag_default --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{\"\\n\"}}{{end}}'\n$ docker inspect -f '{{json .NetworkSettings.Networks}}' rag-api-1 | jq 'keys'"
+    },
+    {
+      "type": "paragraph",
+      "text": "Same network? That alone settles most DNS failures."
+    },
+    {
+      "type": "heading",
+      "text": "2. From the caller, with no extra tools",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose exec api getent hosts db\n$ docker compose exec api python -c \"import socket; print(socket.create_connection(('db',5432),3))\""
+    },
+    {
+      "type": "heading",
+      "text": "3. netshoot in the same namespace",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run --rm -it --network container:rag-api-1 nicolaka/netshoot\n~ # dig db ; nc -vz db 5432 ; ss -ltnp ; tcpdump -i eth0 port 5432 -nn"
+    },
+    {
+      "type": "paragraph",
+      "text": "`--network container:<name>` = same IP, same localhost, same DNS as the app. `--network rag_default` joins as a new peer instead."
+    },
+    {
+      "type": "heading",
+      "text": "4. nsenter from the host (Linux)",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ PID=$(docker inspect -f '{{.State.Pid}}' rag-api-1)\n$ sudo nsenter -t \"$PID\" -n ss -ltnp\nLISTEN 0 2048 127.0.0.1:8000     # bug: bound to loopback"
+    },
+    {
+      "type": "paragraph",
+      "text": "Uses host binaries, so it works with distroless images."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you debug networking in a container that has no shell or tools?\" A: \"Attach nicolaka/netshoot with --network container:<name> to share its exact namespace, or nsenter -n from the host using the container's PID, then resolve, connect and check listeners with ss.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "First check shared network membership.",
+        "Python or /dev/tcp can replace missing tools.",
+        "netshoot via --network container:<name>.",
+        "nsenter works on distroless."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "tini is a minimal init that runs as PID 1, forwards signals to its child, and reaps zombies; your app runs as PID 2 with normal signal semantics."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run --init rag-api                       # Docker injects its bundled tini"
+    },
+    {
+      "type": "code",
+      "code": "services:\n  api:\n    init: true",
+      "language": "yaml"
+    },
+    {
+      "type": "code",
+      "code": "RUN apt-get update && apt-get install -y --no-install-recommends tini && rm -rf /var/lib/apt/lists/*\nENTRYPOINT [\"tini\", \"--\"]\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]",
+      "language": "dockerfile"
+    },
+    {
+      "type": "paragraph",
+      "text": "Baking it into the image is most portable: Kubernetes has no `--init`."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Situation",
+        "Need an init?"
+      ],
+      "rows": [
+        [
+          "Server with SIGTERM handler, no children",
+          "Optional"
+        ],
+        [
+          "App spawns subprocesses",
+          "Yes (reaping)"
+        ],
+        [
+          "Custom script without signal handling",
+          "Yes, or add a handler"
+        ],
+        [
+          "Shell entrypoint",
+          "Fix with `exec \"$@\"`; tini is still fine"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "tini signals only its direct child. If that child is a shell that started the app without exec, the app still misses SIGTERM. Use `tini -g` (process group) or dumb-init, or fix the script."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"When do you need tini?\" A: \"When PID 1 would otherwise be a process that doesn't handle signals or reap children, such as custom scripts or apps that spawn subprocesses. Bake it in with ENTRYPOINT [\"tini\", \"--\"] so it works on every runtime, not just docker run --init.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "tini = signal forwarding + zombie reaping.",
+        "In-image tini beats --init for portability.",
+        "tini only signals its direct child unless -g.",
+        "Servers with handlers and no children can skip it."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "EXPOSE and LABEL are metadata; USER changes who runs later instructions and the container; HEALTHCHECK defines a periodic in-container probe whose status Docker reports but does not act on."
+    },
+    {
+      "type": "heading",
+      "text": "EXPOSE",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Documents the listening port; `-P` uses it. It publishes nothing and doesn't restrict container-to-container traffic."
+    },
+    {
+      "type": "heading",
+      "text": "USER",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app --no-create-home app\nUSER 10001:10001",
+      "language": "dockerfile"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Numeric UID so Kubernetes runAsNonRoot can verify it.",
+        "COPY'd files stay root-owned (read-only code is good).",
+        "Writable dirs (cache, uploads) must exist and be chowned before USER; fresh named volumes inherit that ownership.",
+        "Non-root can't bind <1024: listen on 8000."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "LABEL",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Use OCI keys (`org.opencontainers.image.source`, `.revision`, `.version`) for tooling and prune filters."
+    },
+    {
+      "type": "heading",
+      "text": "HEALTHCHECK",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "HEALTHCHECK --interval=15s --timeout=3s --start-period=60s --retries=3 \\\n  CMD [\"python\",\"-c\",\"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=2).status==200 else 1)\"]",
+      "language": "dockerfile"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Exit 0 healthy, 1 unhealthy; start-period failures don't count.",
+        "slim/distroless have no curl: use the runtime you ship.",
+        "Keep it cheap: no LLM calls or vector searches."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Does EXPOSE publish a port, and does an unhealthy HEALTHCHECK restart the container?\" A: \"No to both. EXPOSE is documentation; -p publishes. Docker only reports health; restarts come from exits, or from orchestrators like Kubernetes liveness probes. Compose uses health for depends_on conditions.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "EXPOSE ≠ publish.",
+        "Numeric non-root USER; chown writable dirs first.",
+        "HEALTHCHECK informs, doesn't restart.",
+        "Healthchecks must be cheap and local."
+      ]
+    }
+  ]
+}

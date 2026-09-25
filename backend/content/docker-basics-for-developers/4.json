@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The docker CLI is a thin REST client; dockerd handles the API, builds, networks and volumes; containerd manages images and container lifecycle; a per-container shim parents the process; runc creates namespaces and cgroups, execs the process, and exits."
+    },
+    {
+      "type": "image",
+      "src": "generate: Layered diagram: docker CLI → REST over /var/run/docker.sock → dockerd → gRPC → containerd → containerd-shim-runc-v2 (one per container) → runc → container process",
+      "alt": "The Docker stack; runc exits after start, the shim stays as parent.",
+      "caption": "The Docker stack; runc exits after start, the shim stays as parent."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Component",
+        "Job"
+      ],
+      "rows": [
+        [
+          "docker CLI",
+          "Sends API calls; holds no state"
+        ],
+        [
+          "dockerd",
+          "API, BuildKit, networks, volumes, logging drivers"
+        ],
+        [
+          "containerd",
+          "Image pull/storage, lifecycle; also used directly by Kubernetes"
+        ],
+        [
+          "containerd-shim",
+          "Holds stdio and exit status; decouples containers from daemon restarts"
+        ],
+        [
+          "runc",
+          "OCI runtime: sets up the container, execs, exits"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Consequences",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "The CLI is remote-capable: `DOCKER_HOST=ssh://...` or `docker context` sends builds (and their context upload) to another host.",
+        "Socket access = daemon control = root on the host.",
+        "`\"live-restore\": true` keeps containers running across dockerd restarts because the shim is their parent.",
+        "Kubernetes dropped dockershim (v1.24) and talks to containerd/CRI-O; Docker-built images still run because they're OCI."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What happens when you run docker run?\" A: \"The CLI calls dockerd's API; the image is pulled if missing; dockerd asks containerd to create the container; containerd starts a shim, which uses runc to set up namespaces, cgroups and the rootfs and exec the entrypoint; runc exits and the shim stays as parent.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "CLI → dockerd → containerd → shim → runc.",
+        "runc exits after start; the shim keeps the container alive.",
+        "The CLI can drive a remote daemon.",
+        "Kubernetes doesn't need Docker, only OCI images."
+      ]
+    }
+  ]
+}

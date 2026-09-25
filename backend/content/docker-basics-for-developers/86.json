@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Compose runs one application on one host; Kubernetes continuously reconciles many applications across many hosts. Move when you need multi-node availability, rolling deploys or autoscaling, not because of service count."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Compose",
+        "Kubernetes",
+        "Adds"
+      ],
+      "rows": [
+        [
+          "service",
+          "Deployment + Service",
+          "Rolling updates, replicas, stable virtual IP"
+        ],
+        [
+          "healthcheck",
+          "readiness/liveness/startup probes",
+          "Liveness restarts; readiness gates traffic"
+        ],
+        [
+          "depends_on",
+          "(none)",
+          "Apps must retry; init containers"
+        ],
+        [
+          "volumes",
+          "PVC + StorageClass",
+          "Storage following pods (with limits)"
+        ],
+        [
+          "secrets/env_file",
+          "Secret/ConfigMap",
+          "RBAC, encryption at rest, external operators"
+        ],
+        [
+          "ports",
+          "Service + Ingress/Gateway",
+          "L7 routing, TLS"
+        ],
+        [
+          "restart policy",
+          "Controller reconciliation",
+          "Rescheduling on healthy nodes"
+        ],
+        [
+          "stop_grace_period",
+          "terminationGracePeriodSeconds (30 s)",
+          "preStop hooks"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Signals to move",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "HA across machines; zero-downtime deploys required; autoscaling; many teams on shared policy-driven infra."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Before Kubernetes",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "A single VM with Compose, backups, monitoring and a proxy runs plenty of production. Managed platforms (Cloud Run, ECS Fargate, Container Apps, Fly.io) give rolling deploys and autoscaling without running a cluster."
+    },
+    {
+      "type": "heading",
+      "text": "What carries over unchanged",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Immutable images, env/secret config, stateless containers, /healthz and /readyz, SIGTERM handling, stdout logs, startup retries."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"When would you move from Compose to Kubernetes?\" A: \"When requirements exceed one host: multi-node high availability, zero-downtime rolling deploys, autoscaling or shared multi-team infrastructure. Otherwise a single VM or a managed container platform is simpler. Twelve-factor apps move with just new manifests.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Compose = one host, one app.",
+        "Kubernetes has no depends_on: apps must retry.",
+        "Move for HA, rollouts, autoscaling.",
+        "Managed platforms are a middle ground."
+      ]
+    }
+  ]
+}

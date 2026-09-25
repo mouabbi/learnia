@@ -74,6 +74,14 @@ export const cmsApi = {
     apiClient.post(`/courses/${courseId}/prompts/batch`, selections),
   validateBatchImport: (courseId, selections, json) =>
     apiClient.post(`/courses/${courseId}/import/batch/validate`, { json, ...selections }),
+  // Uploads the AI's zip (module folders + root final-exam.json). Never
+  // writes: returns { valid, errors, warnings, mappings, parsed, json,
+  // selections } — pass json + selections to commitBatchImport as-is.
+  uploadBatchZip: (courseId, file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient.postForm(`/courses/${courseId}/import/batch/zip`, formData)
+  },
   commitBatchImport: (courseId, selections, json, replace) =>
     apiClient.post(`/courses/${courseId}/import/batch/commit`, {
       json,

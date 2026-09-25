@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Multiple FROM stages let you compile in a fat builder and copy only the artifacts into a slim runtime, so compilers, headers and caches never ship."
+    },
+    {
+      "type": "code",
+      "code": "FROM python:3.12-slim-bookworm AS builder\nRUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*\nRUN python -m venv /opt/venv\nENV PATH=/opt/venv/bin:$PATH\nCOPY requirements.txt .\nRUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt\n\nFROM python:3.12-slim-bookworm AS runtime\nENV PATH=/opt/venv/bin:$PATH\nCOPY --from=builder /opt/venv /opt/venv\nCOPY app /app/app\nUSER 10001\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]",
+      "language": "dockerfile"
+    },
+    {
+      "type": "image",
+      "src": "generate: Builder stage (compilers, headers, pip cache, /opt/venv) with an arrow \"COPY --from=builder /opt/venv\" into a runtime stage (slim base + venv + app)",
+      "alt": "Only artifacts cross the stage boundary.",
+      "caption": "Only artifacts cross the stage boundary."
+    },
+    {
+      "type": "heading",
+      "text": "Rules that keep it working",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Copy the venv to the same path: console scripts have absolute shebangs.",
+        "Same Python minor version and libc in both stages (ABI).",
+        "Shared libs don't travel with the venv: install libpq5 etc. in runtime.",
+        "The last stage is the default target: put runtime last or always use `--target`.",
+        "`COPY --from=` also takes images: `COPY --from=ghcr.io/astral-sh/uv:<ver> /uv /bin/uv`."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What does a multi-stage build buy you, and what breaks when copying a venv between stages?\" A: \"A small runtime without build tooling. The venv must land at the same path, with the same Python version and libc, and runtime shared libraries like libpq5 must be installed separately.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Build fat, ship slim.",
+        "Same path, same Python, same libc.",
+        "Runtime shared libs aren't copied.",
+        "Control the target stage explicitly."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The base image fixes your libc, package manager, tooling and CVE surface. For Python services the default is a glibc-based slim image, not the smallest one."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Base",
+        "Size",
+        "libc",
+        "Shell/pkg",
+        "Use",
+        "Watch out"
+      ],
+      "rows": [
+        [
+          "python:3.12",
+          "~1 GB",
+          "glibc",
+          "yes/apt",
+          "Builder stages",
+          "Large, many CVEs"
+        ],
+        [
+          "python:3.12-slim-bookworm",
+          "~120-150 MB",
+          "glibc",
+          "yes/apt",
+          "Default runtime",
+          "Add runtime libs (libpq5, libgomp1)"
+        ],
+        [
+          "python:3.12-alpine",
+          "~50 MB",
+          "musl",
+          "yes/apk",
+          "Pure-Python tools",
+          "Wheels, speed, DNS quirks"
+        ],
+        [
+          "distroless python3",
+          "small",
+          "glibc",
+          "no/no",
+          "Hardened runtime",
+          "No shell to debug"
+        ],
+        [
+          "Chainguard/Wolfi",
+          "small",
+          "glibc",
+          "varies",
+          "Low-CVE runtime",
+          "Different tagging conventions"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "The musl problem",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Most binary wheels target glibc (manylinux); missing musllinux wheels mean compiling from source (compilers, Rust, minutes to hours), and the image ends up bigger.",
+        "musl malloc/threading can slow CPU-heavy Python.",
+        "musl's resolver differs from glibc's (search domains, older TCP fallback).",
+        "glibc binaries copied in fail with a misleading \"not found\" (missing loader)."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Rules",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Pin variant and codename: `3.12-slim-bookworm`, never bare `python`.",
+        "Builder and runtime must share Python minor version and libc.",
+        "GPU inference: CUDA `-runtime` images matching the host driver, not `-devel`."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why not use Alpine for a Python API?\" A: \"Alpine uses musl, and many Python wheels ship only for glibc, so pip compiles from source, making builds slow and the final image often larger. musl can also be slower and resolves DNS differently. slim-bookworm in a multi-stage build is the safer default.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Default: python:3.12-slim-bookworm.",
+        "Alpine = musl = wheel and DNS pain.",
+        "Distroless trades debuggability for a tiny surface.",
+        "Match Python version and libc across stages."
+      ]
+    }
+  ]
+}

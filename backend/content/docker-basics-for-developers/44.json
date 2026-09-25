@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A volume is data on one host's disk, not a backup; use logical dumps for databases and stopped-writer file copies for everything else."
+    },
+    {
+      "type": "heading",
+      "text": "Logical backups (databases)",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose exec -T db pg_dump -U app -d rag -Fc > backups/rag.dump\n$ docker compose exec -T db pg_restore -U app -d rag --clean --if-exists < backups/rag.dump"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Consistent while running, portable across versions.",
+        "`-T` is mandatory: a TTY corrupts binary output.",
+        "Qdrant: use its snapshot API, not live file copies."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "File-level backups (any volume)",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose stop db\n$ docker run --rm -v rag_pgdata:/data:ro -v \"$PWD/backups:/backup\" alpine tar czf /backup/pgdata.tgz -C /data .\n$ docker compose start db\n$ docker volume create rag_pgdata_restored\n$ docker run --rm -v rag_pgdata_restored:/data -v \"$PWD/backups:/backup\" alpine tar xzf /backup/pgdata.tgz -C /data"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "Logical (pg_dump)",
+        "File-level (tar)"
+      ],
+      "rows": [
+        [
+          "Needs downtime",
+          "No",
+          "Stop writers"
+        ],
+        [
+          "Cross-version restore",
+          "Yes",
+          "Same major only"
+        ],
+        [
+          "Works for any volume",
+          "No",
+          "Yes"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Copying a live database's files gives a crash-consistent copy at best, a corrupt one at worst."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you back up a Postgres container?\" A: \"pg_dump via exec -T on a schedule, stored off-host and encrypted if sensitive, with a retention policy and regularly tested restores. File-level volume copies only with the database stopped, and only for the same major version.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Volume ≠ backup.",
+        "Databases: logical dumps with -T.",
+        "File copies need stopped writers.",
+        "Off-host, scheduled, tested restores."
+      ]
+    }
+  ]
+}

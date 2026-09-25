@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import confetti from 'canvas-confetti'
+import { formatMinutes } from '../../utils/duration'
 import {
   Timer,
   GitCommitHorizontal,
@@ -315,7 +316,7 @@ function ExamIntro({ course, exam, onStart }) {
 
       <div className="exam-intro-stats">
         <div>
-          <Timer size={16} /> {exam.durationMinutes} min
+          <Timer size={16} /> {formatMinutes(exam.durationMinutes)}
         </div>
         <div>
           <GitCommitHorizontal size={16} /> {exam.questions.length} questions

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Docker's success created pressure for vendor-neutral standards, so the image format and runtime were standardized in the OCI (2015) and Docker's engine was split into reusable components: runc for running containers, containerd for managing them."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Milestone",
+        "Result"
+      ],
+      "rows": [
+        [
+          "libcontainer (2014)",
+          "Docker drops the LXC dependency"
+        ],
+        [
+          "OCI founded (2015)",
+          "Image spec, runtime spec, later distribution spec"
+        ],
+        [
+          "runc donated",
+          "Reference OCI runtime"
+        ],
+        [
+          "containerd donated to CNCF (2017)",
+          "Standalone container lifecycle daemon"
+        ],
+        [
+          "Kubernetes CRI",
+          "Runtimes plug in via an interface (containerd, CRI-O)"
+        ],
+        [
+          "dockershim removed (K8s 1.24, 2022)",
+          "Kubernetes stops using Docker Engine directly; images unaffected"
+        ]
+      ]
+    },
+    {
+      "type": "image",
+      "src": "generate: Before/after: a monolithic Docker daemon on the left; on the right, docker CLI → dockerd → containerd → shim → runc, with Kubernetes kubelet → CRI → containerd/CRI-O alongside",
+      "alt": "Docker's split into standard components.",
+      "caption": "Docker's split into standard components."
+    },
+    {
+      "type": "heading",
+      "text": "Why it matters",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "No lock-in: build with Docker, BuildKit, Buildah or kaniko; run with containerd, CRI-O or Podman.",
+        "\"Kubernetes deprecated Docker\" meant the runtime shim, not Docker-built images.",
+        "Alternative runtimes (gVisor, Kata) plug in under the same specs."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Kubernetes removed dockershim. Do Docker images still work?\" A: \"Yes. Images built with Docker are OCI images, and Kubernetes runs them through containerd or CRI-O via the CRI. Only the Docker Engine integration was removed.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "OCI standardizes image, runtime, distribution.",
+        "Docker split into dockerd → containerd → runc.",
+        "Kubernetes uses containerd/CRI-O, not Docker Engine.",
+        "Standards removed lock-in."
+      ]
+    }
+  ]
+}

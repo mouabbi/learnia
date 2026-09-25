@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A good healthcheck is cheap, local, fast, and tests what clients actually use; it runs inside the container on every interval, forever."
+    },
+    {
+      "type": "code",
+      "code": "# Postgres: TCP, not the socket\ntest: [\"CMD-SHELL\", \"pg_isready -h 127.0.0.1 -p 5432 -U $${POSTGRES_USER} -d $${POSTGRES_DB}\"]\n# Qdrant: minimal image may lack curl → TCP probe\ntest: [\"CMD-SHELL\", \"bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1\"]\n# FastAPI: use the Python you ship\ntest: [\"CMD\", \"python\", \"-c\", \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/readyz',timeout=2).status==200 else 1)\"]",
+      "language": "yaml"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Postgres `-h 127.0.0.1`: during first init the temporary server is socket-only, so a socket check can report ready before TCP clients can connect.",
+        "Qdrant exposes `/healthz`, `/livez`, `/readyz` on 6333; check which tools the image has.",
+        "API: `/healthz` shallow liveness; `/readyz` cheap dependency check (`SELECT 1`)."
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Rule",
+        "Why"
+      ],
+      "rows": [
+        [
+          "CMD vs CMD-SHELL",
+          "CMD-SHELL needed for `||`, pipes, $VAR"
+        ],
+        [
+          "`$$VAR` in Compose",
+          "Otherwise interpolated on the host"
+        ],
+        [
+          "No LLM calls or vector searches",
+          "Cost, load, flapping"
+        ],
+        [
+          "timeout < interval; real start_period",
+          "Model downloads can take minutes"
+        ],
+        [
+          "Shallow liveness",
+          "Deep checks cascade \"unhealthy\" states"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What makes a good healthcheck?\" A: \"It's cheap, local and tests the client path: pg_isready over TCP for Postgres, a readiness endpoint that does SELECT 1 for the API, with a start_period covering cold start. It never calls paid or slow external services.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Test the path clients use.",
+        "Cheap and local; runs forever.",
+        "$$ and CMD-SHELL for variables.",
+        "Liveness shallow, readiness cheap."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Validate config first, start with `--wait`, then verify bottom-up: database, migrations, vector store, API from the host and from inside the network, then an end-to-end ingest and query."
+    },
+    {
+      "type": "terminal",
+      "text": "$ printf '%s' 'devpass' > secrets/db_password.txt\n$ docker compose config --quiet && echo OK\n$ docker compose up -d --build --wait\n$ docker compose ps\nrag-api-1      Up (healthy)   127.0.0.1:8000->8000/tcp\nrag-db-1       Up (healthy)   127.0.0.1:5432->5432/tcp\nrag-migrate-1  Exited (0)                                  # expected: one-shot\nrag-qdrant-1   Up (healthy)   127.0.0.1:6333->6333/tcp"
+    },
+    {
+      "type": "heading",
+      "text": "Verify bottom-up",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose exec db psql -U app -d rag -c '\\dx vector' -c '\\d chunks'\n$ docker compose logs migrate | tail -2\n$ curl -s localhost:6333/readyz\n$ curl -s localhost:8000/readyz\n$ docker compose exec api python -c \"import socket; print(socket.gethostbyname('db'))\"\n$ curl -s -X POST localhost:8000/ingest -F file=@samples/handbook.md\n$ curl -s -X POST localhost:8000/query -H 'content-type: application/json' -d '{\"question\":\"refund policy?\"}'"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`printf`, not `echo`, for secret files (no trailing newline).",
+        "Put the last checks in `scripts/smoke.sh` and run it in CI after `up --wait`.",
+        "`down` keeps data; `down -v` wipes pgdata, qdrant_storage and hf_cache."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you verify a multi-service stack actually works?\" A: \"Validate the merged config, start with up --wait so health gates pass, then test bottom-up: DB and extension, migration logs, vector store readiness, API readiness from the host and name resolution from inside, and finally a real ingest and query, scripted as a CI smoke test.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "compose config before up.",
+        "up --wait uses healthchecks.",
+        "migrate Exited (0) is success.",
+        "Smoke-test end-to-end in CI."
+      ]
+    }
+  ]
+}

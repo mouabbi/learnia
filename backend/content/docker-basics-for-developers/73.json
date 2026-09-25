@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The stack is a FastAPI RAG API with an in-process embedding model, Postgres + pgvector for documents and vectors, optional Qdrant behind a `VECTOR_BACKEND` switch, and a one-shot migrate job, all on one private Compose network."
+    },
+    {
+      "type": "image",
+      "src": "generate: host → 127.0.0.1:8000 → api (FastAPI + embedding model, hf_cache volume) on a \"backend\" network; api → db (Postgres 17 + pgvector, pgdata volume) and → qdrant (qdrant_storage volume); one-shot migrate → db; api → external LLM API; optional ollama under a profile",
+      "alt": "Capstone topology.",
+      "caption": "Capstone topology."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Service",
+        "Image",
+        "Role",
+        "State"
+      ],
+      "rows": [
+        [
+          "api",
+          "Your image",
+          "/ingest, /query, /healthz, /readyz",
+          "hf_cache"
+        ],
+        [
+          "db",
+          "pgvector/pgvector:pg17",
+          "Chunks + metadata (+ vectors)",
+          "pgdata"
+        ],
+        [
+          "qdrant",
+          "qdrant/qdrant (pinned)",
+          "Vector search (optional backend)",
+          "qdrant_storage"
+        ],
+        [
+          "migrate",
+          "Same image as api",
+          "alembic upgrade head, exit 0",
+          "—"
+        ],
+        [
+          "ollama",
+          "ollama/ollama (profile)",
+          "Local LLM",
+          "ollama volume"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Flows",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Ingest: chunk → embed (batch) → write chunk rows → upsert vectors keyed by chunk ID.",
+        "Query: embed question (same model) → ANN top-k → fetch chunks → prompt LLM → answer with citations."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Design decisions",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Only localhost-bound ports; services talk by name.",
+        "Schema owned by migrations; model name and dimension are validated config.",
+        "Deterministic chunk IDs make re-ingest an idempotent upsert across stores."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Walk me through your containerized RAG architecture.\" A: \"A FastAPI service with an in-process embedding model, Postgres with pgvector (Qdrant optional), and a one-shot migration job, all on a private Compose network. Named volumes hold state, only the API is published on localhost, and the same image runs migrations and the API.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "api + db + optional vector DB + migrate job.",
+        "Same model at ingest and query.",
+        "Chunk ID joins the stores.",
+        "State only in named volumes."
+      ]
+    }
+  ]
+}

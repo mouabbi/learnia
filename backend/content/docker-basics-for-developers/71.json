@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "`docker events` is the daemon's timestamped stream of lifecycle events (oom, kill, die, restart, health_status); disk exhaustion comes mainly from build cache, unused images, logs and writable layers."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker events --filter container=rag-api-1 --since 30m\n... container oom      (name=rag-api-1)\n... container kill     (signal=9)\n... container die      (exitCode=137)\n... container restart\n$ docker events --filter event=die --format '{{.Actor.Attributes.name}} {{.Actor.Attributes.exitCode}}'"
+    },
+    {
+      "type": "paragraph",
+      "text": "The backlog is limited; ship events to your logging stack for history."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Consumer",
+        "See",
+        "Reclaim"
+      ],
+      "rows": [
+        [
+          "Build cache",
+          "docker system df",
+          "builder prune --keep-storage"
+        ],
+        [
+          "Unused images",
+          "system df -v",
+          "image prune -a --filter until=168h"
+        ],
+        [
+          "Container logs",
+          "du /var/lib/docker/containers",
+          "Rotation"
+        ],
+        [
+          "Writable layers",
+          "docker ps -s",
+          "Fix app writes; recreate"
+        ],
+        [
+          "Volumes",
+          "system df -v",
+          "Only what you're sure of"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Full-disk symptoms",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`no space left on device` in builds.",
+        "Postgres PANIC writing WAL.",
+        "Containers fail to start; logs stop.",
+        "`df -i`: inode exhaustion gives the same errors with free space left.",
+        "Docker Desktop: the VM disk has its own cap."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you find out what happened to a container at 3 a.m.?\" A: \"docker events for the sequence (oom → kill → die → restart) with timestamps, docker inspect for the final state, docker logs around that time, and the host kernel log to confirm OOM kills.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "events = lifecycle timeline.",
+        "oom → kill → die(137) → restart pattern.",
+        "Build cache and logs are the usual disk hogs.",
+        "Alert on /var/lib/docker at 80%."
+      ]
+    }
+  ]
+}

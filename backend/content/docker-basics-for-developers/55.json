@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Environment variables aren't access-controlled or encrypted: they're visible through the Docker API, /proc, every child process, logs and, if set at build time, the image itself."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Leak path",
+        "How"
+      ],
+      "rows": [
+        [
+          "docker inspect",
+          "Config.Env in plain text to anyone with Docker access"
+        ],
+        [
+          "/proc/<pid>/environ",
+          "Same UID and host root"
+        ],
+        [
+          "Child processes",
+          "Inherit the whole environment"
+        ],
+        [
+          "Logs/error reports",
+          "`set -x`, debug pages, printing settings, error trackers"
+        ],
+        [
+          "CI logs",
+          "env/printenv, verbose tools"
+        ],
+        [
+          "Image layers",
+          "ENV or build ARGs in config/history"
+        ],
+        [
+          "docker compose config",
+          "Prints interpolated secrets"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "`set -x` in an entrypoint prints `psql \"postgresql://app:${DB_PASSWORD}@db/rag\"` fully expanded into your logs."
+    },
+    {
+      "type": "heading",
+      "text": "Proportionate response",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Dev/CI: env is acceptable; keep .env git-ignored and docker-ignored; commit .env.example.",
+        "Production: mounted secret files or a secret manager.",
+        "In code: SecretStr, never log settings, scrub error reports, don't pass the full env to subprocesses."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why are environment variables considered unsafe for secrets?\" A: \"They show up in docker inspect, /proc, every child process, logs and CI output, and in the image if set at build time. Use them for non-sensitive config; deliver secrets as mounted files or via a secret manager, using the _FILE convention.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Env is visible, not secret.",
+        "Build-time env ships in the image.",
+        "set -x and debug logging leak values.",
+        "Prefer files or secret managers in prod."
+      ]
+    }
+  ]
+}

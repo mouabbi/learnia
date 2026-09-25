@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "`RUN --mount` gives a single build step temporary access to a persistent cache, a secret, or an SSH agent, none of which are committed to the image."
+    },
+    {
+      "type": "heading",
+      "text": "Cache mounts",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "# syntax=docker/dockerfile:1\nRUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt",
+      "language": "dockerfile"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "The layer still re-runs when its key changes; downloads are just reused.",
+        "Lives in the builder, not the image or registry; ephemeral runners start empty.",
+        "apt needs `sharing=locked` and removal of Debian's docker-clean hook.",
+        "Don't pair with `PIP_NO_CACHE_DIR=1`."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Secret mounts",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "RUN --mount=type=secret,id=pip_index,env=PIP_INDEX_URL pip install -r requirements.txt",
+      "language": "dockerfile"
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker build --secret id=pip_index,env=PIP_INDEX_URL ."
+    },
+    {
+      "type": "paragraph",
+      "text": "Exists only for that RUN (file at /run/secrets/<id> or an env var); never in a layer or history."
+    },
+    {
+      "type": "heading",
+      "text": "SSH mounts",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "RUN --mount=type=ssh pip install git+ssh://git@github.com/acme/private-lib.git",
+      "language": "dockerfile"
+    },
+    {
+      "type": "paragraph",
+      "text": "`docker build --ssh default`: the agent is forwarded for one step; the key never enters the image."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Approach",
+        "Leaks?"
+      ],
+      "rows": [
+        [
+          "--build-arg TOKEN used in RUN",
+          "Yes, docker history"
+        ],
+        [
+          "ENV TOKEN",
+          "Yes, image config"
+        ],
+        [
+          "COPY .npmrc then rm later",
+          "Yes, earlier layer"
+        ],
+        [
+          "--mount=type=secret",
+          "No"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you use a private package index in a Docker build without leaking the token?\" A: \"A BuildKit secret mount: RUN --mount=type=secret,id=... with docker build --secret. The secret exists only during that step. ARG, ENV and copy-then-delete all leave it in the image.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Cache mounts speed re-runs without bloating images.",
+        "Secret mounts are the only safe build-time secret.",
+        "SSH mounts for private git deps.",
+        "Builder cache isn't shared unless exported."
+      ]
+    }
+  ]
+}

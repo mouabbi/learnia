@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Run `pgvector/pgvector:pg17` with a named volume, a TCP healthcheck, a loopback-only port, and the extension created both by an init script (fresh volumes) and by the first migration (source of truth)."
+    },
+    {
+      "type": "code",
+      "code": "db:\n  image: pgvector/pgvector:pg17\n  environment: { POSTGRES_USER: app, POSTGRES_DB: rag, POSTGRES_PASSWORD_FILE: /run/secrets/db_password }\n  secrets: [db_password]\n  volumes: [pgdata:/var/lib/postgresql/data, ./db/init:/docker-entrypoint-initdb.d:ro]\n  shm_size: 256mb\n  ports: [\"127.0.0.1:5432:5432\"]\n  healthcheck:\n    test: [\"CMD-SHELL\", \"pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}\"]\n    interval: 5s\n    retries: 10",
+      "language": "yaml"
+    },
+    {
+      "type": "code",
+      "code": "CREATE EXTENSION IF NOT EXISTS vector;   -- db/init/01-extensions.sql and migration 0001",
+      "language": "sql"
+    },
+    {
+      "type": "heading",
+      "text": "Why both",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Init runs only on an empty volume, and managed Postgres (RDS, Cloud SQL, Supabase) has no initdb.d. The idempotent migration works everywhere."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose exec db psql -U app -d rag -c '\\dx vector'"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Extensions are per database: creating vector in `postgres` doesn't enable it in `rag` → \"type vector does not exist\". Managed services may require an admin role or an allow-list for CREATE EXTENSION; the local superuser hides that."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you ensure pgvector is available in every environment?\" A: \"Create it in an idempotent migration (CREATE EXTENSION IF NOT EXISTS vector) run by the migrate job, keeping the init script only for fresh local volumes, since init scripts don't run on existing volumes or managed databases.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Named volume, TCP healthcheck, loopback port.",
+        "Extension in the migration = source of truth.",
+        "Extensions are per database.",
+        "Managed Postgres may restrict CREATE EXTENSION."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Docker captures stdout/stderr through a logging driver; the default `json-file` doesn't rotate unless configured, so chatty containers can fill the disk and take down everything on the host."
+    },
+    {
+      "type": "terminal",
+      "text": "$ sudo du -sh /var/lib/docker/containers/*/*-json.log | sort -h | tail -3\n18G  .../3f9c...-json.log"
+    },
+    {
+      "type": "code",
+      "code": "{ \"log-driver\": \"local\", \"log-opts\": { \"max-size\": \"20m\", \"max-file\": \"5\" } }",
+      "language": "json"
+    },
+    {
+      "type": "paragraph",
+      "text": "Put that in `/etc/docker/daemon.json` and restart dockerd. Per service in Compose:"
+    },
+    {
+      "type": "code",
+      "code": "logging:\n  driver: local\n  options: { max-size: \"20m\", max-file: \"5\" }",
+      "language": "yaml"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Driver",
+        "Notes"
+      ],
+      "rows": [
+        [
+          "local",
+          "Compressed, rotated by default: best single-host default"
+        ],
+        [
+          "json-file",
+          "Default; needs max-size/max-file"
+        ],
+        [
+          "journald",
+          "systemd retention"
+        ],
+        [
+          "syslog/gelf/fluentd/awslogs/gcplogs",
+          "Ship out; docker logs works via dual logging"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Logging settings apply only to containers created after the change: recreate existing ones (`up -d --force-recreate`)."
+    },
+    {
+      "type": "heading",
+      "text": "Delivery mode",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Blocking (default): a slow log backend blocks the app's stdout writes and can stall the API. `mode: non-blocking` + `max-buffer-size` avoids stalls but may drop lines."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"A host ran out of disk and the culprit is a container log. How do you prevent it?\" A: \"Switch the daemon default to the local driver or set json-file max-size/max-file, recreate containers so they pick it up, add disk alerts, and have apps log structured JSON to stdout for the platform to ship.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "json-file doesn't rotate by default.",
+        "Config applies on container creation.",
+        "Blocking logging can stall apps.",
+        "Log to stdout; let the driver handle retention."
+      ]
+    }
+  ]
+}

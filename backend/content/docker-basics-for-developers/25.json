@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Each RUN, COPY and ADD commits a layer; COPY is the explicit default, ADD adds URL fetching and implicit tar extraction, and WORKDIR sets (and creates) the working directory for later instructions."
+    },
+    {
+      "type": "code",
+      "code": "RUN apt-get update \\\n && apt-get install -y --no-install-recommends ca-certificates libpq5 \\\n && rm -rf /var/lib/apt/lists/*",
+      "language": "dockerfile"
+    },
+    {
+      "type": "heading",
+      "text": "RUN rules",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "update + install in one RUN; a cached standalone `apt-get update` goes stale and later installs 404.",
+        "`--no-install-recommends` saves tens to hundreds of MB.",
+        "`/bin/sh` ignores failures mid-pipe: use `SHELL [\"/bin/bash\",\"-o\",\"pipefail\",\"-c\"]`."
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "COPY",
+        "ADD"
+      ],
+      "rows": [
+        [
+          "Local files",
+          "yes",
+          "yes"
+        ],
+        [
+          "URLs",
+          "no",
+          "yes (use --checksum)"
+        ],
+        [
+          "Auto-extract local tars",
+          "no",
+          "yes"
+        ],
+        [
+          "Default choice",
+          "yes",
+          "only for URL/tar on purpose"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Useful COPY flags",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`--chown=10001:10001`: avoids a separate `RUN chown`, which duplicates every file into a new layer.",
+        "`--chmod=755`: executable scripts regardless of host bits.",
+        "`--from=<stage|image>`: copy from another stage or image.",
+        "`--link`: layer independent of previous layers (better rebase caching)."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Path semantics",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`COPY app/ /srv/` copies the contents of app into /srv; use `/srv/app/` to keep the directory.",
+        "Multiple sources need a destination ending in `/`.",
+        "WORKDIR creates dirs owned by root; `cd` in one RUN doesn't persist."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"COPY vs ADD?\" A: \"Both copy from the build context; ADD can also fetch URLs and silently extracts local tar archives. Prefer COPY for predictable behavior and use ADD only when you want exactly those features.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Clean up in the same RUN.",
+        "COPY by default; ADD only deliberately.",
+        "COPY --chown, not RUN chown.",
+        "WORKDIR over cd."
+      ]
+    }
+  ]
+}

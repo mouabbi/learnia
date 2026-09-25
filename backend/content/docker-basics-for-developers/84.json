@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The Docker socket is the full Docker API, and that API can start a privileged container with the host filesystem mounted, so any container with the socket mounted is host root once compromised."
+    },
+    {
+      "type": "code",
+      "code": "volumes:\n  - /var/run/docker.sock:/var/run/docker.sock     # dashboards, Traefik discovery, CI runners",
+      "language": "yaml"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "`:ro` doesn't help: it only restricts filesystem operations on the socket file. API calls, including \"create privileged container\", still work."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Mitigation",
+        "Effect"
+      ],
+      "rows": [
+        [
+          "Static config instead of discovery",
+          "No socket needed (e.g., Traefik file provider)"
+        ],
+        [
+          "Filtering socket proxy (docker-socket-proxy)",
+          "Expose only needed GET endpoints; block create/exec"
+        ],
+        [
+          "Rootless Docker",
+          "Blast radius = the unprivileged daemon user"
+        ],
+        [
+          "Ephemeral VMs / daemonless builders for CI",
+          "No shared host socket"
+        ],
+        [
+          "Never expose TCP 2375 without mTLS",
+          "Unauthenticated remote root otherwise"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "In reviews, grep every compose file for `docker.sock` and `privileged: true`. Each hit needs a written justification or a replacement."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Is mounting docker.sock read-only safe?\" A: \"No. :ro only affects file operations on the socket; the API is still fully usable, including creating a privileged container that mounts /. Treat socket access as root and use a filtering proxy, static configuration or rootless mode.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Socket = API = root.",
+        ":ro is not a protection.",
+        "Filter, avoid or de-privilege the daemon.",
+        "Audit compose files for socket mounts."
+      ]
+    }
+  ]
+}

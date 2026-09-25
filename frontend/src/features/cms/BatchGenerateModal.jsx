@@ -1,16 +1,30 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { X, Copy, Check, Loader2, AlertTriangle, Braces, FileText, ClipboardCheck } from 'lucide-react'
+import {
+  X,
+  Copy,
+  Check,
+  Loader2,
+  AlertTriangle,
+  FileText,
+  ClipboardCheck,
+  CheckCheck,
+  FileArchive,
+  Folder,
+  ArrowRight,
+} from 'lucide-react'
 import { cmsApi } from './cmsApi'
-import { JsonCodeEditor } from './JsonCodeEditor'
+import { copyText } from '../../utils/clipboard'
 
 /**
  * BatchGenerateModal — "Generate All": pick, per module, whether to generate
  * its content and/or quiz, plus an optional final exam, and get ONE combined
- * prompt for everything selected — then paste ONE JSON back and commit it
- * all in one step. A sibling of AiImportModal (same modal chrome, same
- * paste-JSON step pattern), but with an extra step 1 up front for the
- * per-module selection instead of a fixed single scope/target.
+ * prompt for everything selected — then upload the ONE .zip the AI produces
+ * (a folder per module with content.json/quiz.json, final-exam.json at the
+ * root). The server unpacks it, maps each folder to its module, validates
+ * it, and this modal shows that mapping before a single commit. A sibling
+ * of AiImportModal (same modal chrome), with an extra step 1 up front for
+ * the per-module selection instead of a fixed single scope/target.
  *
  * Props:
  *  - open, onClose
@@ -31,11 +45,11 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
   const [promptError, setPromptError] = useState(null)
   const [copied, setCopied] = useState(false)
 
-  // Step 3 — paste + validate + commit
-  const [pastedJson, setPastedJson] = useState('')
-  const [formatError, setFormatError] = useState(null)
-  const [validating, setValidating] = useState(false)
-  const [validateResult, setValidateResult] = useState(null)
+  // Step 3 — upload zip (parsed + validated server-side) + commit
+  const [zipFile, setZipFile] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [zipResult, setZipResult] = useState(null)
+  const [dragOver, setDragOver] = useState(false)
   const [needsReplaceConfirm, setNeedsReplaceConfirm] = useState(false)
   const [committing, setCommitting] = useState(false)
   const [commitError, setCommitError] = useState(null)
@@ -48,9 +62,9 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
     setIncludeFinalExam(false)
     setPrompt('')
     setPromptError(null)
-    setPastedJson('')
-    setFormatError(null)
-    setValidateResult(null)
+    setZipFile(null)
+    setZipResult(null)
+    setDragOver(false)
     setNeedsReplaceConfirm(false)
     setCommitError(null)
   }, [open])
@@ -63,6 +77,38 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
     const next = new Set(set)
     next.has(id) ? next.delete(id) : next.add(id)
     setSet(next)
+  }
+
+  // What's already filled can't be picked (to regenerate something, clear
+  // it first or use the per-module "Generate with AI"). A module with no
+  // pages yet has nothing to fill either.
+  const modulePages = (m) => (m.chapters || []).flatMap((c) => c.pages || [])
+  const contentState = (m) => {
+    const pages = modulePages(m)
+    if (pages.length === 0) return 'no-pages'
+    return pages.every((p) => p.content?.trim()) ? 'filled' : 'open'
+  }
+  const emptyPageCount = (m) => modulePages(m).filter((p) => !p.content?.trim()).length
+  const hasQuiz = (m) => (m.quiz?.questions?.length || 0) > 0
+  const examFilled = (course?.finalExam?.questions?.length || 0) > 0
+
+  const contentOpenIds = modules.filter((m) => contentState(m) === 'open').map((m) => m.id)
+  const qcmOpenIds = modules.filter((m) => !hasQuiz(m)).map((m) => m.id)
+  const allContent = contentOpenIds.length > 0 && contentOpenIds.every((id) => contentIds.has(id))
+  const allQcm = qcmOpenIds.length > 0 && qcmOpenIds.every((id) => qcmIds.has(id))
+  const nothingOpen = contentOpenIds.length === 0 && qcmOpenIds.length === 0 && examFilled
+  const allSelected =
+    !nothingOpen &&
+    (contentOpenIds.length === 0 || allContent) &&
+    (qcmOpenIds.length === 0 || allQcm) &&
+    (examFilled || includeFinalExam)
+
+  const toggleAll = (isAll, openIds, setSet) => setSet(isAll ? new Set() : new Set(openIds))
+  const toggleEverything = () => {
+    const next = !allSelected
+    setContentIds(next ? new Set(contentOpenIds) : new Set())
+    setQcmIds(next ? new Set(qcmOpenIds) : new Set())
+    setIncludeFinalExam(next && !examFilled)
   }
 
   const selections = {
@@ -91,37 +137,24 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
   }
 
   const copyPrompt = async () => {
-    try {
-      await navigator.clipboard.writeText(prompt)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // Clipboard API can fail (permissions, non-secure context) — the
-      // textarea is still selectable/copyable manually, so this is silent.
-    }
+    const ok = await copyText(prompt)
+    setCopied(ok ? 'ok' : 'failed')
+    setTimeout(() => setCopied(false), ok ? 1500 : 3000)
   }
 
-  const formatJson = () => {
-    try {
-      const parsed = JSON.parse(pastedJson)
-      setPastedJson(JSON.stringify(parsed, null, 2))
-      setFormatError(null)
-    } catch (err) {
-      setFormatError(err.message)
-    }
-  }
-
-  const runValidate = async () => {
-    setValidating(true)
-    setValidateResult(null)
+  const uploadZip = async (file) => {
+    if (!file) return
+    setZipFile(file)
+    setZipResult(null)
     setCommitError(null)
+    setNeedsReplaceConfirm(false)
+    setUploading(true)
     try {
-      const result = await cmsApi.validateBatchImport(course.id, selections, pastedJson)
-      setValidateResult(result)
+      setZipResult(await cmsApi.uploadBatchZip(course.id, file))
     } catch (err) {
-      setValidateResult({ valid: false, errors: [{ field: '(request)', message: err.message }] })
+      setZipResult({ valid: false, errors: [{ field: '(upload)', message: err.message }] })
     } finally {
-      setValidating(false)
+      setUploading(false)
     }
   }
 
@@ -129,7 +162,14 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
     setCommitting(true)
     setCommitError(null)
     try {
-      const result = await cmsApi.commitBatchImport(course.id, selections, pastedJson, replace)
+      // Commit what the zip actually contained (its own selections), not
+      // what was ticked in step 1 — the server re-validates it anyway.
+      const result = await cmsApi.commitBatchImport(
+        course.id,
+        zipResult.selections,
+        zipResult.json,
+        replace,
+      )
       setNeedsReplaceConfirm(false)
       onCommitted?.(result)
       onClose()
@@ -192,7 +232,7 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
             <span className="cms-modal-step-connector" />
             <span className={`cms-modal-step${step === 3 ? ' cms-step-active' : ''}`}>
               <span className="cms-modal-step-badge">3</span>
-              Paste JSON
+              Upload zip
             </span>
           </div>
 
@@ -208,43 +248,93 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
               >
                 <p className="cms-hint">
                   Pick what to generate for each module, plus the final exam if you want it too —
-                  you'll get one combined prompt and paste back one JSON response.
+                  you'll get one combined prompt, and upload back the one .zip it produces.
                 </p>
 
+                {modules.length > 0 && (
+                  <div className="cms-batch-select-all">
+                    <button
+                      type="button"
+                      className={`cms-batch-toggle${allSelected ? ' cms-batch-toggle-active' : ''}`}
+                      onClick={toggleEverything}
+                      disabled={nothingOpen}
+                    >
+                      <CheckCheck size={13} /> {allSelected ? 'Clear all' : 'Select all'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`cms-batch-toggle${allContent ? ' cms-batch-toggle-active' : ''}`}
+                      onClick={() => toggleAll(allContent, contentOpenIds, setContentIds)}
+                      disabled={contentOpenIds.length === 0}
+                    >
+                      <FileText size={13} /> All content
+                    </button>
+                    <button
+                      type="button"
+                      className={`cms-batch-toggle${allQcm ? ' cms-batch-toggle-active' : ''}`}
+                      onClick={() => toggleAll(allQcm, qcmOpenIds, setQcmIds)}
+                      disabled={qcmOpenIds.length === 0}
+                    >
+                      <ClipboardCheck size={13} /> All quizzes
+                    </button>
+                  </div>
+                )}
+
                 <ul className="cms-batch-module-list">
-                  {modules.map((m) => (
-                    <li key={m.id} className="cms-batch-module-row">
-                      <span className="cms-batch-module-title">{m.title}</span>
-                      <div className="cms-batch-module-toggles">
-                        <button
-                          type="button"
-                          className={`cms-batch-toggle${contentIds.has(m.id) ? ' cms-batch-toggle-active' : ''}`}
-                          onClick={() => toggle(contentIds, setContentIds, m.id)}
-                        >
-                          <FileText size={13} /> Content
-                        </button>
-                        <button
-                          type="button"
-                          className={`cms-batch-toggle${qcmIds.has(m.id) ? ' cms-batch-toggle-active' : ''}`}
-                          onClick={() => toggle(qcmIds, setQcmIds, m.id)}
-                        >
-                          <ClipboardCheck size={13} /> Quiz
-                        </button>
-                      </div>
-                    </li>
-                  ))}
+                  {modules.map((m) => {
+                    const cState = contentState(m)
+                    const quizDone = hasQuiz(m)
+                    return (
+                      <li key={m.id} className="cms-batch-module-row">
+                        <span className="cms-batch-module-title">{m.title}</span>
+                        <div className="cms-batch-module-toggles">
+                          <button
+                            type="button"
+                            className={`cms-batch-toggle${contentIds.has(m.id) ? ' cms-batch-toggle-active' : ''}${cState === 'filled' ? ' cms-batch-toggle-done' : ''}`}
+                            onClick={() => toggle(contentIds, setContentIds, m.id)}
+                            disabled={cState !== 'open'}
+                            title={
+                              cState === 'filled'
+                                ? 'Every page already has content'
+                                : cState === 'no-pages'
+                                  ? 'No pages yet — add them in Structure first'
+                                  : emptyPageCount(m) < modulePages(m).length
+                                    ? `Fills only the ${emptyPageCount(m)} empty page(s) — written pages are kept`
+                                    : undefined
+                            }
+                          >
+                            {cState === 'filled' ? <Check size={13} /> : <FileText size={13} />}
+                            {cState === 'filled' ? 'Content filled' : 'Content'}
+                          </button>
+                          <button
+                            type="button"
+                            className={`cms-batch-toggle${qcmIds.has(m.id) ? ' cms-batch-toggle-active' : ''}${quizDone ? ' cms-batch-toggle-done' : ''}`}
+                            onClick={() => toggle(qcmIds, setQcmIds, m.id)}
+                            disabled={quizDone}
+                            title={quizDone ? `Already has ${m.quiz.questions.length} question(s)` : undefined}
+                          >
+                            {quizDone ? <Check size={13} /> : <ClipboardCheck size={13} />}
+                            {quizDone ? 'Quiz ready' : 'Quiz'}
+                          </button>
+                        </div>
+                      </li>
+                    )
+                  })}
                   {modules.length === 0 && (
                     <li className="cms-empty-hint">No modules yet — add some first.</li>
                   )}
                 </ul>
 
-                <label className="cms-batch-final-exam">
+                <label className={`cms-batch-final-exam${examFilled ? ' cms-batch-final-exam-done' : ''}`}>
                   <input
                     type="checkbox"
                     checked={includeFinalExam}
+                    disabled={examFilled}
                     onChange={(e) => setIncludeFinalExam(e.target.checked)}
                   />
-                  Include final exam
+                  {examFilled
+                    ? `Final exam ready (${course.finalExam.questions.length} questions)`
+                    : 'Include final exam'}
                 </label>
 
                 <p className="cms-batch-summary">{summary}</p>
@@ -283,8 +373,8 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
                 {!promptLoading && !promptError && (
                   <>
                     <p className="cms-hint">
-                      Copy this into your AI chat tool of choice, then paste the JSON it gives
-                      back in the next step.
+                      Copy this into an AI tool that can create files (e.g. one with code
+                      execution), then upload the .zip it gives back in the next step.
                     </p>
                     <textarea className="cms-prompt-textarea" rows={14} readOnly value={prompt} />
                     <div className="cms-modal-actions">
@@ -292,11 +382,15 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
                         Back
                       </button>
                       <button type="button" className="cms-btn-secondary" onClick={copyPrompt}>
-                        {copied ? <Check size={16} /> : <Copy size={16} />}
-                        {copied ? 'Copied' : 'Copy to clipboard'}
+                        {copied === 'ok' ? <Check size={16} /> : <Copy size={16} />}
+                        {copied === 'ok'
+                          ? 'Copied'
+                          : copied === 'failed'
+                            ? 'Copy failed — select the text and press Ctrl+C'
+                            : 'Copy to clipboard'}
                       </button>
                       <button type="button" className="cms-btn-primary" onClick={() => setStep(3)}>
-                        Next: paste JSON
+                        Next: upload zip
                       </button>
                     </div>
                   </>
@@ -313,60 +407,115 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
                 transition={{ duration: 0.15 }}
                 className="cms-modal-body"
               >
-                <div className="cms-json-editor-toolbar">
-                  <p className="cms-hint">Paste the JSON your AI tool returned:</p>
-                  <button type="button" className="cms-btn-secondary cms-btn-format" onClick={formatJson} disabled={!pastedJson.trim()}>
-                    <Braces size={14} aria-hidden="true" /> Format
-                  </button>
-                </div>
-                <JsonCodeEditor
-                  value={pastedJson}
-                  onChange={(next) => {
-                    setPastedJson(next)
-                    setFormatError(null)
-                    setValidateResult(null)
-                    setNeedsReplaceConfirm(false)
+                <p className="cms-hint">
+                  Upload the .zip your AI tool produced — one folder per module
+                  (<code>content.json</code>, <code>quiz.json</code>) plus{' '}
+                  <code>final-exam.json</code> at the root.
+                </p>
+                <label
+                  className={`cms-zip-drop${dragOver ? ' cms-zip-drop-active' : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setDragOver(true)
                   }}
-                  placeholder="{ ... }"
-                  rows={10}
-                />
-                {formatError && (
-                  <p className="cms-error cms-format-error">
-                    <AlertTriangle size={13} /> Can't format — not valid JSON yet: {formatError}
-                  </p>
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDragOver(false)
+                    uploadZip(e.dataTransfer.files?.[0])
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept=".zip,application/zip,application/x-zip-compressed"
+                    onChange={(e) => {
+                      uploadZip(e.target.files?.[0])
+                      e.target.value = ''
+                    }}
+                  />
+                  {uploading ? (
+                    <Loader2 className="cms-spin" size={20} />
+                  ) : (
+                    <FileArchive size={20} aria-hidden="true" />
+                  )}
+                  <span>
+                    {zipFile ? zipFile.name : 'Drop the .zip here or click to choose'}
+                  </span>
+                </label>
+
+                {zipResult?.mappings && (zipResult.mappings.length > 0 || zipResult.parsed?.finalExam) && (
+                  <motion.div
+                    className="cms-preview"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <p className="cms-hint">
+                      {zipResult.valid && (
+                        <Check size={14} className="cms-preview-check" aria-hidden="true" />
+                      )}{' '}
+                      What's in the zip:
+                    </p>
+                    <ul className="cms-zip-map">
+                      {zipResult.mappings.map((m) => {
+                        const pages = zipResult.parsed?.moduleContent?.[m.moduleId]?.pages
+                        const questions = zipResult.parsed?.moduleQcm?.[m.moduleId]
+                        return (
+                          <li key={m.folder} className={m.moduleId ? '' : 'cms-zip-map-unmatched'}>
+                            <span className="cms-zip-map-folder">
+                              <Folder size={13} aria-hidden="true" /> {m.folder}/
+                            </span>
+                            <ArrowRight size={13} aria-hidden="true" />
+                            <span className="cms-zip-map-module">
+                              {m.moduleTitle ?? 'No matching module'}
+                            </span>
+                            <span className="cms-zip-map-parts">
+                              {m.hasContent && (
+                                <span>
+                                  <FileText size={12} /> {pages ? `${pages.length} page(s)` : 'content'}
+                                </span>
+                              )}
+                              {m.hasQuiz && (
+                                <span>
+                                  <ClipboardCheck size={12} />{' '}
+                                  {questions ? `${questions.length} question(s)` : 'quiz'}
+                                </span>
+                              )}
+                              {m.ignoredFiles.length > 0 && (
+                                <span className="cms-zip-map-ignored">
+                                  {m.ignoredFiles.length} file(s) ignored
+                                </span>
+                              )}
+                            </span>
+                          </li>
+                        )
+                      })}
+                      {zipResult.selections?.includeFinalExam && (
+                        <li>
+                          <span className="cms-zip-map-folder">
+                            <FileText size={13} aria-hidden="true" /> final-exam.json
+                          </span>
+                          <ArrowRight size={13} aria-hidden="true" />
+                          <span className="cms-zip-map-module">Final exam</span>
+                          <span className="cms-zip-map-parts">
+                            {zipResult.parsed?.finalExam && (
+                              <span>{zipResult.parsed.finalExam.length} question(s)</span>
+                            )}
+                          </span>
+                        </li>
+                      )}
+                    </ul>
+                    {zipResult.warnings?.length > 0 && (
+                      <ul className="cms-zip-warnings">
+                        {zipResult.warnings.map((w, i) => (
+                          <li key={i}>{w}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </motion.div>
                 )}
 
-                <div className="cms-modal-actions">
-                  <button type="button" className="cms-btn-secondary" onClick={() => setStep(2)}>
-                    Back
-                  </button>
-                  <motion.button
-                    type="button"
-                    className={`cms-btn-secondary${validateResult?.valid ? ' cms-btn-validate-ok' : ''}`}
-                    onClick={runValidate}
-                    disabled={!pastedJson.trim() || validating}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {validating ? (
-                      <Loader2 className="cms-spin" size={16} />
-                    ) : validateResult?.valid ? (
-                      <Check size={16} />
-                    ) : null}
-                    Validate
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    className="cms-btn-primary"
-                    disabled={!validateResult?.valid || committing}
-                    onClick={() => runCommit(false)}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {committing ? <Loader2 className="cms-spin" size={16} /> : null}
-                    Commit
-                  </motion.button>
-                </div>
-
-                {validateResult && !validateResult.valid && (
+                {zipResult && !zipResult.valid && (
                   <motion.div
                     className="cms-error-list"
                     initial={{ opacity: 0, y: -6 }}
@@ -374,10 +523,10 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
                     transition={{ duration: 0.2 }}
                   >
                     <p className="cms-error">
-                      <AlertTriangle size={14} /> Invalid JSON — fix these and re-validate:
+                      <AlertTriangle size={14} /> The zip has problems — fix these and upload again:
                     </p>
                     <ul>
-                      {validateResult.errors.map((e, i) => (
+                      {zipResult.errors.map((e, i) => (
                         <li key={i}>
                           <code>{e.field}</code>: {e.message}
                         </li>
@@ -386,33 +535,21 @@ export function BatchGenerateModal({ open, onClose, course, onCommitted }) {
                   </motion.div>
                 )}
 
-                {validateResult?.valid && (
-                  <motion.div
-                    className="cms-preview"
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
+                <div className="cms-modal-actions">
+                  <button type="button" className="cms-btn-secondary" onClick={() => setStep(2)}>
+                    Back
+                  </button>
+                  <motion.button
+                    type="button"
+                    className="cms-btn-primary"
+                    disabled={!zipResult?.valid || uploading || committing}
+                    onClick={() => runCommit(false)}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <p className="cms-hint">
-                      <Check size={14} className="cms-preview-check" aria-hidden="true" /> Looks valid. Preview:
-                    </p>
-                    <ul className="cms-question-preview-list">
-                      {Object.keys(validateResult.parsed?.moduleContent || {}).map((id) => (
-                        <li key={`content-${id}`}>
-                          Module {id}: content — {(validateResult.parsed.moduleContent[id]?.pages || []).length} page(s)
-                        </li>
-                      ))}
-                      {Object.keys(validateResult.parsed?.moduleQcm || {}).map((id) => (
-                        <li key={`qcm-${id}`}>
-                          Module {id}: quiz — {(validateResult.parsed.moduleQcm[id] || []).length} question(s)
-                        </li>
-                      ))}
-                      {validateResult.parsed?.finalExam && (
-                        <li>Final exam: {validateResult.parsed.finalExam.length} question(s)</li>
-                      )}
-                    </ul>
-                  </motion.div>
-                )}
+                    {committing ? <Loader2 className="cms-spin" size={16} /> : null}
+                    Commit
+                  </motion.button>
+                </div>
 
                 {commitError && (
                   <div className="cms-error-list">

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Walk the environment layer by layer, confirming each before moving on; every step rules out a whole class of bugs."
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Right code? Stale image (no `--build`), wrong tag: `docker compose images`, `cat` the file inside.",
+        "Right platform? Image arch vs `uname -m`.",
+        "Right command and WORKDIR? `docker inspect` Entrypoint/Cmd/WorkingDir.",
+        "Env present? `docker compose exec api printenv`; your laptop's .env isn't in the image.",
+        "Files present? .dockerignore exclusions, bind mounts hiding content, files outside the context.",
+        "Case sensitivity: macOS is case-insensitive, Linux isn't (`import Utils` vs utils.py).",
+        "Network: localhost = container; use service:containerPort; bind 0.0.0.0.",
+        "Permissions: non-root vs root-owned dirs, volume ownership, `--read-only` blocking cwd/$HOME writes.",
+        "OS libs: libpq5, libgomp1, libGL, ca-certificates, tzdata, locales, musl vs glibc.",
+        "Resources: memory limit, /dev/shm size, CPU throttling, worker auto-sizing.",
+        "Timing: dependencies not ready, no retries.",
+        "Time/locale: UTC, missing LANG → encoding errors."
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose exec api sh -c 'id; pwd; ls -la; python -V; printenv | sort | cut -c1-60'\n$ docker compose exec api python -c \"import app.main\"     # surfaces import and .so errors"
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"It works on my machine but not in Docker. How do you approach it?\" A: \"Methodically: confirm the image and code actually running, then platform, command and working directory, env, files, network addressing, permissions, OS libraries, resource limits and timing, testing each from inside the container.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Confirm what's running first.",
+        "Test from inside the container.",
+        "Most failures: env, network addressing, permissions, OS libs.",
+        "`python -c \"import app.main\"` catches missing libraries early."
+      ]
+    }
+  ]
+}

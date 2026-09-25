@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "On user-defined networks, Docker runs a DNS server at 127.0.0.11 in each container that resolves container names, Compose service names and aliases, and forwards everything else upstream."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose exec api cat /etc/resolv.conf\nnameserver 127.0.0.11"
+    },
+    {
+      "type": "heading",
+      "text": "Resolution rules",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Names resolve only between containers sharing a network; a container on two networks resolves both.",
+        "Stopped containers drop out of DNS: \"name not resolved\" can just mean the target is down.",
+        "Several containers with one name (`--scale worker=3`) → all IPs returned (round-robin, no health awareness)."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "The caching trap",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "IPs change on recreate. A client that resolves once keeps using the dead IP. nginx `proxy_pass http://api:8000` resolves at startup → 502 after api is recreated."
+    },
+    {
+      "type": "code",
+      "code": "resolver 127.0.0.11 valid=10s;\nset $upstream http://api:8000;\nlocation / { proxy_pass $upstream; }",
+      "language": "nginx"
+    },
+    {
+      "type": "paragraph",
+      "text": "Connection pools have the same issue: use pre-ping and retries."
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "`container_name:` is rarely needed. The service name already resolves, and a fixed name blocks scaling and collides across projects."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why does nginx return 502 after the backend container is recreated?\" A: \"nginx resolved the backend name once at startup and cached the old IP. Point resolver at 127.0.0.11 and use a variable upstream so it re-resolves, or reload nginx after deploys.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Embedded DNS lives at 127.0.0.11.",
+        "Resolution needs a shared network and a running target.",
+        "Scaled services get DNS round-robin.",
+        "Clients that cache DNS break on recreate."
+      ]
+    }
+  ]
+}

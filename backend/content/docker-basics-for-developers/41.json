@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Mount a named volume at the data directory the image actually uses, and remember that POSTGRES_* variables apply only on first initialization."
+    },
+    {
+      "type": "code",
+      "code": "services:\n  db:\n    image: pgvector/pgvector:pg17\n    environment:\n      POSTGRES_USER: app\n      POSTGRES_DB: rag\n      POSTGRES_PASSWORD_FILE: /run/secrets/db_password\n    volumes:\n      - pgdata:/var/lib/postgresql/data\n      - ./db/init:/docker-entrypoint-initdb.d:ro\n    shm_size: 256mb\n    ports: [\"127.0.0.1:5432:5432\"]\nvolumes:\n  pgdata:",
+      "language": "yaml"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Pitfall",
+        "Fix"
+      ],
+      "rows": [
+        [
+          "Wrong mount path → data lands in an anonymous volume",
+          "Up to PG17: /var/lib/postgresql/data; postgres:18 images moved to a versioned layout under /var/lib/postgresql, so check the image docs"
+        ],
+        [
+          "Major upgrade on the same volume fails (\"incompatible\")",
+          "pg_dump/pg_restore into a new volume, or pg_upgrade"
+        ],
+        [
+          "Bind mount on macOS/Windows",
+          "Named volume"
+        ],
+        [
+          "Mounting a filesystem root with lost+found",
+          "PGDATA=/var/lib/postgresql/data/pgdata"
+        ],
+        [
+          "\"could not resize shared memory segment\"",
+          "shm_size (default /dev/shm is 64 MB)"
+        ],
+        [
+          "5432 published on 0.0.0.0",
+          "Bind 127.0.0.1 or don't publish"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose exec db psql -U app -d rag -c \"SHOW data_directory;\""
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Changing POSTGRES_PASSWORD on an existing volume does nothing to the stored password; the app then fails authentication."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you persist Postgres in Docker safely?\" A: \"A named volume at the image's real data directory, credentials applied once at init (change them later with ALTER USER), enough shm_size, the port bound to loopback or unpublished, and major upgrades via dump/restore into a new volume.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Named volume at the correct PGDATA path.",
+        "POSTGRES_* only apply on first init.",
+        "Majors need dump/restore or pg_upgrade.",
+        "Raise shm_size; don't expose 5432."
+      ]
+    }
+  ]
+}
