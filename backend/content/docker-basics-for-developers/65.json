@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Compose Watch syncs host changes into the running container (or rebuilds it) according to rules; a bind mount shares the host directory live in both directions."
+    },
+    {
+      "type": "code",
+      "code": "services:\n  api:\n    build: { context: ., target: dev }\n    command: [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--reload\"]\n    develop:\n      watch:\n        - { action: sync, path: ./app, target: /app/app }\n        - { action: rebuild, path: requirements.txt }\n        - { action: sync+restart, path: ./config, target: /app/config }",
+      "language": "yaml"
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose watch      # or: docker compose up --watch"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "Bind mount",
+        "Compose Watch"
+      ],
+      "rows": [
+        [
+          "Direction",
+          "Two-way",
+          "Host → container"
+        ],
+        [
+          "Desktop performance",
+          "Slow for many small files",
+          "Fast"
+        ],
+        [
+          "UID issues on Linux",
+          "Host UIDs leak",
+          "Files written by the container user"
+        ],
+        [
+          "Dependency changes",
+          "Manual rebuild",
+          "`rebuild` action"
+        ],
+        [
+          "Generated files (migrations)",
+          "Appear on host",
+          "Don't come back"
+        ],
+        [
+          "Needs",
+          "Any image",
+          "Service with `build:`"
+        ]
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Sync writes to the writable layer: recreate discards it, and the next watch resyncs.",
+        "`--reload` still does the restarting; Watch only delivers files.",
+        "Combine them: bind-mount `migrations/`, watch-sync the source."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Bind mount or Compose Watch for dev?\" A: \"Watch when bind mounts are slow or cause permission problems, or when dependency changes should trigger rebuilds; bind mounts when tools in the container must write back to the repo, such as Alembic autogenerate or formatters.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Watch = one-way sync + rules.",
+        "rebuild action for dependency files.",
+        "Binds for files generated in the container.",
+        "Uvicorn --reload still restarts the app."
+      ]
+    }
+  ]
+}

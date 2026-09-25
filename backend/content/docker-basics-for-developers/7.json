@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "dockerd runs as root and does whatever its API asks, so anyone who can reach the Docker socket, including every docker group member, effectively has root on the host."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run --rm -it -v /:/host alpine chroot /host sh   # no sudo needed\n# whoami\nroot"
+    },
+    {
+      "type": "paragraph",
+      "text": "By default, UID 0 in a container is UID 0 on the host kernel. Capabilities, seccomp and AppArmor reduce it, but bind mounts are writable as real root and a kernel escape lands as host root."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Option",
+        "Effect",
+        "Trade-off"
+      ],
+      "rows": [
+        [
+          "USER in image",
+          "App runs unprivileged",
+          "Doesn't protect the socket"
+        ],
+        [
+          "userns-remap",
+          "Container root → high unprivileged host UID",
+          "Daemon-wide; complicates bind-mount ownership"
+        ],
+        [
+          "Rootless Docker",
+          "Daemon itself runs as a normal user",
+          "Ports <1024 need sysctl; slower user-space networking; cgroup v2 + systemd delegation for limits"
+        ],
+        [
+          "Podman",
+          "Daemonless, rootless by default",
+          "Mostly CLI-compatible"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Treat docker group membership like sudo on shared servers and CI runners. Never expose the API on TCP 2375 without TLS: that's unauthenticated remote root."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Is adding a developer to the docker group safe?\" A: \"No. The docker group grants socket access, and the socket can start a container that mounts / as root. It's equivalent to passwordless sudo. Use rootless Docker or Podman if that's unacceptable.\""
+    },
+    {
+      "type": "link",
+      "href": "https://docs.docker.com/engine/security/rootless/",
+      "text": "Docker docs: Rootless mode"
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Socket access = root on the host.",
+        "Container root is host UID 0 unless user namespaces remap it.",
+        "Always run apps as a non-root USER.",
+        "Rootless mode limits blast radius at some networking and feature cost."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Foreground mode attaches to stdout/stderr and proxies signals to PID 1; `-d` returns immediately; `-i` keeps STDIN open; `-t` allocates a TTY; `--rm` deletes the container on exit."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Mode",
+        "Use",
+        "Pitfall"
+      ],
+      "rows": [
+        [
+          "Foreground",
+          "Watching a short run",
+          "Ctrl-C sends SIGINT to PID 1; if PID 1 ignores it, nothing happens"
+        ],
+        [
+          "-d",
+          "Services",
+          "Read output later with `docker logs -f`"
+        ],
+        [
+          "-i",
+          "Piping data in (`psql < dump.sql`)",
+          "—"
+        ],
+        [
+          "-t",
+          "Interactive shells",
+          "Breaks scripts and binary output"
+        ],
+        [
+          "--rm",
+          "One-off tasks",
+          "Deletes logs and inspect state on exit"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker exec -i db psql -U app rag < seed.sql        # -i only: correct for pipes\n$ docker exec -t db pg_dump -Fc rag > dump            # BROKEN: TTY corrupts binary output\n$ docker attach worker                                # PID 1's stdio, not a new shell"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Detach from an attached `-it` session without stopping it: Ctrl-P, Ctrl-Q.",
+        "`exit` in a shell that is PID 1 stops the container.",
+        "Without a TTY, Python block-buffers stdout: set `PYTHONUNBUFFERED=1`."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "`-t` in CI fails with \"the input device is not a TTY\", merges stderr into stdout and converts `\\n` to `\\r\\n`. Use `-i` alone, or `-T` in Compose."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"When do you use -i vs -t?\" A: \"-i when data is piped into the container's stdin; -t only for an interactive terminal. Never -t for scripts or binary output, because the TTY rewrites line endings and merges streams.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "-i = stdin open; -t = pseudo-TTY.",
+        "Pipes and dumps: -i without -t.",
+        "--rm destroys crash evidence.",
+        "attach = PID 1's stdio; exec = new process."
+      ]
+    }
+  ]
+}

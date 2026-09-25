@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Containers freeze the userland (runtime, system libraries, native wheels, your code) into an immutable, digest-addressed artifact that runs identically in dev, CI and prod."
+    },
+    {
+      "type": "heading",
+      "text": "What they solve",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Reproducibility: glibc, libpq, OpenSSL and native wheels are pinned; \"works on my machine\" usually means different system libraries.",
+        "Disposable dependencies: `docker compose up` gives everyone the same Postgres + pgvector + Qdrant in seconds.",
+        "Dev/prod parity: the tested artifact is the deployed artifact, identified by digest.",
+        "Side-by-side versions: Postgres 14 and 17 on one laptop without conflicts.",
+        "Universal deploy unit: Compose, Kubernetes, Cloud Run, ECS all run OCI images."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "RAG-specific pressure points",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Heavy, platform-specific wheels (torch, onnxruntime, tokenizers).",
+        "Model weights (hundreds of MB to GB): bake into the image or cache in a volume.",
+        "Embedding model and dimension must match between ingest and query; pinned images and model revisions prevent silent index drift.",
+        "Several stateful services: exactly Compose's shape."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Containers do not give you security, persistence or secret management by default. The writable layer dies with the container; root inside is root on the kernel unless you harden it."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why containerize a RAG service?\" A: \"To pin the native ML stack and model revision so ingest and query embed identically, to run the vector DB and Postgres as reproducible dependencies, and to ship one immutable, digest-pinned artifact from dev to prod.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Image = frozen userland, addressed by digest.",
+        "Main wins: reproducibility, disposable dependencies, dev/prod parity.",
+        "RAG adds model-version coupling and large weights to manage.",
+        "Persistence, secrets and hardening are still your job."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A hypervisor runs multiple virtual machines, each with its own guest OS and kernel, on shared hardware. Type 1 runs directly on the hardware; Type 2 runs as an application on a host OS."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "Type 1 (bare-metal)",
+        "Type 2 (hosted)"
+      ],
+      "rows": [
+        [
+          "Runs on",
+          "Hardware directly",
+          "A host operating system"
+        ],
+        [
+          "Examples",
+          "VMware ESXi, Microsoft Hyper-V, Xen, KVM (kernel module turning Linux into a hypervisor)",
+          "VirtualBox, VMware Workstation/Fusion, Parallels"
+        ],
+        [
+          "Performance",
+          "Near-native",
+          "Extra host-OS overhead"
+        ],
+        [
+          "Use",
+          "Data centers, public clouds",
+          "Desktops, development"
+        ]
+      ]
+    },
+    {
+      "type": "image",
+      "src": "generate: Two stacks side by side: Type 1 (hardware → hypervisor → VMs with guest OS + apps) and Type 2 (hardware → host OS → hypervisor app → VMs with guest OS + apps)",
+      "alt": "Type 1 vs Type 2 hypervisors.",
+      "caption": "Type 1 vs Type 2 hypervisors."
+    },
+    {
+      "type": "heading",
+      "text": "Under the hood",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Hardware-assisted virtualization (Intel VT-x, AMD-V, mid-2000s) lets guest kernels run with CPU support instead of slow binary translation.",
+        "Paravirtualized drivers (virtio) speed up disk and network I/O.",
+        "Each VM gets virtual CPUs, memory, disks and NICs, and boots a full OS."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "The line blurs: KVM is a Linux kernel module (Type 1 behavior on a general-purpose OS), and Docker Desktop runs a lightweight Linux VM on macOS/Windows to host containers."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Type 1 vs Type 2 hypervisor?\" A: \"Type 1 runs directly on hardware (ESXi, Hyper-V, Xen, KVM) and is used in data centers and clouds; Type 2 runs on top of a host OS (VirtualBox, VMware Workstation) for desktops. Either way each VM has its own kernel, unlike containers, which share the host kernel.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "VMs virtualize hardware; each has its own kernel.",
+        "Type 1 = on hardware; Type 2 = on a host OS.",
+        "VT-x/AMD-V made virtualization fast.",
+        "Public clouds are built on Type 1 hypervisors."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Short-form `depends_on` only orders container starts; waiting for a dependency to be usable requires a healthcheck plus `condition: service_healthy` (or `service_completed_successfully` for one-shot jobs)."
+    },
+    {
+      "type": "code",
+      "code": "services:\n  db:\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}\"]\n      interval: 5s\n      retries: 10\n      start_period: 20s\n  migrate:\n    command: [\"alembic\", \"upgrade\", \"head\"]\n    depends_on: { db: { condition: service_healthy } }\n    restart: \"no\"\n  api:\n    depends_on:\n      db: { condition: service_healthy, restart: true }\n      migrate: { condition: service_completed_successfully }",
+      "language": "yaml"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Condition",
+        "Waits for"
+      ],
+      "rows": [
+        [
+          "service_started",
+          "Container started (= short form)"
+        ],
+        [
+          "service_healthy",
+          "Healthcheck healthy"
+        ],
+        [
+          "service_completed_successfully",
+          "Exit code 0"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Limits",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Applies only during `docker compose up`; runtime restarts or failovers aren't covered.",
+        "`service_healthy` without a healthcheck is an error.",
+        "`restart: true` only propagates Compose-initiated restarts.",
+        "`up --wait` blocks until healthy (useful in CI).",
+        "Kubernetes has no depends_on."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Does depends_on wait for Postgres to be ready?\" A: \"Not by default. The short form only orders starts. Use a healthcheck with condition: service_healthy, and still add retries in the app, because nothing waits at runtime or in Kubernetes.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "depends_on orders, doesn't wait.",
+        "service_healthy needs a healthcheck.",
+        "One-shot jobs: service_completed_successfully.",
+        "App retries are still required."
+      ]
+    }
+  ]
+}

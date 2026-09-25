@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Container environment is fixed at creation from image ENV, then --env-file, then -e (highest); `docker run --env-file` parses values literally."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run -e LOG_LEVEL=debug rag-api        # explicit value\n$ docker run -e OPENAI_API_KEY rag-api         # no \"=\": copy from your shell (unset → not passed)\n$ docker run --env-file .env rag-api"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Source",
+        "Precedence"
+      ],
+      "rows": [
+        [
+          "Image ENV",
+          "Lowest"
+        ],
+        [
+          "--env-file",
+          "Overrides image ENV"
+        ],
+        [
+          "-e",
+          "Overrides --env-file"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "--env-file is literal",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "No quote stripping: `DB_PASSWORD=\"s3cret\"` includes the quotes → auth fails.",
+        "No expansion: `$USER` stays literal.",
+        "`#` is a comment only at line start.",
+        "Compose parses .env/env_file differently (quotes, interpolation), so the same file can yield different values."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Env is immutable per container",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "`docker restart`/`start` keep old values; recreate the container (`docker compose up -d`)."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker exec api printenv DATABASE_URL\n$ docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' api"
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"You changed an env var but the app still sees the old value. Why?\" A: \"Env is part of the container config at creation; restart or start reuse it. Recreate the container. If it still differs, check the precedence chain (-e over --env-file over image ENV) and the app's own dotenv loader and defaults.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "-e > --env-file > image ENV.",
+        "docker run env files: no quote stripping.",
+        "Env changes need a new container.",
+        "Verify with printenv inside the container."
+      ]
+    }
+  ]
+}

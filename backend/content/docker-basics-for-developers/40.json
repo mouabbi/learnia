@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "`-v` and `--mount` configure the same mounts; `--mount` is explicit and fails loudly, while `-v` infers the type and silently creates missing bind sources."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "-v",
+        "--mount"
+      ],
+      "rows": [
+        [
+          "Syntax",
+          "src:dst[:ro]",
+          "type=...,src=...,dst=...,readonly"
+        ],
+        [
+          "Type",
+          "Inferred: name → volume, path → bind, none → anonymous",
+          "Explicit"
+        ],
+        [
+          "Missing bind source",
+          "Creates empty root-owned dir",
+          "Error"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run --mount type=bind,src=\"$PWD/config.yaml\",dst=/etc/app/config.yaml,readonly rag-api"
+    },
+    {
+      "type": "heading",
+      "text": "Anonymous volumes",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "From `-v /path` or an image VOLUME with nothing mounted; random 64-hex names.",
+        "`docker rm -v` or `--rm` removes them; plain `docker rm` leaves them behind.",
+        "Compose reattaches a service's anonymous volumes on recreate: stale `.venv`/`node_modules` after rebuild (fix with `-V`)."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker volume ls\n$ docker volume inspect rag_pgdata\n$ docker volume rm rag_pgdata        # fails if any container (even stopped) uses it\n$ docker volume prune                # unused anonymous volumes; -a adds named"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Named volumes survive `docker rm`, `compose down` (without -v) and `system prune` (without --volumes).",
+        "Compose prefixes volume names with the project name; renaming the folder creates a new, empty volume."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why prefer --mount in scripts?\" A: \"Because a typo in a -v bind source silently creates an empty root-owned directory and the app starts with no config, while --mount fails with 'bind source path does not exist'.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "--mount is explicit and strict.",
+        "Anonymous volumes leak and get reattached by Compose.",
+        "Named volumes survive almost everything but -v/--volumes.",
+        "Stable Compose project names keep volume names stable."
+      ]
+    }
+  ]
+}

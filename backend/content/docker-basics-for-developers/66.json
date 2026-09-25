@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "\"My change isn't running\" has four causes: no rebuild, no recreate, a reattached anonymous volume, or a populated named volume hiding new image content."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        [
+          "`up` reuses an existing image",
+          "`up -d --build`; `build --pull`; `--no-cache` for stale RUN results"
+        ],
+        [
+          "`restart`/`start` reuse the container",
+          "`up -d`; `--force-recreate`"
+        ],
+        [
+          "Anonymous volume (e.g., /app/.venv) reattached on recreate",
+          "`up -d --build -V` (--renew-anon-volumes)"
+        ],
+        [
+          "Named volume over image-owned path only filled when empty",
+          "Don't mount over image assets, or remove the volume"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "services:\n  web:\n    volumes:\n      - .:/app\n      - /app/.venv      # anonymous volume: keeps the OLD venv after rebuilds",
+      "language": "yaml"
+    },
+    {
+      "type": "paragraph",
+      "text": "Adding a dependency and rebuilding still fails with ModuleNotFoundError: the old anonymous volume hides the new image's venv."
+    },
+    {
+      "type": "heading",
+      "text": "Diagnose before rebuilding again",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose images                       # image each container runs\n$ docker inspect -f '{{.Image}}' rag-api-1\n$ docker compose exec api cat /app/app/version.py"
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"You rebuilt after adding a package but get ModuleNotFoundError. What happened?\" A: \"The service mounts an anonymous volume over the venv path. Compose reattached the old volume on recreate, hiding the new venv. Recreate with -V (--renew-anon-volumes), or stop mounting over dependency directories.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "up doesn't rebuild without --build.",
+        "restart doesn't recreate.",
+        "Anonymous volumes survive recreate: use -V.",
+        "Confirm the running image and files first."
+      ]
+    }
+  ]
+}

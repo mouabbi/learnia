@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "OS-level isolation long predates Docker: chroot restricted a process's filesystem view, FreeBSD Jails and Solaris Zones added isolated users, processes and networking, all sharing one kernel."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Technology",
+        "Era",
+        "Isolates",
+        "Gap"
+      ],
+      "rows": [
+        [
+          "chroot",
+          "Unix, late 1970s/early 1980s",
+          "Filesystem root only",
+          "Not a security boundary; root can escape; processes, network and users shared"
+        ],
+        [
+          "FreeBSD Jails",
+          "~2000",
+          "Filesystem, processes, users, an IP",
+          "FreeBSD-only"
+        ],
+        [
+          "Solaris Zones",
+          "~2004-2005",
+          "Filesystem, processes, network, resource controls",
+          "Solaris-only"
+        ],
+        [
+          "Linux-VServer, OpenVZ",
+          "Mid-2000s",
+          "Full OS-level containers",
+          "Out-of-tree kernel patches"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ sudo chroot /srv/rootfs /bin/sh     # new filesystem root, same everything else"
+    },
+    {
+      "type": "heading",
+      "text": "Lessons that carried into Docker",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Isolation can live in the kernel without a hypervisor.",
+        "A container is \"an OS image + isolated processes on a shared kernel\".",
+        "The shared kernel is always the weak point for security."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "chroot is not a sandbox: a root process can break out, and it doesn't isolate PIDs, networks or users. Container runtimes use pivot_root plus namespaces instead."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Did Docker invent containers?\" A: \"No. OS-level isolation existed in chroot, FreeBSD Jails, Solaris Zones, OpenVZ and LXC. Docker's contribution was the developer workflow: images, layers, the Dockerfile, registries and a simple CLI that made those kernel features usable and portable.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "chroot = filesystem view only, not security.",
+        "Jails and Zones were real OS-level containers.",
+        "All share one kernel; that's the trade-off.",
+        "Docker productized, it didn't invent."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Startup ordering covers only `docker compose up` on one host; databases restart, IPs change and orchestrators don't order startup, so the app must tolerate temporarily unavailable dependencies."
+    },
+    {
+      "type": "heading",
+      "text": "Startup: bounded wait, then fail loudly",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "@retry(stop=stop_after_delay(60), wait=wait_exponential(multiplier=0.5, max=5),\n       retry=retry_if_exception_type(OperationalError), reraise=True)\nasync def wait_for_db(engine):\n    async with engine.connect() as c:\n        await c.execute(text(\"SELECT 1\"))",
+      "language": "python"
+    },
+    {
+      "type": "paragraph",
+      "text": "Bounded matters: an infinite wait hides a wrong hostname; after the deadline, exit 1 and let the restart policy retry."
+    },
+    {
+      "type": "heading",
+      "text": "Runtime",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`pool_pre_ping=True`: dead pooled connections are replaced after a DB restart.",
+        "`pool_recycle`: cap connection age behind proxies and load balancers.",
+        "Retry idempotent calls (searches, embeddings) with backoff and jitter; make writes idempotent (upsert by chunk ID) before retrying them.",
+        "Timeouts everywhere; a missing timeout turns an outage into hung workers."
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Layer",
+        "Covers"
+      ],
+      "rows": [
+        [
+          "depends_on + healthcheck",
+          "Orderly local startup"
+        ],
+        [
+          "Startup retries",
+          "Races at boot, any orchestrator"
+        ],
+        [
+          "Pre-ping pools",
+          "DB restarts"
+        ],
+        [
+          "Call retries + timeouts",
+          "Transient failures"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why isn't condition: service_healthy enough?\" A: \"It only orders the initial compose up. Runtime restarts, failovers and Kubernetes aren't covered. The app needs bounded startup retries, pre-ping pools, timeouts and retries on idempotent calls.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Health conditions ≠ resilience.",
+        "Bounded startup retry, then crash.",
+        "pool_pre_ping for DB restarts.",
+        "Retry only idempotent operations."
+      ]
+    }
+  ]
+}

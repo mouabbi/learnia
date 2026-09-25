@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Modern systems combine VMs, containers and serverless: VMs give isolation and kernel control, containers give portable packaging and density, and serverless gives zero-ops, event-driven scaling. Most real stacks layer containers on VMs."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "VMs",
+        "Containers",
+        "Serverless functions"
+      ],
+      "rows": [
+        [
+          "Unit",
+          "Machine",
+          "Process + image",
+          "Function"
+        ],
+        [
+          "Isolation",
+          "Strongest",
+          "Shared kernel",
+          "Provider-managed (often microVMs)"
+        ],
+        [
+          "Startup",
+          "Seconds-minutes",
+          "ms-seconds",
+          "ms to seconds (cold starts)"
+        ],
+        [
+          "Control",
+          "Full OS",
+          "Userland",
+          "Code + config only"
+        ],
+        [
+          "Scaling",
+          "Manual/ASG",
+          "Orchestrator",
+          "Automatic, to zero"
+        ],
+        [
+          "Fit",
+          "Legacy, different kernels, hard multi-tenancy",
+          "Services, APIs, workers, RAG stacks",
+          "Event handlers, glue, spiky workloads"
+        ],
+        [
+          "Limits",
+          "Heavy",
+          "Ops for state and orchestration",
+          "Time limits, cold starts, lock-in"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Convergence",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Container-based serverless (Cloud Run, Fargate, Container Apps): run an OCI image without managing servers.",
+        "MicroVMs (Firecracker, Kata) give containers VM-grade isolation; Lambda runs on Firecracker.",
+        "WebAssembly is emerging for very lightweight sandboxed workloads."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "For a RAG backend",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Containers for the API, workers, Postgres/pgvector and the vector DB (local and prod), a managed database in production where possible, GPU VMs for model serving, and serverless for event-driven ingestion if it fits."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"When would you choose a VM, a container or serverless?\" A: \"VMs when you need a specific kernel/OS or strong tenant isolation; containers for portable, dense, long-running services; serverless for event-driven, spiky workloads where zero ops matters more than control. In practice containers run on VMs, and container-based serverless blurs the line.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "VMs, containers and serverless are layers, not rivals.",
+        "Containers usually run inside VMs.",
+        "Container-based serverless runs OCI images without servers.",
+        "Choose by isolation, control and scaling needs."
+      ]
+    }
+  ]
+}

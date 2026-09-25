@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Supply-chain security answers three questions: where every component came from (provenance), whether it's the component you expect (pinning and signatures), and whether it's known-vulnerable (SBOMs and scanning)."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Control",
+        "Practice"
+      ],
+      "rows": [
+        [
+          "Trusted minimal bases",
+          "Official/Verified images, distroless, Chainguard/Wolfi; beware typosquats and abandoned images"
+        ],
+        [
+          "Pinning",
+          "Base by digest; deps by hashed lockfile (`--require-hashes`, `uv sync --frozen`)"
+        ],
+        [
+          "Freshness",
+          "Renovate/Dependabot PRs move pins"
+        ],
+        [
+          "Signing",
+          "cosign (keyless via CI identity) + admission policy (Kyverno etc.)"
+        ],
+        [
+          "SBOM",
+          "SPDX/CycloneDX list of every package"
+        ],
+        [
+          "Provenance",
+          "SLSA attestation: commit, builder, process"
+        ],
+        [
+          "Scanning",
+          "CI gate on fixable HIGH/CRITICAL; rescan running images"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker buildx build --sbom=true --provenance=mode=max -t ghcr.io/acme/rag-api:$TAG --push .\n$ trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ghcr.io/acme/rag-api:$TAG\n$ syft ghcr.io/acme/rag-api:$TAG -o cyclonedx-json > sbom.json"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Unfixable or unreachable CVEs: track them as VEX exceptions, not noise that trains people to ignore scanners.",
+        "New CVEs land against old images daily: rescan what's deployed."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you secure your container supply chain?\" A: \"A minimal trusted base pinned by digest with automated updates, locked and hashed dependencies, an SBOM and provenance generated at build, signatures verified at deploy, CI scanning that fails on fixable criticals, and continuous rescanning of running images.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Pin + automate updates.",
+        "SBOM = contents; provenance = origin.",
+        "Sign in CI, verify at deploy.",
+        "Gate on fixable criticals; rescan continuously."
+      ]
+    }
+  ]
+}

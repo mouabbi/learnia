@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "`docker inspect` returns the daemon's full JSON for a container, the ground truth for what is actually configured and why it stopped."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Path",
+        "Answers"
+      ],
+      "rows": [
+        [
+          ".State.Status / ExitCode / OOMKilled / Error",
+          "Why it stopped"
+        ],
+        [
+          ".State.Health",
+          "Last healthcheck outputs"
+        ],
+        [
+          ".RestartCount",
+          "Is it flapping?"
+        ],
+        [
+          ".Config.Image / Env / Cmd / Entrypoint / User",
+          "What runs, with which env"
+        ],
+        [
+          ".HostConfig.Memory / NanoCpus / RestartPolicy / PortBindings / Privileged",
+          "Host-side settings"
+        ],
+        [
+          ".Mounts",
+          "Volume or bind sources and rw status"
+        ],
+        [
+          ".NetworkSettings.Networks",
+          "Networks, IPs, aliases"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker inspect -f '{{.State.Status}} {{.State.ExitCode}} oom={{.State.OOMKilled}} restarts={{.RestartCount}}' api\n$ docker inspect -f '{{range .Mounts}}{{.Type}} {{.Source}} -> {{.Destination}}{{\"\\n\"}}{{end}}' db\n$ docker inspect -f '{{json .State.Health}}' db | jq '.Log[-1]'"
+    },
+    {
+      "type": "heading",
+      "text": "Config vs HostConfig",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`Config`: portable part (image defaults merged with your env, cmd, user).",
+        "`HostConfig`: host-tied part (ports, mounts, limits, restart policy, privileged)."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "inspect prints every env var, including passwords and API keys, to anyone with Docker access. That's a key reason secrets don't belong in env."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"A service ignores a setting you're sure you configured. How do you check?\" A: \"docker inspect the running container: Config.Env and Cmd for what it actually received, HostConfig for ports, limits and restart policy, Mounts for the real sources, then compare with the Compose file. Usually the container wasn't recreated.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "inspect = ground truth, not your memory.",
+        "State answers why it stopped.",
+        "Config vs HostConfig: portable vs host-tied.",
+        "Env in inspect is visible in plain text."
+      ]
+    }
+  ]
+}

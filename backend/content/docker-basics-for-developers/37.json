@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "In dev, the image provides dependencies, a bind mount provides source, and `uvicorn --reload` restarts on changes, with no rebuild per edit."
+    },
+    {
+      "type": "code",
+      "code": "# compose.override.yaml\nservices:\n  api:\n    build: { context: ., target: dev }\n    command: [\"uvicorn\",\"app.main:app\",\"--host\",\"0.0.0.0\",\"--reload\",\"--reload-dir\",\"/app/app\"]\n    volumes:\n      - ./app:/app/app            # source only\n    environment:\n      WATCHFILES_FORCE_POLLING: \"true\"   # only if file events don't arrive\n    ports: [\"127.0.0.1:8000:8000\"]",
+      "language": "yaml"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Pitfall",
+        "Fix"
+      ],
+      "rows": [
+        [
+          "Mounting `.:/app` shadows the image's venv with a host (maybe macOS) .venv",
+          "Mount only the source dir"
+        ],
+        [
+          "Mount hides image content at that path",
+          "Expected; remember it's there"
+        ],
+        [
+          "No reload on Windows/NTFS or some VM shares",
+          "Keep code in WSL2 FS or enable polling"
+        ],
+        [
+          "Root-owned generated files on Linux",
+          "`user: \"${UID}:${GID}\"` in dev"
+        ],
+        [
+          "Slow on macOS",
+          "Don't mount dependency trees"
+        ]
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Never ship `--reload`: keep it in the dev target or override file.",
+        "Compose Watch (sync instead of mount) avoids most performance and permission issues."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you get hot reload in Docker without breaking dependencies?\" A: \"Bake dependencies into the image, bind-mount only the source directory, and run uvicorn --reload in a dev-only override. Never mount the whole project, which drags in a host venv, and never ship --reload.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Image = deps; mount = source.",
+        "Mount only the source directory.",
+        "Polling fixes missing file events.",
+        "--reload is dev-only."
+      ]
+    }
+  ]
+}

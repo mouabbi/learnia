@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Inside a container, localhost is that container's own loopback; reaching another container uses its name, and reaching the host uses host.docker.internal (built in on Desktop, added explicitly on Linux)."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Caller → target",
+        "Address"
+      ],
+      "rows": [
+        [
+          "Host → container",
+          "localhost:<published host port>"
+        ],
+        [
+          "Container → container",
+          "<service>:<container port>"
+        ],
+        [
+          "Container → host service",
+          "host.docker.internal:<port>"
+        ],
+        [
+          "Container → itself",
+          "localhost"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "services:\n  api:\n    extra_hosts:\n      - \"host.docker.internal:host-gateway\"    # required on Linux Engine",
+      "language": "yaml"
+    },
+    {
+      "type": "heading",
+      "text": "Gotchas",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "The host service must listen on an interface reachable from the bridge: native Ollama binds 127.0.0.1:11434 by default → refused. Set `OLLAMA_HOST=0.0.0.0` (and firewall it) or run it as a container.",
+        "Host Postgres: `listen_addresses='localhost'` and pg_hba rules often reject Docker subnets.",
+        "`--network host` on Linux makes localhost the host, at the cost of isolation. On Desktop it historically meant the VM, not your Mac."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "RAG rule: if a dependency can run as a container, put it in the Compose project and use its service name. Keep host.docker.internal for tools that must stay on the host, such as a GPU LLM server on a Mac."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"The app connects to localhost:5432 and gets refused inside Docker, but psql works from the laptop. Why?\" A: \"Inside the container localhost is the container itself; the laptop works through the published port. Use the service name and container port (db:5432), or host.docker.internal for a database running on the host.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "localhost = the container itself.",
+        "Containers talk by service name.",
+        "host.docker.internal needs host-gateway on Linux.",
+        "Host services must listen beyond 127.0.0.1."
+      ]
+    }
+  ]
+}

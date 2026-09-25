@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A network driver decides what network namespace and connectivity a container gets; bridge (private IP behind NAT on one host) is the default and covers almost every single-host case."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Driver",
+        "Container gets",
+        "Use",
+        "Watch out"
+      ],
+      "rows": [
+        [
+          "bridge",
+          "Own netns, veth into a Linux bridge, private IP, NAT out",
+          "Default, single host",
+          "Subnets can clash with VPN/LAN ranges"
+        ],
+        [
+          "host",
+          "Host's netns: no isolation, no NAT",
+          "Max throughput, many dynamic ports",
+          "`-p` ignored; port clashes; native only on Linux"
+        ],
+        [
+          "none",
+          "Loopback only",
+          "Jobs that must not reach the network",
+          "—"
+        ],
+        [
+          "overlay",
+          "VXLAN network across hosts",
+          "Swarm / multi-host",
+          "Needs a cluster"
+        ],
+        [
+          "macvlan/ipvlan",
+          "Address on the physical LAN",
+          "Legacy LAN-visible apps",
+          "Host ↔ container needs extra config"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "How bridge works",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Docker creates a Linux bridge (`docker0` default, `br-<id>` user-defined).",
+        "Each container gets a veth pair: `eth0` inside, the other end on the bridge.",
+        "Outbound traffic is masqueraded to the host IP.",
+        "Published ports add DNAT rules (plus docker-proxy for some paths such as localhost)."
+      ]
+    },
+    {
+      "type": "image",
+      "src": "generate: Linux host with docker0 and br-xxxx bridges, veth pairs to container eth0 addresses (172.x), a NAT box between the bridges and host eth0, and a host-network container attached directly to host eth0",
+      "alt": "Bridge networking: veth, bridge, NAT.",
+      "caption": "Bridge networking: veth, bridge, NAT."
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Default pools start at 172.17.0.0/16. If your office VPN uses the same range, containers lose access to it. Set `default-address-pools` in daemon.json."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"bridge vs host networking?\" A: \"bridge gives each container its own network namespace and private IP behind NAT, with ports published explicitly; host shares the host's namespace, with no isolation, no NAT and no -p, trading isolation for performance and simplicity. It's native only on Linux.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "bridge = isolated netns + NAT; default.",
+        "host = no isolation, -p ignored.",
+        "overlay spans hosts (Swarm).",
+        "Control subnets with default-address-pools."
+      ]
+    }
+  ]
+}

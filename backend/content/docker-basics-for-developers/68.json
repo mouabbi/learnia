@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A container lives exactly as long as PID 1: it exits immediately when the command finishes, daemonizes, or crashes on start, and a restart policy turns a crash into a loop that hides the cause."
+    },
+    {
+      "type": "heading",
+      "text": "Why it exits at once",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "The command finished: a script without a server loop, `CMD [\"python\"]` with no TTY.",
+        "It daemonized: `service nginx start`, `postgres &`. Run in the foreground (`nginx -g 'daemon off;'`).",
+        "Startup crash: missing env, unreachable DB with no retry, missing system library.",
+        "Wrong command: arguments after the image replaced CMD."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Crash loops",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker ps                           # Restarting (1) 5 seconds ago\n$ docker inspect -f '{{.RestartCount}} {{.State.ExitCode}}' api\n$ docker logs --tail 50 api           # logs accumulate across restarts\n$ docker events --filter container=api --since 10m"
+    },
+    {
+      "type": "heading",
+      "text": "Get a shell in the broken image",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run --rm -it --entrypoint sh ghcr.io/acme/rag-api:1.4.2\n$ docker compose run --rm --entrypoint sh api                  # same env, networks, volumes\n$ docker compose run --rm --entrypoint \"sleep infinity\" api    # then exec in from another terminal"
+    },
+    {
+      "type": "paragraph",
+      "text": "Then run the real command by hand and check env, files and DNS."
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Don't use `--rm` on the container you're investigating: exit wipes its logs and inspect state."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"A container keeps restarting. What do you do?\" A: \"Read docker logs and inspect for the exit code and RestartCount; if the log isn't enough, override the entrypoint with sh or sleep infinity using the same config, reproduce the start command by hand, and fix the cause rather than tuning the restart policy.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Container = PID 1's lifetime.",
+        "Run services in the foreground.",
+        "Logs + exit code first.",
+        "--entrypoint sh to get inside a broken image."
+      ]
+    }
+  ]
+}

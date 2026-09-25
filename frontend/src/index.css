@@ -305,10 +305,18 @@ button:disabled {
 }
 
 .topbar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-weight: 700;
   color: var(--text-strong);
   text-decoration: none;
   border-radius: 4px;
+}
+
+.topbar-logo {
+  display: block;
+  flex-shrink: 0;
 }
 
 .topbar-title:hover {

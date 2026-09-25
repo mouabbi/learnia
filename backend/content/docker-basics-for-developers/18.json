@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "`docker stop` sends the stop signal (SIGTERM by default), waits a grace period (10 s default), then sends SIGKILL. `docker kill` sends SIGKILL immediately (or any signal with `-s`)."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Exit code",
+        "Meaning"
+      ],
+      "rows": [
+        [
+          "0",
+          "App handled SIGTERM and exited cleanly"
+        ],
+        [
+          "143 (128+15)",
+          "Died on SIGTERM with the default action"
+        ],
+        [
+          "137 (128+9)",
+          "SIGKILL: grace period expired, docker kill, or OOM"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Tuning",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Grace period: `docker stop -t 30`, `--stop-timeout`, Compose `stop_grace_period`.",
+        "Stop signal: `STOPSIGNAL` in the Dockerfile or `--stop-signal`. nginx's image uses SIGQUIT (graceful); SIGTERM is its fast shutdown.",
+        "`docker kill -s HUP nginx` sends a reload signal without stopping."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Graceful FastAPI shutdown",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Uvicorn on SIGTERM stops accepting, drains in-flight requests, runs lifespan shutdown.",
+        "`--timeout-graceful-shutdown 20` bounds the drain; the container grace period must be longer, or SIGKILL cuts it off.",
+        "Long LLM streams are in-flight requests; budget for them."
+      ]
+    },
+    {
+      "type": "code",
+      "code": "@asynccontextmanager\nasync def lifespan(app):\n    app.state.pool = await create_pool()\n    yield\n    await app.state.pool.close()      # runs on SIGTERM",
+      "language": "python"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Every stop taking exactly 10 s and ending in 137 means PID 1 ignores SIGTERM: shell-form CMD, entrypoint without exec, or a script with no handler."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"docker stop vs docker kill?\" A: \"stop sends SIGTERM, waits the grace period (10 s default), then SIGKILL, allowing graceful shutdown; kill sends SIGKILL immediately with no cleanup. Stops that always take 10 s mean the app isn't receiving SIGTERM.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "stop = SIGTERM → grace → SIGKILL.",
+        "137 = SIGKILL, 143 = SIGTERM, 0 = clean.",
+        "Grace period > app drain timeout.",
+        "Check STOPSIGNAL for software with a different graceful signal."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The questions below come up in almost every Docker screen; each answer is the crisp version to say out loud."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Question",
+        "Model answer"
+      ],
+      "rows": [
+        [
+          "Container vs VM?",
+          "Process with namespaces + cgroups on the shared host kernel vs hardware virtualization with its own kernel; containers win on density and startup, VMs on isolation"
+        ],
+        [
+          "Image vs container?",
+          "Immutable layered filesystem + config (by digest) vs an instance with a writable layer and runtime config"
+        ],
+        [
+          "CMD vs ENTRYPOINT?",
+          "ENTRYPOINT = executable; CMD = default args; run args replace CMD; use exec form for signals"
+        ],
+        [
+          "COPY vs ADD?",
+          "ADD also fetches URLs and auto-extracts tars; prefer COPY"
+        ],
+        [
+          "ARG vs ENV?",
+          "ARG build-only (visible in history if used in RUN); ENV persists; neither for secrets"
+        ],
+        [
+          "Layer caching?",
+          "Same parent + same instruction/content = hit; first miss rebuilds the rest; dependencies before source"
+        ],
+        [
+          "Smaller images?",
+          "Slim base, multi-stage, same-layer cleanup, .dockerignore, CPU-only wheels"
+        ],
+        [
+          "Volume vs bind mount?",
+          "Docker-managed, portable, pre-populated vs a host path for dev source and config"
+        ],
+        [
+          "Container communication?",
+          "User-defined network, service name, container port; default bridge has no DNS"
+        ],
+        [
+          "EXPOSE vs -p?",
+          "Metadata vs host mapping on 0.0.0.0 by default"
+        ],
+        [
+          "Exits immediately?",
+          "PID 1 ended: finished, daemonized, or crashed; check logs and exit code"
+        ],
+        [
+          "Exit 137?",
+          "SIGKILL: OOM, docker kill, or grace period expired"
+        ],
+        [
+          "PID 1 problem?",
+          "Ignores unhandled signals, must reap zombies; exec form + exec \"$@\" + tini"
+        ],
+        [
+          "depends_on waits?",
+          "No: use service_healthy plus app retries"
+        ],
+        [
+          "Secrets?",
+          "Build: BuildKit secret mounts. Runtime: mounted files/secret manager; never ENV/ARG/COPY"
+        ],
+        [
+          "Root in container safe?",
+          "Reduced root, still UID 0 on the host kernel; non-root USER, cap-drop ALL, no-new-privileges, read-only"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What happens during docker run?\" A: \"The CLI calls dockerd's API; the image is pulled if missing; the container is created with a writable layer, config, mounts and a network endpoint; containerd starts a shim and runc sets up namespaces, cgroups and the rootfs and execs the entrypoint; then output is attached, or the ID is printed with -d.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Answer with mechanism, then trade-off.",
+        "Signals, layers and networking dominate screens.",
+        "Always name the fix, not just the cause.",
+        "Secrets and root questions test security judgment."
+      ]
+    }
+  ]
+}

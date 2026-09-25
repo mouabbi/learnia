@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A container's exit code is its PID 1's exit code; values above 128 mean \"killed by signal (code − 128)\"."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Code",
+        "Meaning",
+        "Typical container cause"
+      ],
+      "rows": [
+        [
+          "0",
+          "Clean exit",
+          "Command finished or daemonized: a server \"succeeding\" is a bug"
+        ],
+        [
+          "1",
+          "App error",
+          "Traceback, config validation, failed migration"
+        ],
+        [
+          "2",
+          "Bad usage",
+          "CLI/argparse arguments"
+        ],
+        [
+          "125",
+          "Docker failed to run it",
+          "Invalid flag, bad mount"
+        ],
+        [
+          "126",
+          "Not executable",
+          "Lost +x bit, noexec mount"
+        ],
+        [
+          "127",
+          "Command not found",
+          "Typo, venv not on PATH, CRLF shebang"
+        ],
+        [
+          "130",
+          "SIGINT",
+          "Ctrl-C"
+        ],
+        [
+          "134",
+          "SIGABRT",
+          "Native abort/assert"
+        ],
+        [
+          "137",
+          "SIGKILL",
+          "OOM, docker kill, grace period expired"
+        ],
+        [
+          "139",
+          "SIGSEGV",
+          "Native extension, libc mismatch, emulation"
+        ],
+        [
+          "143",
+          "SIGTERM",
+          "docker stop without a custom handler"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker ps -a --format 'table {{.Names}}\\t{{.Status}}'\n$ docker inspect -f 'exit={{.State.ExitCode}} oom={{.State.OOMKilled}} err=\"{{.State.Error}}\"' api"
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Exit 1 with empty `docker logs` usually means the app logs to a file, or Python buffered stdout and died before flushing: set `PYTHONUNBUFFERED=1`."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Exit 137 vs 143 vs 139?\" A: \"137 is SIGKILL: OOM (check OOMKilled), docker kill, or an expired stop grace period. 143 is SIGTERM with default handling, normal after docker stop. 139 is a segfault, usually a native library, libc or architecture problem.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        ">128 = signal (code − 128).",
+        "126 not executable, 127 not found.",
+        "137 isn't always OOM.",
+        "Exit 0 from a server means it didn't stay in the foreground."
+      ]
+    }
+  ]
+}

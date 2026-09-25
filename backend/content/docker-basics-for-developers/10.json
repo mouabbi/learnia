@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A multi-arch tag points to an image index that maps each platform (linux/amd64, linux/arm64, …) to its own manifest; each engine pulls the entry matching its host."
+    },
+    {
+      "type": "heading",
+      "text": "Where it breaks",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Built on Apple Silicon → arm64 → on an amd64 server: `exec format error`.",
+        "amd64 image on arm64 runs under emulation: slow, and some JIT/SIMD-heavy ML code crashes.",
+        "Missing wheels for a platform → pip compiles from source (slow, needs compilers)."
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/acme/api:1.0.0 --push .\n$ docker buildx imagetools inspect ghcr.io/acme/api:1.0.0\n$ docker image inspect -f '{{.Os}}/{{.Architecture}}' ghcr.io/acme/api:1.0.0"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Approach",
+        "Speed",
+        "Notes"
+      ],
+      "rows": [
+        [
+          "QEMU emulation",
+          "5-20× slower for compilation",
+          "Works for anything"
+        ],
+        [
+          "Cross-compile (`FROM --platform=$BUILDPLATFORM`, target `$TARGETARCH`)",
+          "Native speed",
+          "Great for Go/Rust; limited for Python wheels"
+        ],
+        [
+          "Native runners per arch",
+          "Native speed",
+          "Merge results into one index"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "The classic image store holds one platform per tag, so `--load` of a multi-platform build fails; push to a registry or use the containerd image store."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Your image works on your M-series Mac but fails with exec format error in production. Why and how do you fix it?\" A: \"It was built for linux/arm64 and the server is amd64. Build in CI with `--platform linux/amd64` or a multi-arch buildx build, and verify with image inspect.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "One tag, many platforms via an image index.",
+        "exec format error = architecture mismatch.",
+        "Build for the target, not your laptop.",
+        "Prefer cross-compilation or native runners over emulation."
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, Plus, Pencil, Trash2, Sparkles, FileText, Eraser, Wand2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, ArrowUp, ArrowDown, Plus, Pencil, Trash2, Sparkles, FileText, Eraser, Wand2, ListTree } from 'lucide-react'
 
 /**
  * Structure tab — Module > Chapter > Page tree with add/rename/delete and
@@ -135,6 +135,16 @@ export function StructureTree({ course, actions, onChange, onSelectPage, selecte
         {(course.modules || []).length > 0 && (
           <button
             type="button"
+            className="cms-btn-ai"
+            onClick={() => onGenerateWithAi({ scope: 'module' })}
+            title="Design one new module (chapters + page titles) with AI and add it at the end — fill its content afterwards with Generate All"
+          >
+            <ListTree size={16} /> Add module with AI
+          </button>
+        )}
+        {(course.modules || []).length > 0 && (
+          <button
+            type="button"
             className="cms-btn-danger"
             onClick={clearStructure}
             disabled={clearing}
@@ -198,8 +208,16 @@ export function StructureTree({ course, actions, onChange, onSelectPage, selecte
                   </button>
                   <button
                     type="button"
+                    className="cms-tree-action-ai-content"
+                    onClick={() => onGenerateWithAi({ scope: 'module', moduleId: module.id })}
+                    title="Generate structure with AI: adds the chapters + pages this module is missing (existing ones are kept as-is)"
+                  >
+                    <ListTree size={14} /> Structure
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => onGenerateWithAi({ scope: 'chapter', moduleId: module.id })}
-                    title="Generate chapter with AI"
+                    title="Add ONE new chapter (with its pages) to this module with AI"
                   >
                     <Sparkles size={14} />
                   </button>
@@ -207,7 +225,7 @@ export function StructureTree({ course, actions, onChange, onSelectPage, selecte
                     type="button"
                     className="cms-tree-action-ai-content"
                     onClick={() => onGenerateWithAi({ scope: 'module-content', moduleId: module.id })}
-                    title="Generate module content with AI (fills every page already in this module)"
+                    title="Generate module content with AI (fills only the empty pages — or every page if none is written yet)"
                   >
                     <FileText size={14} /> Content
                   </button>

@@ -1417,6 +1417,113 @@ button:disabled {
   width: min(820px, 100%);
 }
 
+.cms-batch-select-all {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.cms-zip-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  margin: 0.75rem 0;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.cms-zip-drop:hover,
+.cms-zip-drop-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.cms-zip-drop input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.cms-zip-map {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 35vh;
+  overflow-y: auto;
+  font-size: 0.82rem;
+}
+
+.cms-zip-map li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+}
+
+.cms-zip-map-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+
+.cms-zip-map-module {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.cms-zip-map-parts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-left: auto;
+}
+
+.cms-zip-map-parts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cms-zip-map-ignored {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.cms-zip-map-unmatched {
+  border-color: var(--danger, #d14343) !important;
+}
+
+.cms-zip-map-unmatched .cms-zip-map-module {
+  color: var(--danger, #d14343);
+}
+
+.cms-zip-warnings {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
 .cms-batch-module-list {
   list-style: none;
   margin: 0.75rem 0;
@@ -1490,6 +1597,21 @@ button:disabled {
   cursor: pointer;
 }
 
+.cms-batch-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.cms-batch-toggle-done:disabled {
+  opacity: 0.7;
+  border-style: dashed;
+}
+
+.cms-batch-final-exam-done {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .cms-batch-final-exam input[type='checkbox'] {
   width: 1rem;
   height: 1rem;
@@ -1499,4 +1621,24 @@ button:disabled {
   font-size: 0.8rem;
   color: var(--text);
   margin: 0 0 0.75rem;
+}
+
+/* -- structure import preview (AiImportModal: course/module/chapter) ----- */
+.cms-structure-preview {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.cms-structure-preview ul {
+  margin: 0.15rem 0 0.35rem;
+  padding-left: 1.1rem;
+  max-height: none;
+}
+
+.cms-structure-preview strong {
+  color: var(--text-strong);
 }

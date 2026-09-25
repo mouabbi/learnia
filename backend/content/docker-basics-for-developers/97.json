@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Mainline Linux gained the two primitives containers need, namespaces (isolated views) and cgroups (resource limits), and LXC combined them into usable system containers before Docker existed."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Primitive",
+        "Origin",
+        "Provides"
+      ],
+      "rows": [
+        [
+          "Namespaces",
+          "Added gradually from 2002 (mount) to 2013 (user namespaces, Linux 3.8)",
+          "Isolated views: mnt, pid, net, uts, ipc, user, later cgroup, time"
+        ],
+        [
+          "cgroups",
+          "Started at Google as \"process containers\"; merged in Linux 2.6.24 (2008); cgroup v2 unified later",
+          "CPU, memory, I/O, PID limits and accounting"
+        ],
+        [
+          "LXC",
+          "2008",
+          "Userspace tools to create system containers from namespaces + cgroups"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Why LXC wasn't enough for developers",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "System-container model: a whole distro with init, managed like a lightweight VM.",
+        "No standard image format, layering or registry for distribution.",
+        "Configuration heavy; no build recipe equivalent to a Dockerfile."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Docker's relationship",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Early Docker (2013) used LXC as its execution driver, then replaced it with its own libcontainer (2014), which later became runc."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What kernel features make containers possible?\" A: \"Namespaces isolate what a process can see (PIDs, network, mounts, hostname, IPC, users) and cgroups limit what it can use (CPU, memory, I/O, PIDs). LXC combined them first; Docker initially built on LXC, then moved to libcontainer, now runc.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Namespaces = visibility; cgroups = limits.",
+        "Both matured in mainline Linux by ~2013.",
+        "LXC = system containers, no image workflow.",
+        "Docker: LXC → libcontainer → runc."
+      ]
+    }
+  ]
+}

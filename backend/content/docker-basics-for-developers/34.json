@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A secure image runs as non-root, contains no secrets, uses a pinned but continuously updated minimal base, and is scanned with sensible gates."
+    },
+    {
+      "type": "heading",
+      "text": "Controls",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Non-root numeric USER, root-owned read-only code, writable dirs only where needed; at runtime `--read-only --tmpfs /tmp`.",
+        "No secrets in layers: strict .dockerignore, BuildKit secret mounts, runtime injection.",
+        "Pin base by digest and deps by hashed lockfile; Renovate/Dependabot move the pins.",
+        "Minimal runtime: no compilers, curl, package managers or shells if possible.",
+        "Runtime: `--cap-drop ALL`, `--security-opt no-new-privileges`."
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Secret leak",
+        "Why"
+      ],
+      "rows": [
+        [
+          "COPY . . with .env",
+          "Baked into a layer"
+        ],
+        [
+          "ARG TOKEN in RUN",
+          "docker history"
+        ],
+        [
+          "ENV API_KEY",
+          "Image config"
+        ],
+        [
+          "COPY then rm",
+          "Earlier layer keeps it"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 rag-api:1.4.2\n$ docker scout cves rag-api:1.4.2"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Gate on fixable HIGH/CRITICAL; track the rest.",
+        "Most findings come from base OS packages; slimmer bases remove whole classes.",
+        "Unreachable CVEs: document with VEX rather than muting the scanner."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you secure a container image?\" A: \"Non-root user and read-only rootfs; no secrets in layers via .dockerignore and secret mounts; a minimal base pinned by digest with automated updates; CI scanning that fails on fixable criticals; dropped capabilities at runtime.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Non-root + read-only.",
+        "Every layer is extractable: no secrets.",
+        "Pinning needs automation.",
+        "Gate on fixable criticals."
+      ]
+    }
+  ]
+}

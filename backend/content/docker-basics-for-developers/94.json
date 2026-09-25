@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "VMs virtualize the whole machine, so every app carries a full operating system: large images, boot times in seconds to minutes, duplicated kernels and memory, and a guest OS to patch per VM. They also leave the application-packaging problem unsolved."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Limitation",
+        "Effect"
+      ],
+      "rows": [
+        [
+          "Full guest OS per app",
+          "GB-sized images; slow to copy and store"
+        ],
+        [
+          "Boot an OS",
+          "Seconds to minutes to start; slow scaling and CI"
+        ],
+        [
+          "Duplicated kernels/services",
+          "Memory and CPU overhead per VM; lower density"
+        ],
+        [
+          "Guest OS maintenance",
+          "Patching, hardening and monitoring every VM's OS"
+        ],
+        [
+          "Packaging still manual",
+          "The app inside is still installed by scripts or by hand, so drift continues inside VMs"
+        ],
+        [
+          "Heavyweight dev loop",
+          "Vagrant boxes are slow to rebuild and share"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "VM vs container at a glance",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "VM",
+        "Container"
+      ],
+      "rows": [
+        [
+          "Unit",
+          "Machine",
+          "Process (tree)"
+        ],
+        [
+          "Kernel",
+          "Own",
+          "Shared host"
+        ],
+        [
+          "Size",
+          "GBs",
+          "MBs"
+        ],
+        [
+          "Start",
+          "Seconds-minutes",
+          "Milliseconds-seconds"
+        ],
+        [
+          "Isolation",
+          "Strong (hypervisor)",
+          "Weaker (shared kernel)"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "VMs aren't obsolete: when you need a different kernel, strong multi-tenant isolation or a full OS, they're still the right tool. Containers trade isolation for speed and density."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"If VMs already provided isolation, why did containers take over application deployment?\" A: \"VMs carry a full OS per app: heavy images, slow boots, duplicated overhead and per-VM OS maintenance, and they don't standardize how the app itself is packaged. Containers package just the app and its userland, start in milliseconds, pack densely and give a single portable artifact.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "VM = full OS per app: heavy and slow to start.",
+        "VMs don't solve application packaging.",
+        "Containers trade isolation for density and speed.",
+        "VMs still win for kernel diversity and hard multi-tenancy."
+      ]
+    }
+  ]
+}

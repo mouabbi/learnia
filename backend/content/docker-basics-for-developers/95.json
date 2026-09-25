@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Config management tools converge servers toward a declared state; golden images bake a pre-configured OS image. Both fought drift before containers, with different trade-offs."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Approach",
+        "Tools",
+        "Model",
+        "Limits"
+      ],
+      "rows": [
+        [
+          "Config management",
+          "Puppet, Chef (agent, pull), Salt, Ansible (agentless, push over SSH)",
+          "Describe desired state; apply idempotently to running servers",
+          "Convergence is slow; drift between runs; manual changes still possible; ordering and partial failures"
+        ],
+        [
+          "Golden images",
+          "Packer, AMIs, VM templates",
+          "Bake a full machine image once, launch many",
+          "GB-sized, slow to rebuild; OS + app coupled; image sprawl"
+        ],
+        [
+          "Containers",
+          "Dockerfile + registry",
+          "Bake only the app's userland; run on any host",
+          "Shared kernel; state must live elsewhere"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Idempotency, the key idea",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Applying the same playbook twice yields the same state, e.g. \"ensure package X version Y is installed\". That's declarative configuration, which containers push further by baking the result at build time instead of converging at runtime."
+    },
+    {
+      "type": "heading",
+      "text": "Why they didn't make containers unnecessary",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "They manage machines, not applications as portable artifacts.",
+        "Runtime convergence can fail halfway; image builds either succeed or produce nothing.",
+        "They're still used to provision the hosts that run containers (and for non-container infra)."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do Ansible/Puppet differ from Docker images?\" A: \"Config management converges live servers toward a declared state at runtime and can leave them partially converged or drifted; a Docker image is built once, immutable, and run identically anywhere. Today config management often provisions the hosts while images package the apps.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Config management = runtime convergence.",
+        "Golden images = baked machine images, heavy.",
+        "Containers bake just the app, immutably.",
+        "The tools complement each other: hosts vs apps."
+      ]
+    }
+  ]
+}

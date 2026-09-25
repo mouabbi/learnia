@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "An image is an ordered stack of read-only layers; RUN, COPY and ADD each add one, while ENV, CMD, LABEL and similar only change the config. overlay2 merges the layers (lowerdir) with a per-container writable layer (upperdir) into the view the process sees."
+    },
+    {
+      "type": "image",
+      "src": "generate: Stacked diagram: read-only image layers as lowerdir, a thin writable upperdir, and the merged view; a read falls through to the topmost layer containing the file; a write copies the whole file up first",
+      "alt": "overlay2: reads fall through, writes copy up.",
+      "caption": "overlay2: reads fall through, writes copy up."
+    },
+    {
+      "type": "heading",
+      "text": "Mechanics",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Read: served from the topmost layer containing the file.",
+        "First write to an existing file: copy-up of the entire file into upperdir (appending to a 1 GB file copies 1 GB).",
+        "Delete: a whiteout in the upper layer; the bytes remain below.",
+        "Shared layers are stored and transferred once across images."
+      ]
+    },
+    {
+      "type": "code",
+      "code": "# BAD: the cache stays in the first layer\nRUN apt-get update && apt-get install -y build-essential\nRUN rm -rf /var/lib/apt/lists/*\n# GOOD: create and delete in the same layer\nRUN apt-get update && apt-get install -y --no-install-recommends build-essential \\\n && rm -rf /var/lib/apt/lists/*",
+      "language": "dockerfile"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "A secret copied in one layer and deleted in the next is still extractable. Databases on the writable layer are slow (copy-up) and die with the container; use volumes."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why doesn't deleting files in a later RUN shrink the image?\" A: \"Layers are immutable; the delete only adds a whiteout on top. The bytes stay in the earlier layer, so cleanup must happen in the same RUN that created the files.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Image size = sum of all layers.",
+        "Copy-on-write copies whole files on first modification.",
+        "Clean up in the same layer; later deletes don't help.",
+        "Write-heavy data belongs in volumes."
+      ]
+    }
+  ]
+}

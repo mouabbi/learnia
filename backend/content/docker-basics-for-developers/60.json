@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The project `.env` only feeds `${VAR}` interpolation in the Compose file; `env_file:` and `environment:` are what put variables into containers."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "Project .env",
+        "env_file:"
+      ],
+      "rows": [
+        [
+          "Purpose",
+          "Interpolate `${VAR}` in compose.yaml",
+          "Inject into the container"
+        ],
+        [
+          "Reaches the container",
+          "Only if referenced",
+          "Yes"
+        ],
+        [
+          "Selection",
+          "Automatic, or `--env-file`",
+          "Per service"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "services:\n  db:\n    image: pgvector/pgvector:${POSTGRES_TAG:-pg17}\n    environment:\n      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}\n  api:\n    env_file: [./config/api.env]",
+      "language": "yaml"
+    },
+    {
+      "type": "heading",
+      "text": "Precedence",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Interpolation: shell env > .env / --env-file > `${VAR:-default}`.",
+        "Container env: `run -e` > `environment:` > `env_file:` > image ENV."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Syntax",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`${VAR:-d}` default if unset or empty; `${VAR-d}` only if unset.",
+        "`${VAR:?msg}` fails if unset or empty.",
+        "`$$VAR` = literal `$` → expanded in the container (healthchecks)."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Classic bugs: the variable is in .env but missing in the container; a shell-exported var silently overrides .env; a healthcheck's `$POSTGRES_USER` gets interpolated empty on the host. Check `docker compose config`."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"DB_PASSWORD is in .env but the container doesn't have it. Why?\" A: \".env is only used for interpolating the Compose file. It reaches a container only if referenced in environment: (e.g., DB_PASSWORD: ${DB_PASSWORD}) or loaded via env_file:.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        ".env = interpolation only.",
+        "env_file/environment = container env.",
+        "Shell env beats .env.",
+        "$$ for container-side expansion."
+      ]
+    }
+  ]
+}

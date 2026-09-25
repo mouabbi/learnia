@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Everything written outside a volume goes to the container's writable layer (overlay2 upperdir), which is deleted when the container is removed, including every recreate and every deploy of a new image."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Event",
+        "Writable layer"
+      ],
+      "rows": [
+        [
+          "stop / start, restart, restart policy",
+          "Kept"
+        ],
+        [
+          "Host reboot (container not removed)",
+          "Kept"
+        ],
+        [
+          "docker rm, --rm on exit",
+          "Deleted"
+        ],
+        [
+          "compose down",
+          "Deleted"
+        ],
+        [
+          "compose up after config/image change",
+          "Deleted (recreate)"
+        ],
+        [
+          "Deploying a new image",
+          "Deleted"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker diff api          # A=added, C=changed, D=deleted\nA /app/uploads/report.pdf  # state that should be on a volume\n$ docker ps -s             # writable-layer size per container"
+    },
+    {
+      "type": "heading",
+      "text": "Costs of writing there",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Copy-up and overlay overhead make write-heavy workloads slow.",
+        "Grows silently in /var/lib/docker."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "VOLUME safety net",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Images like postgres declare `VOLUME`; without a mount, Docker creates an anonymous volume. A new container gets a new empty one and the old one is orphaned, so always mount a named volume explicitly."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Where does data written inside a container go, and when is it lost?\" A: \"Into the container's writable layer, which survives stop and restart but is deleted with the container, so any recreate or new-image deploy loses it. Durable state must go to a volume or an external service.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Writable layer lives and dies with the container.",
+        "Deploy = new container = lost layer.",
+        "docker diff reveals accidental state.",
+        "Mount named volumes explicitly."
+      ]
+    }
+  ]
+}

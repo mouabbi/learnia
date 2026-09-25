@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "compose.override.yaml is merged automatically; explicit `-f` stacks replace that default; profiles make services optional."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose -f compose.yaml -f compose.prod.yaml up -d      # override file NOT loaded\n$ docker compose -f compose.yaml -f compose.prod.yaml config     # inspect the merge"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Field type",
+        "Merge behavior"
+      ],
+      "rows": [
+        [
+          "Scalars (image, command, restart)",
+          "Later file replaces"
+        ],
+        [
+          "Mappings (environment, labels)",
+          "Merged by key"
+        ],
+        [
+          "Sequences (ports, volumes)",
+          "Combined, so omission can't remove entries"
+        ]
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Remove or replace inherited sequences with `!reset []` / `!override` (recent Compose), or keep them out of the base file.",
+        "`include:` imports self-contained sub-projects, cleaner than long -f stacks."
+      ]
+    },
+    {
+      "type": "code",
+      "code": "services:\n  pgadmin: { image: dpage/pgadmin4, profiles: [tools] }\n  ollama:  { image: ollama/ollama, profiles: [local-llm] }",
+      "language": "yaml"
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose --profile tools up -d\n$ COMPOSE_PROFILES=local-llm docker compose up -d"
+    },
+    {
+      "type": "paragraph",
+      "text": "Services without profiles always run; a profiled service runs if its profile is active or it's targeted explicitly."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you keep dev and prod Compose config apart?\" A: \"A prod-like base compose.yaml, dev ergonomics (bind mounts, --reload, debug ports) in compose.override.yaml, prod limits and restart policies in compose.prod.yaml loaded with -f (which skips the override), and profiles for optional tooling. Sequences merge, so use !reset to drop dev ports.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "override.yaml loads automatically; -f disables it.",
+        "Sequences combine; use !reset.",
+        "Profiles gate optional services.",
+        "Verify merges with compose config."
+      ]
+    }
+  ]
+}

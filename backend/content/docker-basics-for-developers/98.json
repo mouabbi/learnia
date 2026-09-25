@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "PaaS platforms like Heroku let developers `git push` code and get a running app, using buildpacks to assemble it and lightweight containers to run it; the Twelve-Factor App distilled the rules that make apps portable across such platforms."
+    },
+    {
+      "type": "heading",
+      "text": "Heroku's model",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Buildpacks detect the language, install the runtime and dependencies, and produce a \"slug\".",
+        "Slugs run in isolated containers (\"dynos\") on shared hosts.",
+        "Config through environment variables; logs to stdout; stateless processes scaled horizontally."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Twelve-Factor principles most relevant to containers",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Factor",
+        "Container equivalent"
+      ],
+      "rows": [
+        [
+          "Codebase / build-release-run separation",
+          "Build image once; release = image + config; run anywhere"
+        ],
+        [
+          "Dependencies declared and isolated",
+          "Everything in the image"
+        ],
+        [
+          "Config in the environment",
+          "env vars and secret files, not baked in"
+        ],
+        [
+          "Backing services as attached resources",
+          "DB and vector store via URLs/service names"
+        ],
+        [
+          "Processes stateless",
+          "State in volumes or external services"
+        ],
+        [
+          "Port binding",
+          "App listens on a port; platform routes to it"
+        ],
+        [
+          "Disposability",
+          "Fast start, graceful SIGTERM shutdown"
+        ],
+        [
+          "Dev/prod parity",
+          "Same image everywhere"
+        ],
+        [
+          "Logs as event streams",
+          "stdout/stderr"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Limits that containers addressed",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "PaaS was opinionated and vendor-specific: supported languages only, limited control over system packages, and hard to replicate locally. Containers gave the same workflow with full control and portability. Cloud Native Buildpacks now build OCI images from source."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How does the Twelve-Factor App relate to Docker?\" A: \"Twelve-Factor defines apps that run on disposable, platform-managed processes: config from the environment, stateless processes, backing services as attached resources, logs to stdout, fast startup and graceful shutdown. Containers are the natural packaging for exactly that model.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "PaaS = push code, platform builds and runs it.",
+        "Twelve-Factor = rules for portable, disposable apps.",
+        "Containers generalized PaaS with full control.",
+        "Buildpacks now output OCI images."
+      ]
+    }
+  ]
+}

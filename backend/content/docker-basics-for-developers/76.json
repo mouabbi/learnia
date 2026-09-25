@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Run a pinned Qdrant image with named volumes for storage and snapshots, configure it via `QDRANT__SECTION__KEY` env vars, and create collections idempotently at app startup, failing on dimension mismatch."
+    },
+    {
+      "type": "code",
+      "code": "qdrant:\n  image: qdrant/qdrant:v1.13.4          # pin; check current release\n  environment:\n    QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?required}\n  volumes: [qdrant_storage:/qdrant/storage, qdrant_snapshots:/qdrant/snapshots]\n  ports: [\"127.0.0.1:6333:6333\"]        # 6333 REST/dashboard, 6334 gRPC\n  healthcheck:\n    test: [\"CMD-SHELL\", \"bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1\"]",
+      "language": "yaml"
+    },
+    {
+      "type": "code",
+      "code": "async def ensure_collection(client, name, dim):\n    if not await client.collection_exists(name):\n        await client.create_collection(name, vectors_config=VectorParams(size=dim, distance=Distance.COSINE))\n        return\n    existing = (await client.get_collection(name)).config.params.vectors.size\n    if existing != dim:\n        raise RuntimeError(f\"{name}: dim {existing} != {dim}, re-index required\")",
+      "language": "python"
+    },
+    {
+      "type": "heading",
+      "text": "Rules",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Named volumes, not bind mounts: Qdrant warns that some filesystems (Windows/WSL, network FS) lack the POSIX semantics it needs and can corrupt data.",
+        "Back up with the snapshot API, not file copies of a live store.",
+        "Minimal images may lack curl: check the tools before writing healthchecks."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "An API key passed via env is visible in docker inspect. That's fine locally; inject it from a secret store in production."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you run Qdrant safely in Compose?\" A: \"A pinned image, named volumes for storage and snapshots, loopback-only ports, an API key even locally, a TCP healthcheck, snapshot-based backups, and idempotent collection creation that fails fast when the configured dimension doesn't match.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Pin the version; named volumes.",
+        "Config via QDRANT__SECTION__KEY.",
+        "Snapshots for backups.",
+        "Fail fast on dimension mismatch."
+      ]
+    }
+  ]
+}

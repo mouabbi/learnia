@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "As container counts grew, the problem shifted from running one container to running many across hosts: Compose handles multi-container apps on one host, Swarm added simple clustering, and Kubernetes became the standard orchestrator."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Tool",
+        "Scope",
+        "Strengths",
+        "Limits"
+      ],
+      "rows": [
+        [
+          "Compose (from Fig, 2014)",
+          "One host, one app",
+          "Simple YAML, great for dev and small prod",
+          "No multi-node HA, no rolling updates"
+        ],
+        [
+          "Docker Swarm (swarm mode, 2016)",
+          "Cluster",
+          "Built into Docker; easy",
+          "Smaller ecosystem; far less adoption"
+        ],
+        [
+          "Kubernetes (announced 2014, 1.0 in 2015; from Google's Borg experience)",
+          "Cluster",
+          "Reconciliation, rolling updates, autoscaling, huge ecosystem",
+          "Operational complexity"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "What orchestration adds",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Scheduling containers onto nodes by resources.",
+        "Desired-state reconciliation: restarts and rescheduling.",
+        "Service discovery and load balancing.",
+        "Rolling updates and rollbacks.",
+        "Config/secret distribution; storage attachment."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Where each fits",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Local dev and single-VM services: Compose.",
+        "Multi-node, HA, autoscaling: Kubernetes or a managed container platform (ECS, Cloud Run, Container Apps)."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Compose vs Kubernetes?\" A: \"Compose defines and runs a multi-container app on one host, ideal for dev and simple deployments. Kubernetes schedules and continuously reconciles workloads across many nodes, with rolling updates, autoscaling and self-healing, at much higher operational cost.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Compose = one host.",
+        "Kubernetes = cluster reconciliation; it won the orchestrator race.",
+        "Swarm is simpler but niche.",
+        "Managed platforms sit in between."
+      ]
+    }
+  ]
+}

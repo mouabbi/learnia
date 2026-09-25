@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The postgres entrypoint runs initdb, creates the user and database, and executes `/docker-entrypoint-initdb.d/*.sql|*.sql.gz|*.sh` (alphabetically) only when the data directory is empty; otherwise it skips all of it silently."
+    },
+    {
+      "type": "heading",
+      "text": "Consequences",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Editing init.sql after the first run changes nothing on an existing volume.",
+        "Changing POSTGRES_PASSWORD → \"password authentication failed\".",
+        "A script failing halfway leaves a non-empty data dir: the next start skips init and runs a half-initialized DB. Delete the volume and retry.",
+        "During init the temporary server listens only on the Unix socket: scripts must use `psql` without `-h`."
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "# dev reset (destroys data)\n$ docker compose down -v && docker compose up -d db\n# keep data, change password\n$ docker compose exec db psql -U app -d rag -c \"ALTER USER app WITH PASSWORD 'new';\""
+    },
+    {
+      "type": "code",
+      "code": "-- good use: bootstrap only\nCREATE EXTENSION IF NOT EXISTS vector;",
+      "language": "sql"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Init scripts",
+        "Migrations (Alembic)"
+      ],
+      "rows": [
+        [
+          "Empty volume only",
+          "Every database, every deploy"
+        ],
+        [
+          "Not available on managed Postgres",
+          "Work everywhere"
+        ],
+        [
+          "Extensions, roles",
+          "Schema changes"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why didn't my init.sql run?\" A: \"The entrypoint runs initdb.d scripts only when the data directory is empty. The volume already existed, so init was skipped. Reset the volume in dev, or better, move schema into migrations that run against existing databases.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Init runs once, on an empty data dir.",
+        "Failed init needs a volume reset.",
+        "Init uses the Unix socket, not TCP.",
+        "Schema belongs in migrations."
+      ]
+    }
+  ]
+}

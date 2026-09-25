@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "ARG exists only during the build (from its declaration onward in that stage); ENV is stored in the image config and present in every container."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "ARG",
+        "ENV"
+      ],
+      "rows": [
+        [
+          "During build",
+          "yes",
+          "yes"
+        ],
+        [
+          "At runtime",
+          "no",
+          "yes"
+        ],
+        [
+          "Override",
+          "--build-arg",
+          "-e, Compose environment"
+        ],
+        [
+          "Visibility",
+          "Values used in RUN show in docker history",
+          "In the image config"
+        ],
+        [
+          "Cache",
+          "Invalidates from first use",
+          "Invalidates later layers"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "ARG PYTHON_VERSION=3.12                 # before FROM: only usable in FROM lines\nFROM python:${PYTHON_VERSION}-slim-bookworm\nARG PYTHON_VERSION                      # redeclare to use inside the stage\nARG APP_VERSION=dev\nENV APP_VERSION=${APP_VERSION}          # promote to runtime",
+      "language": "dockerfile"
+    },
+    {
+      "type": "heading",
+      "text": "Scoping rules",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Each stage has its own ARG scope.",
+        "BuildKit provides `TARGETPLATFORM`, `TARGETARCH`, `BUILDPLATFORM` (declare to use).",
+        "Proxy args are predefined and excluded from history."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Python ENV defaults",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_DISABLE_PIP_VERSION_CHECK=1 PATH=\"/opt/venv/bin:${PATH}\"",
+      "language": "dockerfile"
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Neither is for secrets: `--build-arg TOKEN` used in RUN appears in history; ENV ships in the config to everyone who pulls. Use BuildKit secret mounts and runtime injection."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"ARG vs ENV?\" A: \"ARG is a build-time variable, gone at runtime but visible in history if used in RUN; ENV persists in the image and the container. Pre-FROM ARGs only work in FROM lines, and neither should ever carry a secret.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "ARG = build; ENV = build + runtime.",
+        "Redeclare ARGs inside each stage.",
+        "Both leak into image metadata.",
+        "Put the venv on PATH via ENV."
+      ]
+    }
+  ]
+}

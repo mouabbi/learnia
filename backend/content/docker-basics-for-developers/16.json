@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A container lives exactly as long as its PID 1; its state records where it is between create and removal."
+    },
+    {
+      "type": "image",
+      "src": "generate: State machine: created → running (start); running ↔ paused (pause/unpause); running → exited (process ends, stop, kill); exited → running (start or restart policy); running ↔ restarting; created/exited → removed (rm); failed removal → dead",
+      "alt": "Container lifecycle states.",
+      "caption": "Container lifecycle states."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "State",
+        "Meaning"
+      ],
+      "rows": [
+        [
+          "created",
+          "Configured, never started (or failed before exec: bad mount, port conflict)"
+        ],
+        [
+          "running",
+          "PID 1 alive"
+        ],
+        [
+          "paused",
+          "Frozen via cgroup freezer; memory kept; no signals delivered"
+        ],
+        [
+          "restarting",
+          "Restart policy between attempts, with backoff"
+        ],
+        [
+          "exited",
+          "PID 1 ended; exit code, logs and writable layer kept until rm"
+        ],
+        [
+          "dead",
+          "Removal partially failed (busy mount, storage driver)"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker ps -a --filter status=exited\n$ docker inspect -f '{{.State.Status}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}}' api"
+    },
+    {
+      "type": "heading",
+      "text": "Gotchas",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "`docker start` reuses the same container and config; `docker run` always creates a new one.",
+        "A CMD that daemonizes and returns makes the container exit immediately.",
+        "Paused isn't stopped: peers see a hung service.",
+        "Exited containers keep their name reserved and consume disk."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why does my container exit right after starting?\" A: \"Because PID 1 ended: the command finished, the process forked into the background, or it crashed at startup. Check docker logs and .State.ExitCode, and run the main process in the foreground.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Container lifetime = PID 1 lifetime.",
+        "start reuses; run creates.",
+        "Paused keeps memory and blocks signals.",
+        "Exited containers keep logs until removed."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Permissions are checked by numeric UID/GID; a bind mount exposes host files with host ownership unchanged, so container users that don't match can't write, and root containers leave root-owned files on the host."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Situation",
+        "Result"
+      ],
+      "rows": [
+        [
+          "Container UID 10001, host dir owned by 1000, mode 755",
+          "PermissionError on write"
+        ],
+        [
+          "Container runs as root, writes into mount",
+          "Root-owned files on host; your editor/git can't modify them"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ ls -ln ./data\ndrwxr-xr-x 2 1000 1000 4096 ./data\n$ docker run --rm -u 10001 -v \"$PWD/data:/data\" alpine touch /data/x\ntouch: /data/x: Permission denied"
+    },
+    {
+      "type": "heading",
+      "text": "Fixes, best first",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Use a named volume if you don't edit the files on the host (the image decides ownership).",
+        "Dev: run as your UID: `-u \"$(id -u):$(id -g)\"` or `user: \"${UID}:${GID}\"` (set HOME=/tmp if needed).",
+        "Build with a matching UID (`ARG UID=1000`).",
+        "chown the host dir to the container UID for data you don't edit.",
+        "Rootless Docker / userns-remap for UID mapping."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "`chmod -R 777` makes the data writable by every user and process on the host. Don't."
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Docker Desktop hides UID mismatches through its file-sharing layer, so setups pass on a Mac and fail on Linux CI. SELinux hosts may also need `:z`/`:Z` relabeling."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"A non-root container gets permission denied on a bind mount. Why and how do you fix it?\" A: \"The kernel compares numeric UIDs; the host directory belongs to a different UID. Use a named volume, run the container with the host user's UID in dev, or chown the directory to the container UID. Never 777.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Numbers, not names, decide access.",
+        "Named volumes sidestep host ownership.",
+        "Match UIDs in dev.",
+        "Desktop hides what Linux enforces."
+      ]
+    }
+  ]
+}

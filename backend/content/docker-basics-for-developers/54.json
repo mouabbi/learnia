@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "One image for every environment; config comes from the environment and is validated at startup, so misconfiguration crashes immediately instead of on the first request."
+    },
+    {
+      "type": "code",
+      "code": "from pydantic import PostgresDsn, SecretStr\nfrom pydantic_settings import BaseSettings, SettingsConfigDict\n\nclass Settings(BaseSettings):\n    model_config = SettingsConfigDict(env_file=\".env\", secrets_dir=\"/run/secrets\", extra=\"ignore\")\n    database_url: PostgresDsn\n    openai_api_key: SecretStr | None = None\n    embedding_dim: int = 384",
+      "language": "python"
+    },
+    {
+      "type": "heading",
+      "text": "Default precedence (highest first)",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Init arguments",
+        "Environment variables",
+        "dotenv file",
+        "secrets_dir files",
+        "Field defaults"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "text": "A Compose-provided env var beats a stray .env copied into the image, but keep .env out of images anyway."
+    },
+    {
+      "type": "heading",
+      "text": "Why it fits containers",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Fail fast: missing DATABASE_URL → ValidationError → exit 1 with a clear message.",
+        "`SecretStr` renders as `**********` in logs; call `.get_secret_value()` only at use.",
+        "Typed values: \"384\" becomes an int and invalid values are rejected."
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Where the app runs",
+        "DATABASE_URL host"
+      ],
+      "rows": [
+        [
+          "Laptop, outside Docker",
+          "localhost:5432 (published port)"
+        ],
+        [
+          "Inside Compose",
+          "db:5432 (service name, container port)"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Don't share one .env between local runs and containers: one of the two values is always wrong. Local runs use .env; containers get values from Compose."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you manage config for a containerized FastAPI app?\" A: \"Twelve-factor: one image, config from env and secret files, loaded and validated by pydantic-settings at startup with SecretStr for sensitive fields, so a missing or invalid value fails fast and the same image runs in every environment.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Same image, different env.",
+        "Validate at startup; fail fast.",
+        "Env beats dotenv; secrets_dir comes after.",
+        "Hostnames differ inside vs outside Docker."
+      ]
+    }
+  ]
+}

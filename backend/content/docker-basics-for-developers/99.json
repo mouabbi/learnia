@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Docker (2013, from dotCloud) didn't invent kernel isolation. It invented the workflow that made containers a standard developer tool: a buildable, layered, portable image, shared through registries and driven by a simple CLI."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Innovation",
+        "Why it mattered"
+      ],
+      "rows": [
+        [
+          "Image as the unit of delivery",
+          "App + userland in one immutable artifact"
+        ],
+        [
+          "Layered, content-addressed images",
+          "Reuse, caching, small transfers"
+        ],
+        [
+          "Dockerfile",
+          "Declarative, versionable build recipe"
+        ],
+        [
+          "Registry (Docker Hub) + push/pull",
+          "Distribution and sharing, like GitHub for images"
+        ],
+        [
+          "Simple CLI and daemon API",
+          "`docker run nginx` just works"
+        ],
+        [
+          "Same artifact dev → CI → prod",
+          "Ended most \"works on my machine\" issues"
+        ]
+      ]
+    },
+    {
+      "type": "code",
+      "code": "FROM python:3.12-slim\nCOPY requirements.txt .\nRUN pip install -r requirements.txt\nCOPY . .\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\"]",
+      "language": "dockerfile"
+    },
+    {
+      "type": "heading",
+      "text": "What it didn't change",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Isolation still comes from namespaces and cgroups on a shared kernel.",
+        "Persistence, secrets and orchestration still needed separate solutions (volumes, secret stores, Compose, Kubernetes)."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What did Docker actually contribute?\" A: \"Not isolation: namespaces, cgroups and LXC already existed. Docker contributed the packaging and distribution model (layered images, the Dockerfile, registries) plus a developer-friendly CLI, which made one immutable artifact runnable everywhere.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Docker = workflow, not kernel magic.",
+        "Images + layers + Dockerfile + registry.",
+        "Portability through one immutable artifact.",
+        "Isolation, persistence and orchestration came from elsewhere."
+      ]
+    }
+  ]
+}

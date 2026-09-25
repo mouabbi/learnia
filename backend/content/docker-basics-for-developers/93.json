@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Virtual machines let many isolated workloads share one physical server, turning hardware into a pool that could be sliced, moved, copied and restored in software."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Benefit",
+        "Mechanism",
+        "Impact"
+      ],
+      "rows": [
+        [
+          "Consolidation",
+          "Many VMs per host",
+          "Much higher utilization; fewer servers, less power"
+        ],
+        [
+          "Strong isolation",
+          "Separate kernels; hypervisor boundary",
+          "One VM's crash or compromise rarely affects others"
+        ],
+        [
+          "Mixed OSes",
+          "Any guest OS per VM",
+          "Windows and Linux on one host"
+        ],
+        [
+          "Snapshots and cloning",
+          "VM disk and state as files",
+          "Fast backups, test copies, templates"
+        ],
+        [
+          "Live migration",
+          "Move running VMs between hosts",
+          "Hardware maintenance without downtime"
+        ],
+        [
+          "Faster provisioning",
+          "Create a VM in minutes",
+          "Weeks become minutes"
+        ],
+        [
+          "Foundation for cloud",
+          "API-driven VMs",
+          "EC2-style on-demand infrastructure"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Why VMs are still everywhere",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Strongest general-purpose isolation for multi-tenant workloads.",
+        "Different kernels and OSes on one host.",
+        "Cloud instances are VMs; most containers in production run inside VMs.",
+        "MicroVMs (Firecracker, Kata Containers) bring VM isolation to container-style workloads."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Why do cloud providers still run containers inside VMs?\" A: \"VMs provide a hardware-enforced isolation boundary between tenants, each with its own kernel, while containers share one kernel. Providers use VMs (or microVMs like Firecracker) for tenant isolation, and containers inside them for packaging and density.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "VMs made hardware poolable and software-defined.",
+        "Isolation is at the hypervisor, with separate kernels.",
+        "Snapshots and live migration changed operations.",
+        "VMs remain the isolation layer beneath containers."
+      ]
+    }
+  ]
+}

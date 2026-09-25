@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Containers on the legacy default `bridge` network cannot resolve each other by name; user-defined bridges (including every Compose project network) provide embedded DNS."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Feature",
+        "Default bridge",
+        "User-defined bridge"
+      ],
+      "rows": [
+        [
+          "DNS by name",
+          "No (only deprecated --link)",
+          "Yes"
+        ],
+        [
+          "Aliases",
+          "No",
+          "Yes"
+        ],
+        [
+          "Isolation",
+          "All default containers see each other",
+          "Only same-network containers"
+        ],
+        [
+          "Connect/disconnect live",
+          "Limited",
+          "`docker network connect`"
+        ],
+        [
+          "Used by Compose",
+          "Never",
+          "`<project>_default`"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker run -d --name db -e POSTGRES_PASSWORD=x postgres:17\n$ docker run --rm alpine ping -c1 db\nping: bad address 'db'\n$ docker network create ragnet\n$ docker run -d --name db2 --network ragnet -e POSTGRES_PASSWORD=x postgres:17\n$ docker run --rm --network ragnet alpine ping -c1 db2      # resolves"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Container IPs change on every recreate: never hard-code them.",
+        "This is why a stack \"works in Compose but not with docker run\": Compose always creates a user-defined network."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Two containers can't reach each other by name. Why?\" A: \"They're on the default bridge, which has no embedded DNS. Create a user-defined network and attach both, or use Compose, which does that automatically.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Name resolution needs a user-defined network.",
+        "Compose always creates one.",
+        "Don't use IPs or --link.",
+        "User-defined networks also isolate projects."
+      ]
+    }
+  ]
+}

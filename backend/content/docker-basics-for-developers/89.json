@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "On bare metal, each application got its own physical server to avoid conflicts, so hardware sat mostly idle, capacity arrived in weeks, and every server was a unique, hand-maintained machine."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Problem",
+        "Cause",
+        "Cost"
+      ],
+      "rows": [
+        [
+          "Low utilization",
+          "One app per box for isolation; sized for peak",
+          "Utilization commonly cited in the ~5-15% range; paying for idle CPU, power, rack space"
+        ],
+        [
+          "Slow provisioning",
+          "Procure → rack → cable → install OS → configure",
+          "Weeks to months per new environment"
+        ],
+        [
+          "No isolation within a box",
+          "Apps share one OS, libraries, ports, users",
+          "One app's upgrade or crash affects the others"
+        ],
+        [
+          "Hardware coupling",
+          "App tied to a physical host",
+          "Failures and migrations mean manual rebuilds"
+        ],
+        [
+          "Scaling",
+          "Buy more hardware",
+          "Capacity planning months ahead"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Why it matters now",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "paragraph",
+      "text": "Every later technology answers one of these pains:"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "VMs → utilization and isolation on shared hardware.",
+        "Config management → reproducible server setup.",
+        "Containers → fast, dense, reproducible application packaging.",
+        "Cloud/orchestration → capacity on demand."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "note",
+      "text": "Running several apps on one server was possible but risky: shared system libraries, port collisions, and a single OS upgrade touching everything. \"One app per box\" was the defensive default."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"What problem did virtualization and containers originally solve?\" A: \"Bare-metal servers ran one app each for isolation, leaving most hardware idle and making new environments take weeks. Virtualization consolidated workloads safely onto shared hardware; containers went further, making application packaging lightweight, reproducible and fast to start.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "One app per server = isolation bought with idle hardware.",
+        "Provisioning was measured in weeks.",
+        "Apps sharing one OS share its failure modes.",
+        "Each later technology targets one of these pains."
+      ]
+    }
+  ]
+}

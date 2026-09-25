@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "`up` reconciles the running state with the file; `down` removes containers and networks (volumes only with -v); `exec` enters an existing container while `run` creates a new one-off."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Command",
+        "Key points"
+      ],
+      "rows": [
+        [
+          "up -d",
+          "Recreates only changed services; `--build`, `--wait`, `--force-recreate`, `--remove-orphans`"
+        ],
+        [
+          "down",
+          "Keeps named volumes; `-v` deletes them (data loss)"
+        ],
+        [
+          "ps",
+          "Status, health, ports"
+        ],
+        [
+          "logs -f api",
+          "`--tail`, `--since`"
+        ],
+        [
+          "exec",
+          "Existing container; `-T` for pipes"
+        ],
+        [
+          "run --rm",
+          "New container from the service definition; starts deps; no ports unless `--service-ports`"
+        ],
+        [
+          "build",
+          "`--pull`, `--no-cache`"
+        ],
+        [
+          "restart",
+          "Doesn't apply config changes"
+        ],
+        [
+          "config",
+          "Merged, interpolated config: the debugging tool"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose up -d --build --wait\n$ docker compose exec -T db pg_dump -U app -Fc rag > rag.dump\n$ docker compose run --rm api python -m app.scripts.reindex\n$ docker compose down -v      # wipes data"
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"You edited compose.yaml and ran docker compose restart, but nothing changed. Why?\" A: \"restart reuses the existing containers and their old config. docker compose up -d compares the desired state and recreates changed services.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "up -d applies changes; restart doesn't.",
+        "down -v deletes data.",
+        "exec vs run: existing vs new container.",
+        "-T for pipes and dumps."
+      ]
+    }
+  ]
+}

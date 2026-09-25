@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Docker never garbage-collects on its own: images, build cache, stopped containers, volumes and logs accumulate until the disk fills."
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker system df          # images, containers, volumes, build cache + reclaimable\n$ docker system df -v       # per object"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Command",
+        "Removes"
+      ],
+      "rows": [
+        [
+          "docker image prune",
+          "Dangling (<none>:<none>) images"
+        ],
+        [
+          "docker image prune -a",
+          "All images unused by any container"
+        ],
+        [
+          "docker container prune",
+          "Stopped containers and their writable layers"
+        ],
+        [
+          "docker builder prune",
+          "BuildKit cache (often the largest item)"
+        ],
+        [
+          "docker volume prune",
+          "Unused anonymous volumes (add -a for named)"
+        ],
+        [
+          "docker system prune -a --volumes",
+          "Everything unused, including volumes"
+        ]
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker image prune -a --filter \"until=168h\"\n$ docker builder prune --keep-storage 10GB"
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Dangling = untagged leftovers from rebuilding a tag; always safe to remove.",
+        "\"Unused\" means not attached to any container right now, not \"unimportant\"."
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "`docker system prune -a --volumes` deletes the database volumes of stopped Compose projects. On CI, pruning everything destroys the layer cache; prune by age and cap cache size instead. Container logs aren't shown by system df and need rotation."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"A build host keeps running out of disk. What's your policy?\" A: \"Measure with docker system df, cap BuildKit cache with keep-storage, prune images by age on a schedule, configure log rotation, and never prune volumes blindly.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Dangling ≠ unused; prune -a removes all unused images.",
+        "Build cache is usually the biggest consumer.",
+        "--volumes can delete real data.",
+        "Prune by age and size limits, not \"everything\"."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Scenario questions test method: state the symptom, the precise mechanism, and the fix, including prevention."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Scenario",
+        "Diagnosis",
+        "Fix"
+      ],
+      "rows": [
+        [
+          "API \"connection refused\" to localhost:5432; psql works on laptop",
+          "localhost is the api container itself",
+          "db:5432 + healthcheck condition + retries"
+        ],
+        [
+          "4 GB image; every code change reinstalls deps",
+          "Full base, CUDA torch, COPY before install, no .dockerignore",
+          "Slim multi-stage, CPU wheels, lockfile first, cache mount"
+        ],
+        [
+          "docker stop always 10 s → 137",
+          "sh is PID 1 (shell form / no exec), ignores SIGTERM",
+          "Exec form, exec \"$@\", tini"
+        ],
+        [
+          "Auth fails after changing POSTGRES_PASSWORD",
+          "Env applied only on first init",
+          "ALTER USER or reset volume in dev; check newline"
+        ],
+        [
+          "exec format error on server, fine on Mac",
+          "arm64 image on amd64 host",
+          "--platform linux/amd64 in CI"
+        ],
+        [
+          "Disk full at 3 a.m., Postgres PANIC",
+          "Build cache, images, unrotated json-file logs",
+          "Prune, rotate, local driver + recreate, disk alerts"
+        ],
+        [
+          "\"Firewalled\" DB reachable from internet",
+          "Published ports bypass ufw (FORWARD chain), 0.0.0.0 bind",
+          "Don't publish or bind 127.0.0.1; DOCKER-USER; rotate password"
+        ],
+        [
+          "Code change not showing up",
+          "No --build; anonymous volume shadows new venv",
+          "up -d --build -V; check compose images"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Answer template",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Restate the symptom precisely (exit code, error text).",
+        "Name the mechanism (PID 1, init-once, DNAT path, architecture).",
+        "Give the immediate fix.",
+        "Give the prevention (CI check, config default, alert)."
+      ]
+    },
+    {
+      "type": "terminal",
+      "text": "$ docker compose ps ; docker compose logs --tail 100 <svc>\n$ docker inspect -f '{{.State.ExitCode}} {{.State.OOMKilled}}' <ctr>\n$ docker compose exec api getent hosts db"
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"Every docker stop takes exactly 10 seconds and in-flight requests are cut. Diagnose it.\" A: \"SIGTERM never reaches the app: a shell is PID 1 because of shell-form CMD or an entrypoint without exec, so Docker falls back to SIGKILL after the 10 s grace period (exit 137). Use exec form, exec \"$@\" and tini, and verify with docker exec ps that the app or tini is PID 1.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Symptom → mechanism → fix → prevention.",
+        "Exit codes and first errors point the way.",
+        "Most scenarios reuse a handful of mechanisms.",
+        "Verify the fix with a concrete check."
+      ]
+    }
+  ]
+}

@@ -16,6 +16,8 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
   },
   server: {
+    // learnia.local points to this PC via the Windows hosts file
+    allowedHosts: ['learnia.local'],
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8002',

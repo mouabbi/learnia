@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "ENTRYPOINT is the executable; CMD supplies default arguments (or the whole command if there's no ENTRYPOINT). Run-time args replace CMD; `--entrypoint` replaces ENTRYPOINT."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "ENTRYPOINT",
+        "CMD",
+        "`docker run img`",
+        "`docker run img migrate`"
+      ],
+      "rows": [
+        [
+          "—",
+          "[\"uvicorn\",\"app:app\"]",
+          "uvicorn app:app",
+          "migrate"
+        ],
+        [
+          "[\"python\",\"-m\",\"app\"]",
+          "[\"serve\"]",
+          "python -m app serve",
+          "python -m app migrate"
+        ],
+        [
+          "[\"/entrypoint.sh\"]",
+          "[\"uvicorn\",\"app:app\"]",
+          "/entrypoint.sh uvicorn app:app",
+          "/entrypoint.sh migrate"
+        ]
+      ]
+    },
+    {
+      "type": "table",
+      "headers": [
+        "",
+        "Exec form `[\"bin\",\"arg\"]`",
+        "Shell form `bin arg`"
+      ],
+      "rows": [
+        [
+          "PID 1",
+          "Your binary",
+          "/bin/sh -c"
+        ],
+        [
+          "Signals",
+          "Reach the app",
+          "Swallowed by sh"
+        ],
+        [
+          "$VAR expansion",
+          "No",
+          "Yes"
+        ],
+        [
+          "Needs a shell",
+          "No",
+          "Yes"
+        ]
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Expansion with correct signals",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "code",
+      "code": "ENTRYPOINT [\"/entrypoint.sh\"]\nCMD [\"uvicorn\", \"app.main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]",
+      "language": "dockerfile"
+    },
+    {
+      "type": "code",
+      "code": "#!/bin/sh\nset -e\n: \"${PORT:=8000}\"\nexec \"$@\"",
+      "language": "sh"
+    },
+    {
+      "type": "paragraph",
+      "text": "Single variable: `CMD [\"sh\",\"-c\",\"exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}\"]`."
+    },
+    {
+      "type": "callout",
+      "variant": "warning",
+      "text": "Exec form must be valid JSON. `CMD ['uvicorn','app:app']` (single quotes) silently falls back to shell form. Setting ENTRYPOINT also resets any inherited CMD, so redeclare it."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"CMD vs ENTRYPOINT, and why exec form?\" A: \"ENTRYPOINT is the fixed executable, CMD the overridable default args. Exec form runs the binary directly as PID 1 so it receives SIGTERM; shell form wraps it in sh, which swallows signals.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Run args replace CMD, not ENTRYPOINT.",
+        "Exec form = signals work.",
+        "Need expansion? Wrapper script plus exec.",
+        "Double quotes only in exec form."
+      ]
+    }
+  ]
+}

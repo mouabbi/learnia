@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Deliver secrets as files under /run/secrets; the app reads the file, so the value stays out of docker inspect's Env list and isn't inherited by child processes."
+    },
+    {
+      "type": "code",
+      "code": "services:\n  db:\n    image: pgvector/pgvector:pg17\n    environment:\n      POSTGRES_PASSWORD_FILE: /run/secrets/db_password   # official images support *_FILE\n    secrets: [db_password]\n  api:\n    secrets: [db_password, openai_api_key]\nsecrets:\n  db_password:\n    file: ./secrets/db_password.txt\n  openai_api_key:\n    environment: OPENAI_API_KEY",
+      "language": "yaml"
+    },
+    {
+      "type": "paragraph",
+      "text": "With `secrets_dir=\"/run/secrets\"`, pydantic-settings loads `/run/secrets/openai_api_key` into the field `openai_api_key`."
+    },
+    {
+      "type": "table",
+      "headers": [
+        "Gotcha",
+        "Fix"
+      ],
+      "rows": [
+        [
+          "`echo \"pw\" > file` adds a newline; Postgres uses it as-is, the app may strip it",
+          "`printf '%s' \"$PW\" > file`"
+        ],
+        [
+          "Plain-Compose secrets are bind mounts: host mode/UID apply",
+          "Make the file readable by the container user"
+        ],
+        [
+          "Not a vault: unencrypted on disk, no rotation or audit",
+          "Swarm/K8s secrets or Vault/cloud secret managers"
+        ],
+        [
+          "Build-time secrets",
+          "BuildKit `--secret`, not Compose secrets"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "text": "Support `X_FILE` in your own app: read the file if set, else fall back to `X`. The same image then works with env in dev and files in prod."
+    },
+    {
+      "type": "callout",
+      "variant": "important",
+      "text": "Q: \"How do you pass a database password to containers without env vars?\" A: \"As a Compose (or Kubernetes) secret mounted at /run/secrets/<name>, with POSTGRES_PASSWORD_FILE for the official image and pydantic-settings secrets_dir or a _FILE reader in the app. Watch for trailing newlines and file permissions.\""
+    },
+    {
+      "type": "heading",
+      "text": "Key takeaways",
+      "level": 2,
+      "numbered": false
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Secrets as files at /run/secrets.",
+        "*_FILE convention everywhere.",
+        "Beware trailing newlines.",
+        "Compose secrets aren't a vault."
+      ]
+    }
+  ]
+}
