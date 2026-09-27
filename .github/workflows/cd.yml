@@ -1,47 +1,28 @@
-# CI/CD v1 — the simple version. Read it from top to bottom:
-#   1. test the backend and the frontend      (on pull requests AND pushes to main)
-#   2. build the 2 Docker images + push them  (push to main only)
-#   3. deploy them on the VPS                 (push to main only, after your approval)
-name: CI/CD
+# CD — only runs when YOU start it:
+#   Actions tab > CD > "Run workflow" > pick the branch + what to do:
+#     build             build the 2 images and push them to Docker Hub
+#     deploy            deploy images that already exist on Docker Hub
+#     build-and-deploy  both, one after the other
+# (In a private repo only people with write access can click the button,
+#  so the click is the approval.)
+name: CD
 
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [build-and-deploy, build, deploy]
+        default: build-and-deploy
+      image_tag:
+        description: "Deploy only: commit SHA to deploy (empty = the commit of the selected branch). Use an old SHA to roll back."
+        required: false
 
 jobs:
-  # ---------------------------------------------------------------- 1. TEST
-  test-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4 # download the code
-      - uses: astral-sh/setup-uv@v5 # install uv
-      - run: uv sync --locked
-        working-directory: backend
-      - run: uv run ruff check .
-        working-directory: backend
-      - run: uv run pytest
-        working-directory: backend
-
-  test-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci
-        working-directory: frontend
-      - run: npm run lint
-        working-directory: frontend
-      - run: npm run test:run
-        working-directory: frontend
-
-  # ------------------------------------------------------- 2. BUILD + PUSH
+  # ----------------------------------------------------------- BUILD + PUSH
   build-push:
-    needs: [test-backend, test-frontend] # only if both test jobs passed
-    if: github.event_name == 'push' # not on pull requests
+    if: inputs.action != 'deploy'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,11 +42,20 @@ jobs:
           docker push ${{ vars.DOCKERHUB_USERNAME }}/learnia-backend:${{ github.sha }}
           docker push ${{ vars.DOCKERHUB_USERNAME }}/learnia-frontend:${{ github.sha }}
 
-  # ----------------------------------------------------------- 3. DEPLOY
+  # ----------------------------------------------------------------- DEPLOY
   deploy:
     needs: build-push
+    # always() = still run when build-push was SKIPPED ("deploy" only);
+    # but never after a failed build, and only from the main branch.
+    if: >-
+      always()
+      && inputs.action != 'build'
+      && github.ref == 'refs/heads/main'
+      && (needs.build-push.result == 'success' || needs.build-push.result == 'skipped')
     runs-on: ubuntu-latest
-    environment: production # pauses here until you click "Approve"
+    environment: production # groups the deploy history under "Environments"
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -79,11 +69,11 @@ jobs:
       - name: Copy the config files to the VPS
         run: scp deploy/docker-compose.prod.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/learnia/
 
-      - name: Pull the new images and restart
+      - name: Pull the images and restart
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             cd /opt/learnia &&
-            echo IMAGE_TAG=${{ github.sha }} > .image_tag &&
+            echo IMAGE_TAG=$IMAGE_TAG > .image_tag &&
             docker compose -f docker-compose.prod.yml --env-file .env --env-file .image_tag pull &&
             docker compose -f docker-compose.prod.yml --env-file .env --env-file .image_tag up -d
           "
