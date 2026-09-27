@@ -64,7 +64,10 @@ def test_reindex_course_does_not_duplicate_row_on_repeat_call(db):
     from sqlalchemy import text
 
     rows = db.execute(
-        text("SELECT COUNT(*) AS n FROM search_index WHERE entity_type = 'course' AND entity_id = :id"),
+        text(
+            "SELECT COUNT(*) AS n FROM search_index "
+            "WHERE entity_type = 'course' AND entity_id = :id"
+        ),
         {"id": course.id},
     ).one()
     assert rows.n == 1

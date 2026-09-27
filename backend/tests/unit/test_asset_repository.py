@@ -45,7 +45,9 @@ def test_create_rejects_disallowed_mime_type(db):
     course = _make_course(db)
     repo = AssetRepository(db, FakeStorage())
     with pytest.raises(ValidationAppError):
-        repo.create(course.id, filename="virus.exe", mime_type="application/x-msdownload", file_bytes=b"x")
+        repo.create(
+            course.id, filename="virus.exe", mime_type="application/x-msdownload", file_bytes=b"x"
+        )
 
 
 def test_create_rejects_file_over_max_size(db):
@@ -73,7 +75,9 @@ def test_create_allowed_mime_and_size_persists_asset_row(db):
     course = _make_course(db)
     storage = FakeStorage()
     repo = AssetRepository(db, storage)
-    asset = repo.create(course.id, filename="diagram.png", mime_type="image/png", file_bytes=b"pngdata")
+    asset = repo.create(
+        course.id, filename="diagram.png", mime_type="image/png", file_bytes=b"pngdata"
+    )
     assert asset.id is not None
     assert asset.course_id == course.id
     assert asset.size_bytes == len(b"pngdata")

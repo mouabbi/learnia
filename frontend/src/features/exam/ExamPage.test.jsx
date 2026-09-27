@@ -2,13 +2,12 @@
 // ExamActive stage: question dots + Previous/Next), plus the exam intro's
 // entry point. 19-performance-accessibility calls out the "exam navigator"
 // explicitly as a keyboard-navigation target.
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ExamPage } from './ExamPage'
 import { coursesApi } from '../courses/coursesApi'
-import { recordFinalExamAttempt } from '../courses/progressStore'
 
 vi.mock('../courses/coursesApi', () => ({
   coursesApi: { getCourse: vi.fn(), getProgress: vi.fn() },

@@ -18,8 +18,8 @@ Safe to re-run: promoting an already-admin user is a no-op.
 
 import sys
 
-from learnia_backend.models.user import User
 from learnia_backend.database import SessionLocal
+from learnia_backend.models.user import User
 from learnia_backend.security.passwords import hash_password
 from learnia_backend.utils.time import utc_now_naive
 

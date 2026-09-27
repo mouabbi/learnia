@@ -86,6 +86,11 @@ def _single_answer_errors(
     return errors
 
 
+def _loc_path(loc: tuple) -> str:
+    """Pydantic error location -> "field.[0].sub" (list indexes in brackets)."""
+    return ".".join(f"[{part}]" if isinstance(part, int) else str(part) for part in loc)
+
+
 def _parse_json(raw: str) -> object:
     try:
         return json.loads(raw)
@@ -171,7 +176,10 @@ class ImportService:
                 errors.append(
                     ImportFieldError(
                         field="moduleContent",
-                        message="Expected an object keyed by module id — was this section selected but missing from the pasted JSON?",
+                        message=(
+                            "Expected an object keyed by module id — was this section "
+                            "selected but missing from the pasted JSON?"
+                        ),
                     )
                 )
             else:
@@ -190,7 +198,8 @@ class ImportService:
                     except ValidationError as exc:
                         for err in exc.errors():
                             field = ".".join(str(loc) for loc in err["loc"])
-                            field = f"moduleContent.{mid}.{field}" if field else f"moduleContent.{mid}"
+                            prefix = f"moduleContent.{mid}"
+                            field = f"{prefix}.{field}" if field else prefix
                             errors.append(ImportFieldError(field=field, message=err["msg"]))
                         continue
                     parsed_module_content[mid] = item.model_dump(by_alias=True)
@@ -202,7 +211,10 @@ class ImportService:
                 errors.append(
                     ImportFieldError(
                         field="moduleQcm",
-                        message="Expected an object keyed by module id — was this section selected but missing from the pasted JSON?",
+                        message=(
+                            "Expected an object keyed by module id — was this section "
+                            "selected but missing from the pasted JSON?"
+                        ),
                     )
                 )
             else:
@@ -220,7 +232,7 @@ class ImportService:
                         items = _QUESTION_LIST_ADAPTER.validate_python(module_qcm_raw[mid])
                     except ValidationError as exc:
                         for err in exc.errors():
-                            field = ".".join(f"[{loc}]" if isinstance(loc, int) else str(loc) for loc in err["loc"])
+                            field = _loc_path(err["loc"])
                             field = f"moduleQcm.{mid}.{field}" if field else f"moduleQcm.{mid}"
                             errors.append(ImportFieldError(field=field, message=err["msg"]))
                         continue
@@ -237,7 +249,10 @@ class ImportService:
                 errors.append(
                     ImportFieldError(
                         field="finalExam",
-                        message="Expected an array of questions — was this section selected but missing from the pasted JSON?",
+                        message=(
+                            "Expected an array of questions — was this section "
+                            "selected but missing from the pasted JSON?"
+                        ),
                     )
                 )
             else:
@@ -245,7 +260,7 @@ class ImportService:
                     items = _QUESTION_LIST_ADAPTER.validate_python(final_exam_raw)
                 except ValidationError as exc:
                     for err in exc.errors():
-                        field = ".".join(f"[{loc}]" if isinstance(loc, int) else str(loc) for loc in err["loc"])
+                        field = _loc_path(err["loc"])
                         field = f"finalExam.{field}" if field else "finalExam"
                         errors.append(ImportFieldError(field=field, message=err["msg"]))
                 else:
@@ -415,7 +430,9 @@ class ImportService:
         written = []
         for page, page_data in zip(pages, parsed_pages, strict=True):
             content = content_service.write(page, PageContent(blocks=page_data.get("blocks", [])))
-            written.append({"id": str(page.id), "title": page.title, "blockCount": len(content.blocks)})
+            written.append(
+                {"id": str(page.id), "title": page.title, "blockCount": len(content.blocks)}
+            )
         return {"pages": written}
 
     def commit_questions(
@@ -553,7 +570,9 @@ class ImportService:
         module_content_out: dict = {}
         for mid in module_content_ids:
             part_json = json.dumps(result.parsed["moduleContent"][mid])
-            module_content_out[mid] = self.commit_module_content(int(mid), part_json, replace=replace)
+            module_content_out[mid] = self.commit_module_content(
+                int(mid), part_json, replace=replace
+            )
 
         module_qcm_out: dict = {}
         for mid in module_qcm_ids:

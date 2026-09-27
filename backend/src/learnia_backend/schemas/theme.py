@@ -75,7 +75,9 @@ class CourseTheme(BaseModel):
     # for specific module ids, so a course can start from the generated
     # palette and have individual modules recolored afterward without
     # losing the rest.
-    module_palette: list[str] = Field(default_factory=lambda: list(DEFAULT_MODULE_PALETTE), alias="modulePalette")
+    module_palette: list[str] = Field(
+        default_factory=lambda: list(DEFAULT_MODULE_PALETTE), alias="modulePalette"
+    )
     module_colors: dict[str, str] = Field(default_factory=dict, alias="moduleColors")
 
     # -- light/dark palettes -------------------------------------------------
