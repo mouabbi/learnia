@@ -1,14 +1,11 @@
 # Deploying Learnia — CI/CD v1 (simple version)
 
-Workflows: `.github/workflows/ci.yml` (automatic) and `cd.yml` (manual button)
+Pipeline: `.github/workflows/ci-cd.yml`
 
 ```
-CI  (automatic)  push to main / pull request ─▶ test-backend + test-frontend
-
-CD  (button: Actions > CD > Run workflow, choose one)
-      build             ─▶ build-push                (images → Docker Hub)
-      deploy            ─▶ deploy                    (existing images → VPS)
-      build-and-deploy  ─▶ build-push ─▶ deploy
+pull request ─▶ test-backend + test-frontend
+push to main ─▶ test-backend + test-frontend ─▶ build-push ─▶ ⏸ Approve ─▶ deploy
+                                               (Docker Hub)             (VPS)
 ```
 
 On the VPS:
@@ -51,13 +48,14 @@ Put the content of `learnia_deploy.pub` in `/home/deploy/.ssh/authorized_keys` o
   - Variables: `DOCKERHUB_USERNAME`, `DOMAIN`
   - Secrets: `DOCKERHUB_TOKEN`, `VPS_HOST` (the IP), `VPS_USER` (`deploy`),
     `VPS_SSH_KEY` (content of the **private** file `learnia_deploy`)
-- **Environments → New environment `production`** (just a name that groups the deploy history;
-  "Required reviewers" needs a paid plan for private repos — the manual button replaces it)
+- **Environments → New environment `production`** → ☑ Required reviewers: yourself
+  (free for public repos; leave "Prevent self-review" unticked)
 
-**6. Deploy** → merge to `main` and wait for **CI** to be green → Actions tab → **CD** →
-**Run workflow** → branch `main`, action `build-and-deploy` → open `https://learnia.example.com`.
+**6. Deploy** → merge to `main` → Actions → **CI/CD**: tests ✅ → build-push ✅ →
+deploy "Waiting" → **Review deployments** → tick `production` → **Approve and deploy**.
 
-**Rollback** → CD → Run workflow → action `deploy`, image_tag = an older commit SHA.
+**Rollback** → Actions → open the run of an older commit → **Re-run jobs** → `deploy` →
+approve (it redeploys that run's images).
 
 Useful on the VPS:
 ```bash

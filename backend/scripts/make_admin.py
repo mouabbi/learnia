@@ -16,6 +16,7 @@ Usage, from backend/:
 Safe to re-run: promoting an already-admin user is a no-op.
 """
 
+import os
 import sys
 
 from learnia_backend.database import SessionLocal
@@ -30,7 +31,10 @@ def main() -> None:
         sys.exit(1)
 
     email = sys.argv[1]
-    password = sys.argv[2] if len(sys.argv) > 2 else None
+    # Password from the command line, or from the ADMIN_PASSWORD environment
+    # variable (used by deploy/create-admin.sh, so the password never appears
+    # in a command line / `ps` output / shell history).
+    password = sys.argv[2] if len(sys.argv) > 2 else os.environ.get("ADMIN_PASSWORD")
 
     db = SessionLocal()
     try:
