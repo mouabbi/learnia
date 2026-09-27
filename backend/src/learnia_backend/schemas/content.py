@@ -16,7 +16,7 @@ one entry in the Annotated union + one React component in the frontend's
 block registry — never a migration, since content lives in files.
 """
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -106,20 +106,20 @@ class TableBlock(BaseModel):
 
 
 ContentBlock = Annotated[
-    Union[
-        HeadingBlock,
-        ParagraphBlock,
-        CodeBlock,
-        TerminalBlock,
-        ImageBlock,
-        VideoBlock,
-        YoutubeBlock,
-        LinkBlock,
-        QuoteBlock,
-        CalloutBlock,
-        ListBlock,
-        TableBlock,
-    ],
+    (
+        HeadingBlock
+        | ParagraphBlock
+        | CodeBlock
+        | TerminalBlock
+        | ImageBlock
+        | VideoBlock
+        | YoutubeBlock
+        | LinkBlock
+        | QuoteBlock
+        | CalloutBlock
+        | ListBlock
+        | TableBlock
+    ),
     Field(discriminator="type"),
 ]
 

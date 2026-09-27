@@ -720,7 +720,9 @@ class PromptBuilderService:
             return {"type": "array", "items": QuestionWriteRequest.model_json_schema()}
         raise ValidationAppError(f"Unknown scope: {scope!r}")
 
-    def build(self, scope: str, course_id: int, *, module_id: int | None, chapter_id: int | None) -> str:
+    def build(
+        self, scope: str, course_id: int, *, module_id: int | None, chapter_id: int | None
+    ) -> str:
         if scope == "course":
             return self.build_course_prompt(course_id)
         if scope == "module":

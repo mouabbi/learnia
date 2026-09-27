@@ -62,7 +62,8 @@ def test_validate_course_scope_valid_payload_returns_parsed_dict(db):
     raw = json.dumps({"title": "New Title", "description": "New desc"})
     result = ImportService(db).validate("course", raw)
     assert result.valid is True
-    assert result.parsed == {"title": "New Title", "description": "New desc"}
+    # "modules" is optional (full-structure import) and defaults to empty.
+    assert result.parsed == {"title": "New Title", "description": "New desc", "modules": []}
 
 
 def test_validate_course_scope_missing_title_is_invalid(db):

@@ -41,8 +41,16 @@ def _make_chapter(db, module, course, title="Variables", position=0) -> Chapter:
     return chapter
 
 
-def test_scopes_tuple_lists_all_six_known_scopes():
-    assert set(SCOPES) == {"course", "module", "chapter", "page", "module-qcm", "final-exam"}
+def test_scopes_tuple_lists_all_known_scopes():
+    assert set(SCOPES) == {
+        "course",
+        "module",
+        "chapter",
+        "page",
+        "module-content",
+        "module-qcm",
+        "final-exam",
+    }
 
 
 def test_build_course_prompt_includes_course_title_and_description(db):
@@ -93,7 +101,7 @@ def test_build_chapter_prompt_shows_placeholder_when_no_chapters_yet(db):
     course = _make_course(db)
     module = _make_module(db, course)
     prompt = PromptBuilderService(db).build_chapter_prompt(course.id, module.id)
-    assert "no chapters yet" in prompt
+    assert "no chapters/pages yet" in prompt
 
 
 def test_build_page_prompt_requires_chapter_belongs_to_course(db):
@@ -116,17 +124,19 @@ def test_build_page_prompt_lists_sibling_pages(db):
     assert "Intro page" in prompt
 
 
-def test_build_module_qcm_prompt_requests_at_least_50_questions(db):
+def test_build_module_qcm_prompt_scales_question_count_and_is_single_answer(db):
     course = _make_course(db)
     module = _make_module(db, course)
     prompt = PromptBuilderService(db).build_module_qcm_prompt(course.id, module.id)
-    assert "AT LEAST 50" in prompt
+    assert "Hard floor of 10, hard cap of 40" in prompt
+    assert "SINGLE-ANSWER" in prompt
 
 
-def test_build_final_exam_prompt_requests_at_least_100_questions(db):
+def test_build_final_exam_prompt_scales_question_count_and_is_single_answer(db):
     course = _make_course(db)
     prompt = PromptBuilderService(db).build_final_exam_prompt(course.id)
-    assert "AT LEAST 100" in prompt
+    assert "Hard cap of 100" in prompt
+    assert "SINGLE-ANSWER" in prompt
 
 
 def test_build_dispatches_chapter_scope_requires_module_id(db):

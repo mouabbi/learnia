@@ -20,7 +20,11 @@ from learnia_backend.deps import require_admin
 from learnia_backend.exceptions import NotFoundError, ValidationAppError
 from learnia_backend.models.user import User
 from learnia_backend.repositories.course_repository import CourseRepository
-from learnia_backend.schemas.courses import CourseAdminSummary, CourseCreateRequest, CourseUpdateRequest
+from learnia_backend.schemas.courses import (
+    CourseAdminSummary,
+    CourseCreateRequest,
+    CourseUpdateRequest,
+)
 
 router = APIRouter(prefix="/api/v1/cms/courses", tags=["cms-courses"])
 

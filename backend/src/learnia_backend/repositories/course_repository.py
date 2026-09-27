@@ -111,7 +111,9 @@ class CourseRepository:
             course.icon = icon
         if content_status is not None:
             course.content_status = content_status
-            course.archived_at = utc_now_naive() if content_status == ContentStatus.ARCHIVED else None
+            course.archived_at = (
+                utc_now_naive() if content_status == ContentStatus.ARCHIVED else None
+            )
         self.db.commit()
         self.db.refresh(course)
         return course

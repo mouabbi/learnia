@@ -12,7 +12,7 @@ if 04-database's "path to Postgres later" ever happens.
 import enum
 
 
-class ContentStatus(str, enum.Enum):
+class ContentStatus(enum.StrEnum):
     """A course's authoring/publishing lifecycle. Nothing to do with any
     individual learner's progress — see LearningStatus for that."""
 
@@ -23,7 +23,7 @@ class ContentStatus(str, enum.Enum):
     ARCHIVED = "archived"
 
 
-class LearningStatus(str, enum.Enum):
+class LearningStatus(enum.StrEnum):
     """One learner's progress through one course. Nothing to do with the
     course's own content_status — see ContentStatus for that."""
 
@@ -32,7 +32,7 @@ class LearningStatus(str, enum.Enum):
     COMPLETED = "completed"
 
 
-class QuestionScope(str, enum.Enum):
+class QuestionScope(enum.StrEnum):
     """Which kind of attempt a question belongs to (09/10: one shared
     `questions` table, discriminated by scope, instead of two tables)."""
 
@@ -40,7 +40,7 @@ class QuestionScope(str, enum.Enum):
     FINAL_EXAM = "final_exam"
 
 
-class AttemptStatus(str, enum.Enum):
+class AttemptStatus(enum.StrEnum):
     """Shared by AssessmentAttempt and FinalExamAttempt. Module assessments
     never reach AUTO_SUBMITTED (no timer per 09); final exams can (10's
     server-authoritative timer)."""

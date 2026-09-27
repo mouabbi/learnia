@@ -49,7 +49,9 @@ class CourseCreateRequest(BaseModel):
     @classmethod
     def slug_is_url_safe(cls, value: str) -> str:
         if not _SLUG_RE.match(value):
-            raise ValueError("Slug must be lowercase letters, numbers and hyphens (e.g. 'my-course')")
+            raise ValueError(
+                "Slug must be lowercase letters, numbers and hyphens (e.g. 'my-course')"
+            )
         return value
 
     @field_validator("title")

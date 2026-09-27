@@ -25,7 +25,6 @@ CourseReaderPage, which per BlockRenderer.jsx's docstring is not
 block-aware yet and still consumes this flat `content` string).
 """
 
-import json
 
 import pytest
 

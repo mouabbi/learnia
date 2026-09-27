@@ -22,18 +22,18 @@ from learnia_backend.exceptions import NotFoundError
 from learnia_backend.models.course import Course
 from learnia_backend.models.page import Page
 from learnia_backend.repositories.course_repository import CourseRepository
-from learnia_backend.services.search_index import reindex_page
 from learnia_backend.schemas.content import (
     CalloutBlock,
     HeadingBlock,
-    ListBlock,
     LinkBlock,
+    ListBlock,
     PageContent,
     ParagraphBlock,
     QuoteBlock,
     TableBlock,
     TerminalBlock,
 )
+from learnia_backend.services.search_index import reindex_page
 
 CONTENT_ROOT = Path(__file__).resolve().parent.parent.parent.parent / "content"
 
@@ -57,7 +57,9 @@ def _extract_text(content: PageContent) -> str:
     """Plain-text extraction for `pages.search_text` (14-global-search)."""
     parts: list[str] = []
     for block in content.blocks:
-        if isinstance(block, (HeadingBlock, ParagraphBlock, TerminalBlock, QuoteBlock, CalloutBlock)):
+        if isinstance(
+            block, (HeadingBlock, ParagraphBlock, TerminalBlock, QuoteBlock, CalloutBlock)
+        ):
             parts.append(block.text)
         elif isinstance(block, LinkBlock):
             parts.append(block.text)

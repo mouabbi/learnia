@@ -45,7 +45,8 @@ describe('BlockRenderer semantic HTML', () => {
 
   it('falls back to an empty (decorative) alt when the block has none, rather than omitting alt', () => {
     render(<BlockRenderer blocks={[{ type: 'image', src: '/x.png' }]} />)
-    const img = screen.getByRole('presentation') || document.querySelector('img')
+    // getByRole throws if no element has that role, so this line is itself an assertion.
+    screen.getByRole('presentation')
     // An <img alt=""> is exposed with the "presentation"/"none" role by
     // most accessibility trees; assert the attribute directly too so this
     // doesn't depend on a specific ARIA mapping.

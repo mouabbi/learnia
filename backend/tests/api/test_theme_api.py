@@ -67,7 +67,12 @@ def test_get_theme_reads_back_old_loosely_typed_keys(client, db):
     course = Course(
         slug="legacy",
         title="Legacy",
-        theme={"accent": "#123456", "image": "pic.png", "difficulty": "easy", "estimatedMinutes": 30},
+        theme={
+            "accent": "#123456",
+            "image": "pic.png",
+            "difficulty": "easy",
+            "estimatedMinutes": 30,
+        },
     )
     db.add(course)
     db.commit()

@@ -10,6 +10,14 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# Playwright output (generated on every e2e run)
+playwright-report
+test-results
+
+# Playwright E2E tests: kept local for now, not pushed yet
+e2e
+playwright.config.js
 *.local
 
 # Editor directories and files
