@@ -1,0 +1,55 @@
+# Learnia — run the whole app with Docker.
+#
+#   docker compose up --build -d     build images + start everything (background)
+#   docker compose logs -f backend   follow the backend logs
+#   docker compose down              stop + remove containers (data is KEPT in volumes)
+#
+# Open http://localhost:8080
+
+services:
+  backend:
+    build: ./backend
+    # Your secrets/settings (SMTP password, MFA key, ...) come from
+    # backend/.env at RUNTIME — they are never copied into the image.
+    env_file:
+      - path: ./backend/.env
+        required: false
+    # These override backend/.env, because inside Docker some values differ.
+    environment:
+      # 4 slashes = absolute path /app/data/learnia.db (inside the volume below)
+      DATABASE_URL: sqlite:////app/data/learnia.db
+      CORS_ORIGINS: '["http://localhost:8080"]'
+      FRONTEND_BASE_URL: http://localhost:8080
+      # "development" keeps the session cookie usable over plain http.
+      # (production = HTTPS-only cookie; only set that behind real HTTPS)
+      ENVIRONMENT: development
+    volumes:
+      # named volume : folder inside the container
+      - learnia-data:/app/data         # SQLite database
+      - learnia-content:/app/content   # page content JSON files
+      - learnia-assets:/app/assets     # uploaded images/videos/PDFs
+      - learnia-logs:/app/logs         # app.log files
+    # No "ports:" on purpose — the backend is NOT reachable from your PC
+    # directly, only from other containers on the network (i.e. nginx).
+    restart: unless-stopped
+
+
+  frontend:
+    build: ./frontend
+    ports:
+      # "HOST:CONTAINER" -> localhost:8080 on your PC goes to nginx's port 80
+      - "8080:80"
+    depends_on:
+      backend:
+        # wait until the backend's HEALTHCHECK says it's up
+        condition: service_healthy
+    restart: unless-stopped
+
+# Named volumes: Docker stores them (inside its Linux VM) and they survive
+# `docker compose down` and image rebuilds. Only `docker compose down -v`
+# deletes them — that ERASES your database and content.
+volumes:
+  learnia-data:
+  learnia-content:
+  learnia-assets:
+  learnia-logs:
