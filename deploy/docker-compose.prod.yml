@@ -1,0 +1,41 @@
+# Production stack on the VPS (the pipeline copies it to /opt/learnia).
+# Differences from the dev docker-compose.yml:
+#   - "image:" instead of "build:" -> uses the images CI pushed to Docker Hub
+#   - the frontend listens on 127.0.0.1 only: the VPS's own nginx (with HTTPS)
+#     forwards learnia's domain to it — see deploy/nginx-host.conf
+#
+# ${DOMAIN}, ${DOCKERHUB_USERNAME}, ${APP_PORT} come from /opt/learnia/.env
+# ${IMAGE_TAG} comes from /opt/learnia/.image_tag (written by the pipeline)
+
+services:
+  backend:
+    image: ${DOCKERHUB_USERNAME}/learnia-backend:${IMAGE_TAG}
+    env_file: ./backend.env # secrets, created by hand on the VPS
+    environment:
+      DATABASE_URL: sqlite:////app/data/learnia.db
+      CORS_ORIGINS: '["https://${DOMAIN}"]'
+      FRONTEND_BASE_URL: https://${DOMAIN}
+      ENVIRONMENT: production # HTTPS-only login cookie
+    volumes:
+      - learnia-data:/app/data
+      - learnia-content:/app/content
+      - learnia-assets:/app/assets
+      - learnia-logs:/app/logs
+    restart: unless-stopped
+
+  frontend:
+    image: ${DOCKERHUB_USERNAME}/learnia-frontend:${IMAGE_TAG}
+    ports:
+      # 127.0.0.1 = only reachable from the VPS itself (by the host nginx),
+      # NOT from the internet. Pick a port no other app on the VPS uses.
+      - "127.0.0.1:${APP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  learnia-data:
+  learnia-content:
+  learnia-assets:
+  learnia-logs:
