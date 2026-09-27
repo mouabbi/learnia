@@ -1,17 +1,27 @@
 name: CI
 
-# Runs on every pull request, and on every push to main.
+# On every pull request to main and every push to main:
+#   1. lint + tests (backend, frontend)
+#   2. build the two Docker images
+#   3. on a push to main only: push them to Docker Hub, tagged with the
+#      commit SHA — the deploy step (CD, added later) pulls exactly these.
 on:
-  # pull_request:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
 
-# A newer push to the same branch cancels the older, now-useless run.
+# A newer push to the same branch cancels the older, now-useless CI run.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege by default; jobs that need more ask for it themselves.
+permissions:
+  contents: read
+
 jobs:
+  # ===================================================================== CI
   backend:
     name: Backend (ruff + pytest)
     runs-on: ubuntu-latest
@@ -60,3 +70,49 @@ jobs:
 
       - name: Test
         run: npm run test:run
+
+  # ============================================================ Build images
+  # Runs only if BOTH test jobs passed. On a PR it just builds (proves the
+  # Dockerfiles still work, pushes nothing); on main it also pushes to
+  # Docker Hub.
+  #
+  # Needs (repo Settings > Secrets and variables > Actions):
+  #   variable DOCKERHUB_USERNAME  your Docker Hub username
+  #   secret   DOCKERHUB_TOKEN     a Docker Hub access token (Read & Write),
+  #                                NOT your Docker Hub password
+  images:
+    name: Docker image (${{ matrix.service }})
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [backend, frontend] # same steps, run once per image
+    env:
+      # e.g. mouabbi/learnia-backend  (Docker Hub = <username>/<repository>)
+      IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/learnia-${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # BuildKit builder: needed for the layer cache below.
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build (and push on main)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.service }}
+          push: ${{ github.event_name == 'push' }}
+          # :<commit sha> = this exact version (what the deploy will use).
+          # :main         = "newest build of main", handy for humans only.
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:main
+          # Reuse layers between CI runs (GitHub Actions cache) -> faster builds.
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

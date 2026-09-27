@@ -1,0 +1,24 @@
+# Files Docker must NOT send into the build (smaller, faster, safer images).
+
+# Local virtualenv / caches — the image builds its own .venv
+.venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Secrets — passed at runtime by docker compose, never baked into the image
+.env
+.env.*
+!.env.example
+
+# Local data — lives in Docker volumes instead
+*.db
+*.db-journal
+content/
+assets/
+logs/
+
+# Not needed to run the app
+tests/
+=0.0.20

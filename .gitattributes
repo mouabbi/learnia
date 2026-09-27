@@ -1,0 +1,4 @@
+# Shell scripts run on Linux (the VPS, containers): always LF line endings,
+# even when committed from Windows — a CRLF script fails with
+# "bash: $'\r': command not found".
+*.sh text eol=lf

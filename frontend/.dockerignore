@@ -1,0 +1,15 @@
+# node_modules is installed INSIDE the image (npm ci) for Linux —
+# your Windows node_modules must never be copied in.
+node_modules/
+dist/
+.vite/
+
+# Tests / reports — not needed to build the site
+e2e/
+playwright-report/
+test-results/
+
+# Local env files (the build gets its VITE_* values from Dockerfile ARGs)
+.env
+.env.*
+!.env.example
