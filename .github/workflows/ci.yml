@@ -1,42 +1,41 @@
+# CI for Learnia — on every PR to main and every push to main:
+#   1. backend: ruff + pytest        2. frontend: eslint + vitest
+#   3. build the Docker images (only if 1 and 2 passed)
+#   4. on main only: push the images to Docker Hub (tag = commit SHA)
 name: CI
 
-# On every pull request to main and every push to main:
-#   1. lint + tests (backend, frontend)
-#   2. build the two Docker images
-#   3. on a push to main only: push them to Docker Hub, tagged with the
-#      commit SHA — the deploy step (CD, added later) pulls exactly these.
 on:
   pull_request:
     branches: [main]
   push:
     branches: [main]
 
-# A newer push to the same branch cancels the older, now-useless CI run.
+# A new push cancels the older run still going on the same branch.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Least privilege by default; jobs that need more ask for it themselves.
+# The built-in GITHUB_TOKEN can only read the code (least privilege).
 permissions:
   contents: read
 
 jobs:
-  # ===================================================================== CI
+  # Each job runs on its own fresh Ubuntu machine, in parallel unless "needs:".
   backend:
     name: Backend (ruff + pytest)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: backend # every "run:" step runs inside backend/
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4 # download the repo code
 
       - uses: astral-sh/setup-uv@v5
         with:
-          enable-cache: true
+          enable-cache: true # reuse downloaded packages between runs
           cache-dependency-glob: backend/uv.lock
 
-      # Python version comes from backend/.python-version (3.12).
+      # Python 3.12 (from .python-version) + exact versions from uv.lock.
       - name: Install dependencies
         run: uv sync --locked
 
@@ -57,11 +56,11 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22 # same as the Dockerfile
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      # `npm ci` installs exactly what package-lock.json says (reproducible).
+      # "npm ci" = exact versions from package-lock.json (reproducible).
       - name: Install dependencies
         run: npm ci
 
@@ -71,33 +70,25 @@ jobs:
       - name: Test
         run: npm run test:run
 
-  # ============================================================ Build images
-  # Runs only if BOTH test jobs passed. On a PR it just builds (proves the
-  # Dockerfiles still work, pushes nothing); on main it also pushes to
-  # Docker Hub.
-  #
-  # Needs (repo Settings > Secrets and variables > Actions):
-  #   variable DOCKERHUB_USERNAME  your Docker Hub username
-  #   secret   DOCKERHUB_TOKEN     a Docker Hub access token (Read & Write),
-  #                                NOT your Docker Hub password
+  # PR: only build (checks the Dockerfiles). Push to main: build + push.
+  # Needs in repo Settings > Secrets and variables > Actions:
+  #   variable DOCKERHUB_USERNAME, secret DOCKERHUB_TOKEN (access token, not password)
   images:
     name: Docker image (${{ matrix.service }})
-    needs: [backend, frontend]
+    needs: [backend, frontend] # skipped if any test job failed
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [backend, frontend] # same steps, run once per image
+        service: [backend, frontend] # same job, run once per image
     env:
-      # e.g. mouabbi/learnia-backend  (Docker Hub = <username>/<repository>)
       IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/learnia-${{ matrix.service }}
     steps:
       - uses: actions/checkout@v4
 
-      # BuildKit builder: needed for the layer cache below.
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3 # builder needed for the cache below
 
       - name: Log in to Docker Hub
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' # PRs push nothing, so no login
         uses: docker/login-action@v3
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
@@ -108,11 +99,10 @@ jobs:
         with:
           context: ./${{ matrix.service }}
           push: ${{ github.event_name == 'push' }}
-          # :<commit sha> = this exact version (what the deploy will use).
-          # :main         = "newest build of main", handy for humans only.
+          # :<sha> = exact version (what the deploy will use); :main = newest, for humans.
           tags: |
             ${{ env.IMAGE }}:${{ github.sha }}
             ${{ env.IMAGE }}:main
-          # Reuse layers between CI runs (GitHub Actions cache) -> faster builds.
+          # Reuse Docker layers from earlier runs -> faster builds.
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
