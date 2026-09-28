@@ -93,10 +93,22 @@ jobs:
             cd /opt/learnia &&
             echo IMAGE_TAG=${{ github.sha }} > .image_tag &&
             docker compose -f docker-compose.prod.yml --env-file .env --env-file .image_tag pull &&
-            docker compose -f docker-compose.prod.yml --env-file .env --env-file .image_tag up -d
+            docker compose -f docker-compose.prod.yml --env-file .env --env-file .image_tag up -d --remove-orphans
           "
 
       - name: Check the site is up
         run: |
           sleep 20
           curl --fail https://${{ vars.DOMAIN }}/api/v1/health
+
+      # Only after the health check passed: delete the old learnia-backend /
+      # learnia-frontend images (every tag except the one just deployed).
+      # Other images on the VPS (postgres, other projects...) are not touched.
+      - name: Remove old Learnia images
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+            docker images --format '{{.Repository}}:{{.Tag}}' |
+              grep -E '/learnia-(backend|frontend):' |
+              grep -v ':${{ github.sha }}\$' |
+              xargs -r docker rmi || true
+          "
